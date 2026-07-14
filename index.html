@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Plataforma demonstrativa de treinamentos online em Segurança do Trabalho.">
+  <meta name="theme-color" content="#07100c">
+  <title>FortixSeg | Treinamentos em Segurança do Trabalho</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=12">
+</head>
+<body>
+  <header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+      <button class="brand" type="button" data-nav="home" aria-label="Ir para o início">
+        <img class="brand-image logo-on-dark" src="assets/fortixseg-logo-dark-transparent.png" alt="FortixSeg - Treinamentos em Segurança do Trabalho">
+      </button>
+
+      <nav class="main-nav" id="mainNav" aria-label="Navegação principal">
+        <button type="button" data-nav="courses">Cursos</button>
+        <button type="button" data-nav="companies">Para Empresas</button>
+        <button type="button" data-nav="how">Como Funciona</button>
+        <button type="button" data-nav="certificates">Certificados</button>
+        <button type="button" data-nav="about">Sobre Nós</button>
+        <button type="button" data-nav="contact">Contato</button>
+      </nav>
+
+      <div class="header-actions">
+        <button class="icon-button cart-button" id="cartButton" type="button" aria-label="Abrir carrinho">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 4h2l2.4 10.1a2 2 0 0 0 2 1.5h7.8a2 2 0 0 0 1.9-1.4L21 8H7"/>
+            <circle cx="10" cy="20" r="1.2"/>
+            <circle cx="18" cy="20" r="1.2"/>
+          </svg>
+          <span id="cartCount">0</span>
+        </button>
+        <button class="button button-ghost desktop-auth" type="button" data-auth="login">Entrar</button>
+        <button class="button button-primary desktop-auth" type="button" data-auth="register">Cadastrar</button>
+        <button class="button button-secondary hidden" type="button" data-auth-home-target>Minha área</button>
+        <button class="icon-button menu-toggle" id="menuToggle" type="button" aria-label="Abrir menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-auth" id="mobileAuth">
+      <button class="button button-ghost" type="button" data-auth="login">Entrar</button>
+      <button class="button button-primary" type="button" data-auth="register">Cadastrar</button>
+      <button class="button button-secondary hidden" type="button" data-auth-home-target>Minha área</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="page active" id="page-home" data-page="home">
+      <section class="hero hero-photo">
+        <div class="hero-grid-lines" aria-hidden="true"></div>
+        <div class="container hero-layout">
+          <div class="hero-copy">
+            <span class="eyebrow">Treinamentos de</span>
+            <h1>Segurança do Trabalho <strong>100% Online</strong></h1>
+            <p>Cursos válidos em todo o Brasil, com certificado digital e QR Code para verificação. Plataforma completa para empresas e profissionais que valorizam a segurança.</p>
+            <div class="hero-differentials" aria-label="Diferenciais">
+              <span><i>01</i> Cursos reconhecidos e atualizados</span>
+              <span><i>02</i> Certificado digital com QR Code</span>
+              <span><i>03</i> Válidos em todo o Brasil</span>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-label="Ilustração de profissional de segurança do trabalho">
+            <!-- Arte vetorial propria. Futuramente pode ser substituida por foto real de trabalhador FortixSeg. -->
+            <div class="industrial-frame">
+              <div class="hero-worker-stage">
+                <img class="hero-worker-art" src="assets/fortixseg-hero-worker.svg?v=3" alt="" aria-hidden="true">
+                <div class="worker-scan-card" aria-hidden="true">
+                  <span>Check-list ativo</span>
+                  <strong>NR 35</strong>
+                  <i></i>
+                </div>
+              </div>
+              <div class="scene-label">
+                <span>Ambiente controlado</span>
+                <strong>SEGURANÇA EM PRIMEIRO LUGAR</strong>
+              </div>
+            </div>
+            <aside class="compliance-panel">
+              <div><span class="check-icon">✓</span><p><strong>Certificado com QR Code</strong> para validação</p></div>
+              <div><span class="check-icon">✓</span><p><strong>Conforme as NRs</strong> e legislação vigente</p></div>
+              <div><span class="check-icon">✓</span><p><strong>Plataforma moderna</strong> e fácil de usar</p></div>
+              <div><span class="check-icon">✓</span><p><strong>Suporte especializado</strong> sempre que precisar</p></div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats-band" aria-label="Indicadores">
+        <div class="container stats-grid">
+          <article><strong>+25.000</strong><span>Alunos certificados</span></article>
+          <article><strong>+1.000</strong><span>Empresas atendidas</span></article>
+          <article><strong>+50</strong><span>Cursos disponíveis</span></article>
+          <article><strong>+10 anos</strong><span>De experiência no mercado</span></article>
+        </div>
+      </section>
+
+      <section class="content-section">
+        <div class="container">
+          <div class="section-heading centered">
+            <span class="section-kicker">Formação confiável</span>
+            <h2>Por que escolher a <span data-brand>FortixSeg</span>?</h2>
+            <p>Uma experiência de capacitação construída para unir qualidade técnica, praticidade e rastreabilidade.</p>
+          </div>
+          <div class="benefit-grid">
+            <article class="benefit-item"><span>01</span><h3>Conteúdo atualizado</h3><p>Cursos alinhados com as NRs e melhores práticas do mercado.</p></article>
+            <article class="benefit-item"><span>02</span><h3>Flexibilidade total</h3><p>Estude no seu ritmo, de onde estiver e quando quiser.</p></article>
+            <article class="benefit-item"><span>03</span><h3>Certificado válido</h3><p>Certificado digital com QR Code para validação em todo o Brasil.</p></article>
+            <article class="benefit-item"><span>04</span><h3>Acesso imediato</h3><p>Após a confirmação do pagamento você já pode começar.</p></article>
+            <article class="benefit-item"><span>05</span><h3>Plataforma segura</h3><p>Seus dados protegidos com tecnologia e suporte especializado.</p></article>
+            <article class="benefit-item"><span>06</span><h3>Para pessoas e empresas</h3><p>Soluções completas para você ou para capacitar sua equipe.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-section section-muted">
+        <div class="container">
+          <div class="section-heading split-heading">
+            <div><span class="section-kicker">Cursos em destaque</span><h2>Treinamentos para rotinas que exigem preparo</h2></div>
+            <button class="text-action" type="button" data-nav="courses">Ver catálogo completo <span>→</span></button>
+          </div>
+          <div class="course-grid course-grid-featured" id="featuredCourses"></div>
+        </div>
+      </section>
+
+      <section class="faq-section">
+        <div class="container faq-layout">
+          <div class="section-heading">
+            <span class="section-kicker">Dúvidas frequentes</span>
+            <h2>Informação clara antes de começar</h2>
+            <p>Veja respostas rápidas sobre acesso, avaliação, certificados e soluções empresariais.</p>
+            <button class="text-action assistant-inline-action" type="button" data-open-assistant>Falar com o assistente virtual <span>→</span></button>
+          </div>
+          <div class="faq-list" id="faqList">
+            <article class="faq-item"><button type="button" aria-expanded="false">Os cursos são 100% online?<span>+</span></button><div><p>Sim. O conteúdo, as avaliações e o acompanhamento são realizados pela plataforma.</p></div></article>
+            <article class="faq-item"><button type="button" aria-expanded="false">Quando recebo meu certificado?<span>+</span></button><div><p>O certificado é liberado após a conclusão das aulas e aprovação na avaliação.</p></div></article>
+            <article class="faq-item"><button type="button" aria-expanded="false">O certificado possui validação por QR Code?<span>+</span></button><div><p>Sim. O modelo prevê QR Code e código único para consulta pública.</p></div></article>
+            <article class="faq-item"><button type="button" aria-expanded="false">Empresas podem comprar em lote?<span>+</span></button><div><p>Sim. A área corporativa permite distribuir vagas entre vários colaboradores.</p></div></article>
+            <article class="faq-item"><button type="button" aria-expanded="false">A plataforma emite relatórios?<span>+</span></button><div><p>O painel empresarial demonstra relatórios de progresso, conclusão e vencimentos.</p></div></article>
+            <article class="faq-item"><button type="button" aria-expanded="false">Consigo acessar pelo celular?<span>+</span></button><div><p>Sim. A interface foi preparada para desktop, tablet e celular.</p></div></article>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="page inner-page" id="page-courses" data-page="courses">
+      <div class="page-hero">
+        <div class="container">
+          <span class="section-kicker">Catálogo de treinamentos</span>
+          <h1>Cursos online em Segurança do Trabalho</h1>
+          <p>Formação objetiva, avaliação de aprendizagem e certificado digital após aprovação.</p>
+        </div>
+      </div>
+      <div class="container content-section">
+        <div class="catalog-toolbar">
+          <label class="search-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+            <input id="courseSearch" type="search" placeholder="Buscar curso ou NR">
+          </label>
+          <span id="courseResultCount">8 cursos disponíveis</span>
+        </div>
+        <div class="course-grid" id="courseCatalog"></div>
+      </div>
+    </section>
+
+    <section class="page inner-page" id="page-companies" data-page="companies">
+      <div class="page-hero company-hero">
+        <div class="container narrow">
+          <span class="section-kicker">Soluções corporativas</span>
+          <h1>Capacite sua equipe com mais praticidade e controle</h1>
+          <p>Nossa plataforma para empresas permite comprar cursos em lote, acompanhar o progresso dos colaboradores e gerenciar certificados de forma simples e centralizada.</p>
+        </div>
+      </div>
+      <section class="content-section">
+        <div class="container">
+          <div class="b2b-grid">
+            <div>
+              <div class="section-heading">
+                <span class="section-kicker">Gestão centralizada</span>
+                <h2>Menos planilhas. Mais visibilidade.</h2>
+              </div>
+              <div class="feature-list">
+                <article><span>✓</span><div><h3>Compra em lote</h3><p>Distribua vagas para múltiplos colaboradores.</p></div></article>
+                <article><span>✓</span><div><h3>Acompanhamento em tempo real</h3><p>Visualize progresso e status das capacitações.</p></div></article>
+                <article><span>✓</span><div><h3>Relatórios por empresa</h3><p>Organize informações de treinamento em um só lugar.</p></div></article>
+                <article><span>✓</span><div><h3>Certificados centralizados</h3><p>Consulte documentos emitidos por colaborador.</p></div></article>
+                <article><span>✓</span><div><h3>Alertas de vencimento</h3><p>Antecipe necessidades de reciclagem.</p></div></article>
+                <article><span>✓</span><div><h3>Redução de custo operacional</h3><p>Simplifique a gestão do ciclo de capacitação.</p></div></article>
+              </div>
+            </div>
+            <form class="form-panel" id="proposalForm">
+              <div class="form-heading"><span>Solicite uma proposta</span><h2>Conte um pouco sobre sua operação</h2></div>
+              <div class="form-grid">
+                <label class="field full"><span>Nome da empresa</span><input name="company" required></label>
+                <label class="field"><span>CNPJ</span><input name="cnpj" required></label>
+                <label class="field"><span>Nome do responsável</span><input name="responsible" required></label>
+                <label class="field"><span>E-mail</span><input name="email" type="email" required></label>
+                <label class="field"><span>Telefone</span><input name="phone" required></label>
+                <label class="field full"><span>Quantidade de colaboradores</span><input name="employees" type="number" min="1" required></label>
+                <label class="field full"><span>Mensagem</span><textarea name="message" rows="4"></textarea></label>
+              </div>
+              <button class="button button-primary button-block" type="submit">Solicitar proposta</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="page inner-page" id="page-how" data-page="how">
+      <div class="page-hero">
+        <div class="container narrow">
+          <span class="section-kicker">Jornada de aprendizagem</span>
+          <h1>Como funciona</h1>
+          <p>Da escolha do treinamento à validação do certificado, cada etapa fica registrada e acessível.</p>
+        </div>
+      </div>
+      <section class="content-section">
+        <div class="container">
+          <div class="steps-grid">
+            <article><span>01</span><h2>Escolha o curso</h2><p>Consulte o catálogo e os detalhes da formação.</p></article>
+            <article><span>02</span><h2>Faça o cadastro</h2><p>Crie sua conta de candidato ou empresa.</p></article>
+            <article><span>03</span><h2>Realize o pagamento</h2><p>Confirme a matrícula no checkout.</p></article>
+            <article><span>04</span><h2>Acesse a área do aluno</h2><p>Encontre aulas, materiais e progresso.</p></article>
+            <article><span>05</span><h2>Assista às aulas</h2><p>Avance pelos módulos no seu ritmo.</p></article>
+            <article><span>06</span><h2>Faça a avaliação</h2><p>Responda ao teste final de aprendizagem.</p></article>
+            <article><span>07</span><h2>Emita o certificado</h2><p>Após aprovação, acesse seu documento digital.</p></article>
+            <article><span>08</span><h2>Valide pelo QR Code</h2><p>Consulte a autenticidade pelo código único.</p></article>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="page inner-page" id="page-certificates" data-page="certificates">
+      <div class="page-hero certificate-hero">
+        <div class="container narrow">
+          <span class="section-kicker">Consulta pública</span>
+          <h1>Validação de certificado</h1>
+          <p>Consulte a autenticidade de um certificado emitido pela plataforma.</p>
+        </div>
+      </div>
+      <section class="content-section">
+        <div class="container validation-layout">
+          <form class="validation-form" id="validationForm">
+            <label class="field"><span>Digite o código do certificado</span><input id="certificateCode" autocomplete="off" placeholder="Ex.: FS-NR35-2026-000123" required></label>
+            <button class="button button-primary" type="submit">Validar certificado</button>
+            <small>Código demonstrativo: FS-NR35-2026-000123</small>
+          </form>
+          <div class="validation-result empty" id="validationResult">
+            <div class="status-seal">FS</div>
+            <div><strong>Aguardando consulta</strong><p>Informe o código para visualizar o resultado.</p></div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="page inner-page" id="page-about" data-page="about">
+      <div class="page-hero about-hero">
+        <div class="container narrow">
+          <span class="section-kicker">Sobre nós</span>
+          <h1>Capacitação acessível, rastreável e eficiente</h1>
+        </div>
+      </div>
+      <section class="content-section">
+        <div class="container editorial-grid">
+          <div class="section-heading">
+            <span class="section-kicker">Nossa proposta</span>
+            <h2>Segurança começa com conhecimento bem aplicado</h2>
+          </div>
+          <div class="editorial-copy">
+            <p>A <span data-brand>FortixSeg</span> nasceu para tornar a capacitação em Segurança do Trabalho mais acessível, rastreável e eficiente para profissionais e empresas em todo o Brasil.</p>
+            <p>Com foco em treinamentos online, avaliações objetivas e certificados com validação digital, nossa plataforma ajuda empresas a manterem seus colaboradores capacitados e seus registros organizados.</p>
+            <div class="values-row">
+              <article><strong>Clareza</strong><span>Informação objetiva em cada etapa.</span></article>
+              <article><strong>Rastreabilidade</strong><span>Registros e validação digital.</span></article>
+              <article><strong>Praticidade</strong><span>Aprendizado acessível em qualquer dispositivo.</span></article>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="page inner-page" id="page-contact" data-page="contact">
+      <div class="page-hero contact-hero">
+        <div class="container narrow">
+          <span class="section-kicker">Fale com a equipe</span>
+          <h1>Como podemos ajudar?</h1>
+          <p>Envie sua dúvida, solicitação ou necessidade de treinamento corporativo.</p>
+        </div>
+      </div>
+      <section class="content-section">
+        <div class="container contact-layout">
+          <div class="contact-notes">
+            <div><span>01</span><h2>Atendimento comercial</h2><p>Propostas para equipes, turmas e compras em lote.</p></div>
+            <div><span>02</span><h2>Suporte ao aluno</h2><p>Acesso, progresso, avaliação e certificado.</p></div>
+            <div><span>03</span><h2>Dúvidas técnicas</h2><p>Informações sobre carga horária e conteúdo.</p></div>
+            <div><span>04</span><h2>E-mail</h2><p><a class="contact-email" data-email href="mailto:fortixseg@gmail.com">fortixseg@gmail.com</a></p></div>
+          </div>
+          <form class="form-panel" id="contactForm">
+            <div class="form-grid">
+              <label class="field"><span>Nome</span><input name="name" required></label>
+              <label class="field"><span>E-mail</span><input name="email" type="email" required></label>
+              <label class="field"><span>Telefone</span><input name="phone" required></label>
+              <label class="field"><span>Assunto</span><input name="subject" required></label>
+              <label class="field full"><span>Mensagem</span><textarea name="message" rows="6" required></textarea></label>
+            </div>
+            <button class="button button-primary button-block" type="submit">Enviar mensagem</button>
+          </form>
+        </div>
+      </section>
+    </section>
+
+    <section class="page app-page" id="page-student" data-page="student">
+      <div class="app-shell">
+        <aside class="app-sidebar">
+          <div class="app-brand"><span class="mini-mark">FS</span><div><strong data-brand>FortixSeg</strong><small>Área do aluno</small></div></div>
+          <nav>
+            <button class="active" type="button">Meu painel</button>
+            <button type="button">Meus cursos</button>
+            <button type="button">Aulas</button>
+            <button type="button">Avaliações</button>
+            <button type="button" data-show-certificate>Meus certificados</button>
+            <button type="button">Meus dados</button>
+            <button type="button">Suporte</button>
+          </nav>
+          <button class="sidebar-logout" type="button" data-logout>Sair</button>
+        </aside>
+        <div class="app-main">
+          <div class="app-topbar"><div><span>Área do aluno</span><h1>Olá, João da Silva</h1></div><button class="button button-secondary" type="button" data-nav="home">Voltar ao site</button></div>
+          <div class="metric-grid">
+            <article><span>Cursos matriculados</span><strong id="studentEnrolledMetric">2</strong><small>1 em andamento</small></article>
+            <article><span>Cursos concluídos</span><strong id="completedCoursesMetric">1</strong><small>Histórico disponível</small></article>
+            <article><span>Certificados emitidos</span><strong id="studentCertificatesMetric">1</strong><small>Validação digital</small></article>
+            <article><span>Progresso médio</span><strong id="averageProgressMetric">65%</strong><small>Continue avançando</small></article>
+          </div>
+          <section class="portal-insights student-insights" aria-label="Resumo do aluno">
+            <article class="insight-card primary">
+              <span>Próxima ação</span>
+              <h2 id="studentNextActionTitle">Continuar NR 35</h2>
+              <p id="studentNextActionText">Módulo 03: Equipamentos de proteção contra quedas.</p>
+            </article>
+            <article class="insight-card">
+              <span>Atendimento</span>
+              <h2 id="studentSupportSla">Até 1 dia útil</h2>
+              <p>Suporte técnico e acadêmico pelo canal oficial.</p>
+            </article>
+            <article class="insight-card">
+              <span>Status da API</span>
+              <h2 id="studentApiStatus">Modo local</h2>
+              <p>Dados demonstrativos sincronizados com fallback no navegador.</p>
+            </article>
+          </section>
+          <section class="dashboard-section">
+            <div class="dashboard-heading"><div><span>Continuar estudando</span><h2>Seus cursos</h2></div></div>
+            <div class="enrolled-grid">
+              <article class="enrolled-course">
+                <div class="course-mini-visual nr35"><span>NR 35</span></div>
+                <div class="enrolled-content">
+                  <span class="course-status">Em andamento</span>
+                  <h3>NR 35 - Trabalho em Altura</h3>
+                  <div class="progress-label"><span>Progresso</span><strong id="studentProgressLabel">75%</strong></div>
+                  <div class="progress-track"><i id="studentProgressBar" style="width:75%"></i></div>
+                  <button class="button button-primary" id="continueCourseButton" type="button">Continuar curso</button>
+                </div>
+              </article>
+              <article class="enrolled-course compact-complete">
+                <div class="course-mini-visual epi"><span>EPI</span></div>
+                <div class="enrolled-content">
+                  <span class="course-status complete">Concluído</span>
+                  <h3>Uso Correto de EPIs</h3>
+                  <div class="progress-label"><span>Progresso</span><strong>100%</strong></div>
+                  <div class="progress-track"><i style="width:100%"></i></div>
+                  <button class="button button-secondary" type="button" data-show-certificate>Ver certificado</button>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="page app-page" id="page-lesson" data-page="lesson">
+      <div class="lesson-shell">
+        <aside class="lesson-sidebar">
+          <button class="back-link" type="button" data-nav="student">← Voltar ao painel</button>
+          <span class="course-status">Curso em andamento</span>
+          <h1>NR 35 - Trabalho em Altura</h1>
+          <div class="lesson-progress"><span><b id="lessonProgressText">75%</b> concluído</span><div class="progress-track"><i id="lessonProgressBar" style="width:75%"></i></div></div>
+          <nav class="module-list">
+            <button class="complete" type="button"><span>01</span>Introdução e conceitos<b>✓</b></button>
+            <button class="complete" type="button"><span>02</span>Análise de risco<b>✓</b></button>
+            <button class="active" type="button"><span>03</span>Equipamentos de proteção<b>▶</b></button>
+            <button type="button"><span>04</span>Responsabilidades<b>○</b></button>
+            <button type="button"><span>05</span>Procedimentos de emergência<b>○</b></button>
+          </nav>
+        </aside>
+        <div class="lesson-content">
+          <div class="lesson-top"><span>Módulo 03</span><h2>Equipamentos de proteção contra quedas</h2></div>
+          <div class="video-placeholder">
+            <div class="play-symbol">▶</div>
+            <strong>Vídeo da aula será exibido aqui</strong>
+            <span>Player demonstrativo</span>
+          </div>
+          <div class="lesson-actions">
+            <button class="button button-secondary" id="completeLessonButton" type="button">Marcar aula como concluída</button>
+            <button class="button button-primary" id="openQuizButton" type="button">Fazer avaliação</button>
+          </div>
+          <section class="quiz-panel hidden" id="quizPanel">
+            <div class="quiz-heading"><span>Avaliação final</span><h2>Teste seus conhecimentos</h2><p>Responda às 5 questões. A nota mínima para aprovação é 70%.</p></div>
+            <form id="quizForm"></form>
+            <div class="quiz-result hidden" id="quizResult"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="page app-page" id="page-company-dashboard" data-page="company-dashboard">
+      <div class="app-shell">
+        <aside class="app-sidebar corporate-sidebar">
+          <div class="app-brand"><span class="mini-mark">FS</span><div><strong data-brand>FortixSeg</strong><small>Portal da empresa</small></div></div>
+          <nav>
+            <button class="active" type="button">Dashboard</button>
+            <button type="button">Colaboradores</button>
+            <button type="button">Comprar cursos</button>
+            <button type="button">Cursos em andamento</button>
+            <button type="button">Certificados</button>
+            <button type="button">Relatórios</button>
+            <button type="button">Vencimentos</button>
+            <button type="button">Configurações</button>
+          </nav>
+          <button class="sidebar-logout" type="button" data-logout>Sair</button>
+        </aside>
+        <div class="app-main">
+          <div class="app-topbar"><div><span>Portal corporativo</span><h1>Empresa Exemplo Ltda.</h1></div><button class="button button-secondary" type="button" data-nav="home">Voltar ao site</button></div>
+          <div class="metric-grid">
+            <article><span>Colaboradores ativos</span><strong id="activeEmployeesMetric">128</strong><small>Equipe cadastrada</small></article>
+            <article><span>Cursos em andamento</span><strong id="companyCoursesMetric">32</strong><small>12 acima de 70%</small></article>
+            <article><span>Certificados emitidos</span><strong id="companyCertificatesMetric">96</strong><small>Centralizados</small></article>
+            <article><span>Vencimentos próximos</span><strong class="warning-number" id="companyExpiringMetric">18</strong><small>Próximos 60 dias</small></article>
+          </div>
+          <section class="portal-insights company-insights" aria-label="Resumo corporativo">
+            <article class="insight-card primary">
+              <span>Conformidade</span>
+              <h2 id="companyComplianceRate">78%</h2>
+              <p>Colaboradores dentro do ciclo de capacitação esperado.</p>
+            </article>
+            <article class="insight-card">
+              <span>Vagas disponíveis</span>
+              <h2 id="companySeatsAvailable">42</h2>
+              <p>Licenças prontas para novas matrículas ou reciclagens.</p>
+            </article>
+            <article class="insight-card warning">
+              <span>Alerta operacional</span>
+              <h2 id="companyAlertTitle">18 vencimentos</h2>
+              <p id="companyAlertText">Certificados próximos do prazo de reciclagem.</p>
+            </article>
+          </section>
+          <section class="dashboard-section">
+            <div class="dashboard-heading"><div><span>Gestão da equipe</span><h2>Colaboradores</h2></div><button class="button button-primary" id="addEmployeeButton" type="button">Adicionar colaborador</button></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Nome</th><th>Curso</th><th>Progresso</th><th>Status</th><th>Certificado</th></tr></thead>
+                <tbody id="employeeTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="dashboard-section bulk-section">
+            <div class="dashboard-heading"><div><span>Licenças para a equipe</span><h2>Comprar cursos em lote</h2></div></div>
+            <form class="bulk-form" id="bulkPurchaseForm">
+              <label class="field"><span>Selecionar curso</span><select id="bulkCourse" required></select></label>
+              <label class="field"><span>Quantidade de vagas</span><input id="bulkQuantity" type="number" min="1" value="10" required></label>
+              <button class="button button-primary" type="submit">Adicionar ao carrinho corporativo</button>
+            </form>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="page app-page" id="page-admin" data-page="admin">
+      <div class="app-shell">
+        <aside class="app-sidebar admin-sidebar">
+          <div class="app-brand"><span class="mini-mark">FS</span><div><strong data-brand>FortixSeg</strong><small>Administração</small></div></div>
+          <nav>
+            <button class="active" type="button">Dashboard</button>
+            <button type="button">Cursos</button>
+            <button type="button">Alunos</button>
+            <button type="button">Empresas</button>
+            <button type="button">Certificados</button>
+            <button type="button">Pagamentos</button>
+            <button type="button">Relatórios</button>
+            <button type="button">Configurações</button>
+          </nav>
+          <button class="sidebar-logout" type="button" data-logout>Sair</button>
+        </aside>
+        <div class="app-main">
+          <div class="app-topbar"><div><span>Painel administrativo</span><h1>Visão geral da plataforma</h1></div><button class="button button-secondary" type="button" data-nav="home">Voltar ao site</button></div>
+          <div class="metric-grid">
+            <article><span>Total de alunos</span><strong id="adminStudentsMetric">25.000</strong><small>Cadastros ativos</small></article>
+            <article><span>Empresas</span><strong id="adminCompaniesMetric">1.000</strong><small>Contas corporativas</small></article>
+            <article><span>Cursos</span><strong id="adminCoursesMetric">50</strong><small>Catálogo publicado</small></article>
+            <article><span>Certificados emitidos</span><strong id="adminCertificatesMetric">150.000</strong><small>Histórico total</small></article>
+          </div>
+          <section class="api-status-grid" aria-label="Status das integrações">
+            <article><span>Servidor</span><strong id="apiServerStatus">Online</strong><small>API local ativa</small></article>
+            <article><span>OpenAI</span><strong id="apiOpenAiStatus">Pendente</strong><small>Atendente inteligente</small></article>
+            <article><span>Mercado Pago</span><strong id="apiMercadoPagoStatus">Pendente</strong><small>Checkout Pro</small></article>
+            <article><span>Banco de dados</span><strong id="apiDatabaseStatus">Demo local</strong><small>Futuro PostgreSQL</small></article>
+          </section>
+          <div class="admin-grid">
+            <section class="dashboard-section">
+              <div class="dashboard-heading"><div><span>Cadastros recentes</span><h2>Últimos alunos</h2></div></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Nome</th><th>Curso</th><th>Status</th><th>Data</th></tr></thead>
+                  <tbody id="adminStudentsTableBody">
+                    <tr><td>Mariana Costa</td><td>NR 35</td><td><span class="table-status progress">Em andamento</span></td><td>04/07/2026</td></tr>
+                    <tr><td>Paulo Mendes</td><td>NR 10</td><td><span class="table-status complete">Concluído</span></td><td>03/07/2026</td></tr>
+                    <tr><td>Renata Alves</td><td>LOTO</td><td><span class="table-status progress">Em andamento</span></td><td>03/07/2026</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            <section class="dashboard-section">
+              <div class="dashboard-heading"><div><span>Movimentação financeira</span><h2>Últimos pagamentos</h2></div></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Cliente</th><th>Curso</th><th>Valor</th><th>Status</th></tr></thead>
+                  <tbody id="adminPaymentsTableBody">
+                    <tr><td>Juliana Rocha</td><td>NR 35</td><td>R$ 149,90</td><td><span class="table-status complete">Aprovado</span></td></tr>
+                    <tr><td>Atlas Serviços</td><td>NR 12 - 20 vagas</td><td>R$ 3.598,00</td><td><span class="table-status complete">Aprovado</span></td></tr>
+                    <tr><td>Eduardo Nunes</td><td>NR 10</td><td>R$ 249,90</td><td><span class="table-status pending">Pendente</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page certificate-page" id="page-certificate-view" data-page="certificate-view">
+      <div class="certificate-toolbar">
+        <button class="button button-secondary" type="button" data-nav="student">← Voltar</button>
+        <div>
+          <button class="button button-secondary" type="button" id="validateCertificateButton">Validar certificado</button>
+          <button class="button button-primary" type="button" id="printCertificateButton">Baixar PDF</button>
+        </div>
+      </div>
+      <div class="certificate-sheet">
+        <div class="certificate-border">
+          <div class="certificate-brand">
+            <span class="certificate-logo">FS</span>
+            <div><strong data-brand>FortixSeg</strong><small data-subtitle>Treinamentos em Segurança do Trabalho</small></div>
+          </div>
+          <span class="certificate-label">CERTIFICADO</span>
+          <p>Certificamos que</p>
+          <h1>João da Silva</h1>
+          <p>concluiu com aproveitamento o curso</p>
+          <h2>NR 35 - Trabalho em Altura</h2>
+          <div class="certificate-meta">
+            <span><b>Carga horária</b>8 horas</span>
+            <span><b>Data de conclusão</b><i id="certificateDate">04/07/2026</i></span>
+            <span><b>Nota final</b><i id="certificateGrade">80%</i></span>
+          </div>
+          <div class="certificate-footer">
+            <div class="signature"><span></span><strong>Responsável técnico</strong><small>Assinatura demonstrativa</small></div>
+            <div class="certificate-code">
+              <div class="fake-qr" aria-label="QR Code demonstrativo">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <div><strong>FS-NR35-2026-000123</strong><small>Validação digital demonstrativa</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <img class="footer-logo logo-on-dark" src="assets/fortixseg-logo-dark-transparent.png" alt="FortixSeg">
+        <p>Treinamentos online com avaliação e certificado digital após aprovação.</p>
+        <a class="footer-email" data-email href="mailto:fortixseg@gmail.com">fortixseg@gmail.com</a>
+      </div>
+      <div><strong>Plataforma</strong><button type="button" data-nav="courses">Cursos</button><button type="button" data-nav="how">Como funciona</button><button type="button" data-nav="certificates">Validar certificado</button></div>
+      <div><strong>Empresas</strong><button type="button" data-nav="companies">Soluções corporativas</button><button type="button" data-auth="login">Portal da empresa</button><button type="button" data-nav="contact">Solicitar contato</button></div>
+      <div><strong>Atendimento</strong><button type="button" data-open-assistant>Assistente virtual</button><button type="button" data-nav="contact">Contato</button><button type="button" data-nav="about">Sobre nós</button><button type="button" data-auth="login">Área do aluno</button></div>
+    </div>
+    <div class="container footer-bottom"><span>© <i id="currentYear"></i> <b data-brand>FortixSeg</b>. Projeto demonstrativo.</span><span>Privacidade · Termos de uso</span></div>
+  </footer>
+
+  <div class="modal" id="courseModal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-dialog course-dialog" role="dialog" aria-modal="true" aria-labelledby="courseModalTitle">
+      <button class="modal-close" type="button" data-close-modal aria-label="Fechar">×</button>
+      <div id="courseModalContent"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="authModal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-dialog auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+      <button class="modal-close" type="button" data-close-modal aria-label="Fechar">×</button>
+      <div class="auth-brand"><span class="mini-mark">FS</span><div><strong data-brand>FortixSeg</strong><small>Ambiente demonstrativo</small></div></div>
+      <div class="auth-tabs">
+        <button class="active" id="loginTab" type="button">Entrar</button>
+        <button id="registerTab" type="button">Cadastrar</button>
+      </div>
+      <div class="auth-panel active" id="loginPanel">
+        <div class="modal-heading"><span>Acesse sua conta</span><h2 id="authModalTitle">Bem-vindo de volta</h2></div>
+        <form id="loginForm">
+          <label class="field"><span>E-mail</span><input id="loginEmail" type="email" autocomplete="email" required></label>
+          <label class="field"><span>Senha</span><input id="loginPassword" type="password" autocomplete="current-password" required></label>
+          <button class="forgot-link" type="button" id="forgotPassword">Esqueci minha senha</button>
+          <button class="button button-primary button-block" type="submit">Entrar</button>
+        </form>
+        <div class="demo-credentials">
+          <strong>Logins demonstrativos</strong>
+          <button type="button" data-demo-login="student">Aluno: aluno@teste.com</button>
+          <button type="button" data-demo-login="company">Empresa: empresa@teste.com</button>
+          <button type="button" data-demo-login="admin">Admin: admin@teste.com</button>
+          <small>Senha para todos: 123456</small>
+        </div>
+      </div>
+      <div class="auth-panel" id="registerPanel">
+        <div class="modal-heading"><span>Crie sua conta</span><h2>Comece sua jornada</h2></div>
+        <div class="account-type">
+          <button class="active" type="button" data-account-type="candidate">Pessoa física / Candidato</button>
+          <button type="button" data-account-type="company">Empresa</button>
+        </div>
+        <form id="registerForm">
+          <input id="accountType" type="hidden" value="candidate">
+          <div id="candidateFields" class="form-grid">
+            <label class="field full"><span>Nome completo</span><input name="fullName" data-required-candidate></label>
+            <label class="field"><span>CPF</span><input name="cpf" data-required-candidate></label>
+            <label class="field"><span>Telefone</span><input name="phoneCandidate" data-required-candidate></label>
+          </div>
+          <div id="companyFields" class="form-grid hidden">
+            <label class="field full"><span>Razão social</span><input name="companyName" data-required-company></label>
+            <label class="field"><span>CNPJ</span><input name="companyCnpj" data-required-company></label>
+            <label class="field"><span>Responsável</span><input name="companyResponsible" data-required-company></label>
+            <label class="field full"><span>Telefone</span><input name="phoneCompany" data-required-company></label>
+          </div>
+          <div class="form-grid">
+            <label class="field full"><span id="registerEmailLabel">E-mail</span><input name="email" type="email" required></label>
+            <label class="field"><span>Senha</span><input name="password" type="password" minlength="6" required></label>
+            <label class="field"><span>Confirmar senha</span><input name="confirmPassword" type="password" minlength="6" required></label>
+          </div>
+          <button class="button button-primary button-block" type="submit">Criar conta</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="employeeModal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-dialog small-dialog" role="dialog" aria-modal="true" aria-labelledby="employeeModalTitle">
+      <button class="modal-close" type="button" data-close-modal aria-label="Fechar">×</button>
+      <div class="modal-heading"><span>Nova matrícula</span><h2 id="employeeModalTitle">Adicionar colaborador</h2></div>
+      <form id="employeeForm">
+        <label class="field"><span>Nome do colaborador</span><input name="name" required></label>
+        <label class="field"><span>CPF</span><input name="cpf" required></label>
+        <label class="field"><span>E-mail</span><input name="email" type="email" required></label>
+        <label class="field"><span>Curso</span><select name="course" id="employeeCourse" required></select></label>
+        <button class="button button-primary button-block" type="submit">Adicionar</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+    <div class="drawer-header">
+      <div><span>Seu pedido</span><h2>Carrinho</h2></div>
+      <button class="icon-button drawer-close" id="closeCartButton" type="button" aria-label="Fechar carrinho">×</button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-summary">
+      <div><span>Total</span><strong id="cartTotal">R$ 0,00</strong></div>
+      <button class="button button-primary button-block" id="checkoutButton" type="button">Finalizar compra</button>
+      <small>O pagamento seguro será concluído no ambiente do Mercado Pago.</small>
+    </div>
+  </aside>
+
+  <section class="virtual-assistant" aria-label="Assistente virtual FortixSeg">
+    <button class="assistant-launcher" id="assistantLauncher" type="button" aria-label="Abrir assistente virtual" aria-controls="assistantPanel" aria-expanded="false" title="Assistente virtual">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-5 3v-3H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/>
+        <path d="M8 10h8M8 13.5h5"/>
+      </svg>
+      <span class="assistant-notification">1</span>
+    </button>
+
+    <div class="assistant-panel" id="assistantPanel" aria-hidden="true">
+      <header class="assistant-header">
+        <div class="assistant-identity">
+          <span class="assistant-avatar">FS</span>
+          <div><strong>Assistente FortixSeg</strong><span id="assistantStatus"><i></i> Atendimento virtual</span></div>
+        </div>
+        <button class="assistant-close" id="assistantClose" type="button" aria-label="Fechar assistente">×</button>
+      </header>
+
+      <div class="assistant-messages" id="assistantMessages" role="log" aria-live="polite" aria-label="Conversa com o assistente">
+        <div class="assistant-message bot">
+          <span class="assistant-message-label">FortixSeg</span>
+          <p>Olá! Posso ajudar com cursos, preços, certificados, acesso de alunos, soluções para empresas e contato. Como posso orientar você?</p>
+        </div>
+      </div>
+
+      <div class="assistant-suggestions" id="assistantSuggestions" aria-label="Perguntas rápidas">
+        <button type="button" data-assistant-question="Quais cursos estão disponíveis?">Cursos e preços</button>
+        <button type="button" data-assistant-question="Como funciona o certificado?">Certificados</button>
+        <button type="button" data-assistant-question="Como funciona para empresas?">Para empresas</button>
+        <button type="button" data-assistant-question="Como falar com o atendimento?">Contato</button>
+      </div>
+
+      <form class="assistant-form" id="assistantForm">
+        <label for="assistantInput">Digite sua dúvida</label>
+        <div>
+          <input id="assistantInput" maxlength="300" autocomplete="off" placeholder="Ex.: Qual o valor do curso NR 35?" required>
+          <button type="submit" aria-label="Enviar mensagem" title="Enviar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 17 8-17 8 3-8-3-8Zm3 8h14"/></svg>
+          </button>
+        </div>
+        <small>Não envie CPF, senha ou dados de pagamento pelo chat.</small>
+      </form>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js?v=6"></script>
+</body>
+</html>

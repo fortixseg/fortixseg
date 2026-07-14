@@ -1,0 +1,270 @@
+{
+  "users": [
+    {
+      "id": "user-student-demo",
+      "role": "student",
+      "email": "aluno@teste.com",
+      "name": "João da Silva",
+      "companyName": "",
+      "responsibleName": "",
+      "phone": "(11) 99999-0000",
+      "document": "000.000.000-00",
+      "status": "active",
+      "passwordHash": "e27f25f9d7db835ef37db94f964636a96c93ad2518a6e71ab197f9781515107fc8cf161026865bb39c4ddd2cbeb9f307676f9ff958fe34f0ee015289df7a72b1",
+      "passwordSalt": "4d879c2e-5514-42c0-a479-4319388ce673",
+      "createdAt": "2026-07-11T22:50:20.872Z",
+      "updatedAt": "2026-07-11T23:53:20.101Z",
+      "lastLoginAt": "2026-07-11T23:53:20.101Z"
+    },
+    {
+      "id": "user-company-demo",
+      "role": "company",
+      "email": "empresa@teste.com",
+      "name": "Empresa Exemplo Ltda.",
+      "companyName": "Empresa Exemplo Ltda.",
+      "responsibleName": "Empresa Exemplo Ltda.",
+      "phone": "(11) 98888-0000",
+      "document": "00.000.000/0001-00",
+      "status": "active",
+      "passwordHash": "e27f25f9d7db835ef37db94f964636a96c93ad2518a6e71ab197f9781515107fc8cf161026865bb39c4ddd2cbeb9f307676f9ff958fe34f0ee015289df7a72b1",
+      "passwordSalt": "4d879c2e-5514-42c0-a479-4319388ce673",
+      "createdAt": "2026-07-11T22:50:20.872Z",
+      "updatedAt": "2026-07-11T22:50:20.872Z",
+      "lastLoginAt": ""
+    },
+    {
+      "id": "user-admin-demo",
+      "role": "admin",
+      "email": "admin@teste.com",
+      "name": "Administrador FortixSeg",
+      "companyName": "",
+      "responsibleName": "",
+      "phone": "",
+      "document": "",
+      "status": "active",
+      "passwordHash": "e27f25f9d7db835ef37db94f964636a96c93ad2518a6e71ab197f9781515107fc8cf161026865bb39c4ddd2cbeb9f307676f9ff958fe34f0ee015289df7a72b1",
+      "passwordSalt": "4d879c2e-5514-42c0-a479-4319388ce673",
+      "createdAt": "2026-07-11T22:50:20.872Z",
+      "updatedAt": "2026-07-11T22:50:49.073Z",
+      "lastLoginAt": "2026-07-11T22:50:49.073Z"
+    },
+    {
+      "id": "user-student-6d9363ad-84e3-4215-a24a-82453fe79742",
+      "role": "student",
+      "email": "maria.teste@example.com",
+      "name": "Maria Teste",
+      "companyName": "",
+      "responsibleName": "",
+      "phone": "11999990000",
+      "document": "111.222.333-44",
+      "status": "active",
+      "passwordHash": "42876fd05f443f06c25abf0109c8c4f4988e8ddeb30aafc7fad2944e928b397062eee25212b3f1fd8e1ab152846740a03a485091b1fa26b2eee544fef34265a3",
+      "passwordSalt": "3cc402f2-8ed6-4948-b177-4997eb309a61",
+      "createdAt": "2026-07-11T22:50:49.124Z",
+      "updatedAt": "2026-07-11T22:50:49.124Z",
+      "lastLoginAt": ""
+    }
+  ],
+  "companyEmployees": {
+    "user-company-demo": [
+      {
+        "name": "Carlos Lima",
+        "course": "NR 35",
+        "progress": "75%",
+        "status": "Em andamento",
+        "certificate": false
+      },
+      {
+        "name": "Ana Souza",
+        "course": "Uso Correto de EPIs",
+        "progress": "100%",
+        "status": "Concluído",
+        "certificate": true
+      },
+      {
+        "name": "Marcos Silva",
+        "course": "NR 12",
+        "progress": "40%",
+        "status": "Em andamento",
+        "certificate": false
+      }
+    ]
+  },
+  "registrations": [
+    {
+      "id": "registration-397110f8-2e66-4c78-82dd-ad39d787b560",
+      "role": "student",
+      "email": "maria.teste@example.com",
+      "name": "Maria Teste",
+      "createdAt": "2026-07-11T22:50:49.124Z"
+    }
+  ],
+  "enrollments": [
+    {
+      "id": "enrollment-nr35-demo",
+      "userId": "user-student-demo",
+      "courseId": "nr35",
+      "progress": 100,
+      "status": "completed",
+      "lessonsCompleted": 7,
+      "lessonsTotal": 7,
+      "attemptsUsed": 1,
+      "bestGrade": 100,
+      "certificateId": "certificate-44eb5407-9a62-4d98-bbc9-9e0af75cd02d",
+      "createdAt": "2026-07-11T23:47:23.647Z",
+      "updatedAt": "2026-07-11T23:47:42.145Z",
+      "lastAccessAt": "2026-07-11T23:47:42.145Z"
+    },
+    {
+      "id": "enrollment-epi-demo",
+      "userId": "user-student-demo",
+      "courseId": "epi",
+      "progress": 100,
+      "status": "completed",
+      "lessonsCompleted": 1,
+      "lessonsTotal": 1,
+      "attemptsUsed": 1,
+      "bestGrade": 80,
+      "certificateId": "certificate-epi-demo",
+      "createdAt": "2026-07-11T23:47:23.647Z",
+      "updatedAt": "2026-07-11T23:47:23.647Z",
+      "lastAccessAt": "2026-07-11T23:47:23.647Z"
+    },
+    {
+      "id": "enrollment-55ea3101-3fb5-4da9-a0e6-e6df00275509",
+      "userId": "user-student-demo",
+      "courseId": "nr01",
+      "progress": 0,
+      "status": "not_started",
+      "lessonsCompleted": 0,
+      "lessonsTotal": 1,
+      "attemptsUsed": 0,
+      "bestGrade": 0,
+      "certificateId": "",
+      "createdAt": "2026-07-11T23:47:31.083Z",
+      "updatedAt": "2026-07-11T23:47:31.083Z",
+      "lastAccessAt": ""
+    },
+    {
+      "id": "enrollment-5f4a97ce-f1ee-4369-a818-b99d251927ef",
+      "userId": "user-student-demo",
+      "courseId": "loto",
+      "progress": 0,
+      "status": "not_started",
+      "lessonsCompleted": 0,
+      "lessonsTotal": 1,
+      "attemptsUsed": 0,
+      "bestGrade": 0,
+      "certificateId": "",
+      "createdAt": "2026-07-11T23:53:26.654Z",
+      "updatedAt": "2026-07-11T23:53:26.654Z",
+      "lastAccessAt": ""
+    }
+  ],
+  "orders": [
+    {
+      "id": "order-8ee8b1b1-93ad-4321-8210-b09bcd7d5f75",
+      "userId": "user-student-demo",
+      "role": "student",
+      "type": "student",
+      "status": "approved",
+      "items": [
+        {
+          "courseId": "nr01",
+          "title": "NR 01 - GRO/PGR Introdutório",
+          "quantity": 1,
+          "unitPrice": 89.9,
+          "corporate": false
+        }
+      ],
+      "totalAmount": 89.9,
+      "externalReference": "fortixseg-a9e4058c-3720-40a5-9441-463224953949",
+      "paymentProvider": "demo_local",
+      "paymentId": "",
+      "providerStatus": "success",
+      "lastWebhookAt": "",
+      "releasedAt": "",
+      "createdAt": "2026-07-11T23:47:31.083Z",
+      "updatedAt": "2026-07-11T23:52:31.348Z",
+      "approvedAt": "2026-07-11T23:47:31.083Z"
+    },
+    {
+      "id": "order-f8deca34-fbeb-464c-a466-bf6d443569b0",
+      "userId": "user-student-demo",
+      "role": "student",
+      "type": "student",
+      "status": "approved",
+      "items": [
+        {
+          "courseId": "loto",
+          "title": "LOTO - Bloqueio e Etiquetagem",
+          "quantity": 1,
+          "unitPrice": 99.9,
+          "corporate": false
+        }
+      ],
+      "totalAmount": 99.9,
+      "externalReference": "fortixseg-213a4d55-d28c-489e-a48b-d709c1025c4d",
+      "paymentProvider": "demo_local",
+      "paymentId": "",
+      "providerStatus": "demo_local",
+      "lastWebhookAt": "",
+      "releasedAt": "",
+      "createdAt": "2026-07-11T23:52:25.324Z",
+      "updatedAt": "2026-07-11T23:52:25.324Z",
+      "approvedAt": "2026-07-11T23:52:25.324Z"
+    },
+    {
+      "id": "order-c46fccca-65ee-4da0-a5ad-eda70b5e96c9",
+      "userId": "user-student-demo",
+      "role": "student",
+      "type": "student",
+      "status": "approved",
+      "items": [
+        {
+          "courseId": "loto",
+          "title": "LOTO - Bloqueio e Etiquetagem",
+          "quantity": 1,
+          "unitPrice": 99.9,
+          "corporate": false
+        }
+      ],
+      "totalAmount": 99.9,
+      "externalReference": "fortixseg-fd691691-950d-4ddc-b53f-dd8f1706cc02",
+      "paymentProvider": "demo_local",
+      "paymentId": "",
+      "providerStatus": "demo_local",
+      "lastWebhookAt": "",
+      "releasedAt": "2026-07-11T23:53:26.653Z",
+      "createdAt": "2026-07-11T23:53:26.653Z",
+      "updatedAt": "2026-07-11T23:53:26.653Z",
+      "approvedAt": "2026-07-11T23:53:26.653Z"
+    }
+  ],
+  "certificates": [
+    {
+      "id": "certificate-epi-demo",
+      "code": "FS-EPI-2026-000122",
+      "userId": "user-student-demo",
+      "courseId": "epi",
+      "studentName": "João da Silva",
+      "courseTitle": "Uso Correto de EPIs",
+      "hours": "4 horas",
+      "grade": 80,
+      "issuedAt": "2026-07-11T23:47:23.647Z",
+      "status": "valid"
+    },
+    {
+      "id": "certificate-44eb5407-9a62-4d98-bbc9-9e0af75cd02d",
+      "code": "FS-NR35-2026-000001",
+      "userId": "user-student-demo",
+      "courseId": "nr35",
+      "studentName": "João da Silva",
+      "courseTitle": "NR 35 - Trabalho em Altura",
+      "hours": "8 horas",
+      "grade": 100,
+      "issuedAt": "2026-07-11T23:47:42.127Z",
+      "status": "valid"
+    }
+  ]
+}
