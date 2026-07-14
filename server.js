@@ -75,7 +75,7 @@ const MIME_TYPES = {
 
 const rateLimits = new Map();
 
-const server = createServer(async (request, response) => {
+export async function handleRequest(request, response) {
   const requestId = randomUUID();
   response.setHeader("X-Request-Id", requestId);
   response.setHeader("X-Content-Type-Options", "nosniff");
@@ -236,11 +236,15 @@ const server = createServer(async (request, response) => {
       requestId
     });
   }
-});
+}
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`FortixSeg disponível em http://127.0.0.1:${PORT}`);
-});
+const server = createServer(handleRequest);
+
+if (!IS_VERCEL) {
+  server.listen(PORT, "127.0.0.1", () => {
+    console.log(`FortixSeg disponível em http://127.0.0.1:${PORT}`);
+  });
+}
 
 function loadCourseCatalog() {
   let source = DEFAULT_COURSE_CATALOG;

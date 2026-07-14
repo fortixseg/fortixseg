@@ -1,4 +1,5 @@
 .env
+.env.local
 node_modules/
 npm-debug.log*
 .vercel/
@@ -6,3 +7,5 @@ server-error.log
 server-output.log
 Nova pasta
 Nova pasta.zip
+.vercel
+.env*
