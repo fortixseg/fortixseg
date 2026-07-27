@@ -23,6 +23,7 @@ const COURSE_UPLOAD_DIR = resolve(ROOT_DIR, "assets", "uploads", "courses");
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const SESSION_SECRET = ENV.FORTIXSEG_SESSION_SECRET || ENV.AUTH_TOKEN_SECRET || randomUUID();
 const IS_DIRECT_RUN = Boolean(process.argv[1]) && resolve(process.argv[1]) === MODULE_FILE;
+const IS_SERVERLESS_RUNTIME = Boolean(ENV.VERCEL || ENV.AWS_LAMBDA_FUNCTION_NAME || ENV.LAMBDA_TASK_ROOT);
 
 const DEFAULT_COURSE_CATALOG = {
   nr35: {
@@ -407,8 +408,10 @@ function loadAppDataFromSource(source = {}) {
 }
 
 async function persistRuntimeState() {
-  saveCourseCatalog();
-  saveAppData();
+  if (!IS_SERVERLESS_RUNTIME) {
+    saveCourseCatalog();
+    saveAppData();
+  }
   if (isDatabaseEnabled()) {
     await saveDatabaseState({ courseCatalog, appData: appState });
   }
