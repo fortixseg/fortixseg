@@ -33,10 +33,9 @@ Ainda demonstrativo, nao final:
 
 Precisa de Node.js 18 ou mais recente.
 
-1. Copie `.env.example` para `.env`.
-2. Preencha as variaveis do `.env`.
-3. Rode o servidor com `npm start`.
-4. Abra `http://127.0.0.1:3001` no servidor local.
+1. Preencha o arquivo `.env` com as variaveis do projeto.
+2. Rode o servidor com `npm start`.
+3. Abra `http://127.0.0.1:3001` no servidor local.
 
 Se for subir em VPS, use o IP ou dominio publico no Nginx apontando para a porta do Node.
 
