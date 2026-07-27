@@ -28,15 +28,13 @@
         "type": "pdf",
         "name": "Apostila demonstrativa NR 35",
         "url": "/assets/apostila-nr35-demonstrativa.pdf",
-        "pathname": "",
-        "storage": "",
         "mimeType": "application/pdf",
         "size": 0,
         "createdAt": "2026-07-06T01:59:40.436Z"
       }
     ],
     "createdAt": "2026-07-06T01:59:40.437Z",
-    "updatedAt": "2026-07-27T15:44:23.368Z"
+    "updatedAt": "2026-07-25T19:15:26.981Z"
   },
   "nr12": {
     "id": "nr12",
@@ -55,7 +53,7 @@
     "syllabus": [],
     "resources": [],
     "createdAt": "2026-07-06T01:59:40.437Z",
-    "updatedAt": "2026-07-27T15:44:23.368Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "nr10": {
     "id": "nr10",
@@ -80,7 +78,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-06T01:59:40.437Z",
-    "updatedAt": "2026-07-27T15:44:23.368Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "nr33": {
     "id": "nr33",
@@ -99,7 +97,7 @@
     "syllabus": [],
     "resources": [],
     "createdAt": "2026-07-06T01:59:40.437Z",
-    "updatedAt": "2026-07-27T15:44:23.368Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "epi": {
     "id": "epi",
@@ -124,7 +122,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-06T01:59:40.437Z",
-    "updatedAt": "2026-07-27T15:44:23.368Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "integracao": {
     "id": "integracao",
@@ -143,7 +141,7 @@
     "syllabus": [],
     "resources": [],
     "createdAt": "2026-07-06T01:59:40.437Z",
-    "updatedAt": "2026-07-27T15:44:23.368Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "nr01": {
     "id": "nr01",
@@ -162,7 +160,7 @@
     "syllabus": [],
     "resources": [],
     "createdAt": "2026-07-06T01:59:40.437Z",
-    "updatedAt": "2026-07-27T15:44:23.368Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "loto": {
     "id": "loto",
@@ -187,7 +185,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-06T01:59:40.437Z",
-    "updatedAt": "2026-07-27T15:44:23.368Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "integ-chao": {
     "id": "integ-chao",
@@ -212,7 +210,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "percepcao-riscos": {
     "id": "percepcao-riscos",
@@ -237,7 +235,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "apr": {
     "id": "apr",
@@ -262,7 +260,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "pt": {
     "id": "pt",
@@ -287,7 +285,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "nr12-introdutorio": {
     "id": "nr12-introdutorio",
@@ -312,7 +310,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "nr12-operadores": {
     "id": "nr12-operadores",
@@ -337,7 +335,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "nr12-manutencao": {
     "id": "nr12-manutencao",
@@ -362,7 +360,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "nr33-nocoes": {
     "id": "nr33-nocoes",
@@ -387,7 +385,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "risco-eletrico-nao-eletricistas": {
     "id": "risco-eletrico-nao-eletricistas",
@@ -412,7 +410,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "ferramentas-manuais": {
     "id": "ferramentas-manuais",
@@ -437,7 +435,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "ferramentas-eletricas": {
     "id": "ferramentas-eletricas",
@@ -462,7 +460,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "movimentacao-cargas": {
     "id": "movimentacao-cargas",
@@ -487,7 +485,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "ergonomia-posto": {
     "id": "ergonomia-posto",
@@ -512,7 +510,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "incendio-nocoes": {
     "id": "incendio-nocoes",
@@ -537,7 +535,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "produtos-quimicos": {
     "id": "produtos-quimicos",
@@ -562,7 +560,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.369Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "ar-comprimido": {
     "id": "ar-comprimido",
@@ -587,7 +585,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "solda-corte": {
     "id": "solda-corte",
@@ -612,7 +610,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "ponte-rolante": {
     "id": "ponte-rolante",
@@ -637,7 +635,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "talhas-icamento": {
     "id": "talhas-icamento",
@@ -662,7 +660,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "empilhadeira-reciclagem": {
     "id": "empilhadeira-reciclagem",
@@ -687,7 +685,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "paleteira-eletrica": {
     "id": "paleteira-eletrica",
@@ -712,7 +710,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "prensas": {
     "id": "prensas",
@@ -737,7 +735,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "maos-dedos": {
     "id": "maos-dedos",
@@ -762,7 +760,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "quase-acidente": {
     "id": "quase-acidente",
@@ -787,7 +785,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "cinco-s-seguranca": {
     "id": "cinco-s-seguranca",
@@ -812,7 +810,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "ordem-limpeza": {
     "id": "ordem-limpeza",
@@ -837,7 +835,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "trabalho-quente": {
     "id": "trabalho-quente",
@@ -862,7 +860,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "contratadas": {
     "id": "contratadas",
@@ -887,7 +885,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "integ-adm": {
     "id": "integ-adm",
@@ -912,7 +910,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "ergonomia-escritorio": {
     "id": "ergonomia-escritorio",
@@ -937,7 +935,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "home-office": {
     "id": "home-office",
@@ -962,7 +960,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "acidentes-adm": {
     "id": "acidentes-adm",
@@ -987,7 +985,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.983Z"
   },
   "primeiros-socorros": {
     "id": "primeiros-socorros",
@@ -1012,7 +1010,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "evacuacao-emergencia": {
     "id": "evacuacao-emergencia",
@@ -1037,7 +1035,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "assedio": {
     "id": "assedio",
@@ -1062,7 +1060,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "cipa-assedio": {
     "id": "cipa-assedio",
@@ -1087,7 +1085,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "saude-mental": {
     "id": "saude-mental",
@@ -1112,7 +1110,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "lgpd-rh-sst": {
     "id": "lgpd-rh-sst",
@@ -1137,7 +1135,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "comunicacao-riscos": {
     "id": "comunicacao-riscos",
@@ -1162,7 +1160,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "direcao-defensiva": {
     "id": "direcao-defensiva",
@@ -1187,7 +1185,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "escadas-portateis": {
     "id": "escadas-portateis",
@@ -1212,7 +1210,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "almoxarifado": {
     "id": "almoxarifado",
@@ -1237,7 +1235,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "ler-dort": {
     "id": "ler-dort",
@@ -1262,7 +1260,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "sst-liderancas": {
     "id": "sst-liderancas",
@@ -1287,7 +1285,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "responsabilidade-lideranca": {
     "id": "responsabilidade-lideranca",
@@ -1312,7 +1310,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "gro-pgr": {
     "id": "gro-pgr",
@@ -1337,7 +1335,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "dds-eficaz": {
     "id": "dds-eficaz",
@@ -1362,7 +1360,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "investigacao-acidentes": {
     "id": "investigacao-acidentes",
@@ -1387,7 +1385,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "tratamento-quase-acidentes": {
     "id": "tratamento-quase-acidentes",
@@ -1412,7 +1410,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "indicadores-seguranca": {
     "id": "indicadores-seguranca",
@@ -1437,7 +1435,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "auditoria-comportamental": {
     "id": "auditoria-comportamental",
@@ -1462,7 +1460,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "pt-emitentes": {
     "id": "pt-emitentes",
@@ -1487,7 +1485,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "gestao-contratadas": {
     "id": "gestao-contratadas",
@@ -1512,7 +1510,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "gestao-reciclagens": {
     "id": "gestao-reciclagens",
@@ -1537,7 +1535,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "pae": {
     "id": "pae",
@@ -1562,7 +1560,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "cultura-seguranca": {
     "id": "cultura-seguranca",
@@ -1587,7 +1585,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "comunicacao-supervisores": {
     "id": "comunicacao-supervisores",
@@ -1612,7 +1610,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "documentos-sst": {
     "id": "documentos-sst",
@@ -1637,7 +1635,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "controle-certificados": {
     "id": "controle-certificados",
@@ -1662,7 +1660,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "esocial-sst": {
     "id": "esocial-sst",
@@ -1687,7 +1685,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "novos-colaboradores": {
     "id": "novos-colaboradores",
@@ -1712,7 +1710,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "treinamentos-obrigatorios": {
     "id": "treinamentos-obrigatorios",
@@ -1737,7 +1735,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "nr01-rh": {
     "id": "nr01-rh",
@@ -1762,7 +1760,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "matriz-treinamentos": {
     "id": "matriz-treinamentos",
@@ -1787,7 +1785,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "evidencias-auditoria": {
     "id": "evidencias-auditoria",
@@ -1812,7 +1810,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "terceiros-documentacao": {
     "id": "terceiros-documentacao",
@@ -1837,7 +1835,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "lgpd-colaboradores": {
     "id": "lgpd-colaboradores",
@@ -1862,7 +1860,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "dds-altura": {
     "id": "dds-altura",
@@ -1887,7 +1885,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "dds-epi": {
     "id": "dds-epi",
@@ -1912,7 +1910,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "dds-maos": {
     "id": "dds-maos",
@@ -1937,7 +1935,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "dds-quase-acidente": {
     "id": "dds-quase-acidente",
@@ -1962,7 +1960,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "dds-ordem-limpeza": {
     "id": "dds-ordem-limpeza",
@@ -1987,7 +1985,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.984Z"
   },
   "dds-risco-eletrico": {
     "id": "dds-risco-eletrico",
@@ -2012,7 +2010,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   },
   "dds-quimicos": {
     "id": "dds-quimicos",
@@ -2037,7 +2035,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   },
   "dds-ergonomia": {
     "id": "dds-ergonomia",
@@ -2062,7 +2060,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.371Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   },
   "dds-cargas": {
     "id": "dds-cargas",
@@ -2087,7 +2085,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.372Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   },
   "dds-bloqueio": {
     "id": "dds-bloqueio",
@@ -2112,7 +2110,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.372Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   },
   "dds-escadas": {
     "id": "dds-escadas",
@@ -2137,7 +2135,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.372Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   },
   "dds-comunicacao-acidentes": {
     "id": "dds-comunicacao-acidentes",
@@ -2162,7 +2160,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.372Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   },
   "dds-comportamento": {
     "id": "dds-comportamento",
@@ -2187,7 +2185,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.372Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   },
   "dds-ferramentas": {
     "id": "dds-ferramentas",
@@ -2212,7 +2210,7 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.372Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   },
   "dds-transito-interno": {
     "id": "dds-transito-interno",
@@ -2237,6 +2235,6 @@
     ],
     "resources": [],
     "createdAt": "2026-07-25T18:43:25.715Z",
-    "updatedAt": "2026-07-27T15:44:23.372Z"
+    "updatedAt": "2026-07-25T19:15:26.985Z"
   }
 }

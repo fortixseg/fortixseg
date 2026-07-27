@@ -1,15 +1,18 @@
 import { createServer } from "node:http";
-import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHmac, pbkdf2Sync, randomUUID, timingSafeEqual } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildCertificatePdf } from "./lib/certificates.js";
+import { isDatabaseEnabled, loadDatabaseState, saveDatabaseState } from "./lib/persistence.js";
+import { createBlobReadUrl, deleteBlobResource, isBlobStorageEnabled, uploadBlobResource } from "./lib/storage.js";
 
 const ROOT_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const MODULE_FILE = fileURLToPath(import.meta.url);
 const ENV = typeof process === "undefined" ? {} : process.env;
 loadEnv(resolve(ROOT_DIR, ".env"));
 
-const PORT = Number(ENV.PORT) || 3000;
+const PORT = Number(ENV.PORT) || 3001;
 const OPENAI_MODEL = ENV.OPENAI_MODEL || "gpt-5.4-mini";
 const PUBLIC_BASE_URL = normalizePublicUrl(ENV.PUBLIC_BASE_URL);
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -54,15 +57,21 @@ const CHECKOUT_DISCOUNT_TIERS = [
   { min: 51, max: 100, discount: 0.20 }
 ];
 
+const PACKAGE_RELEASE_MAP = {
+  "pkg-integracao": ["integracao", "epi"],
+  "pkg-chao-fabrica": ["nr12", "loto"],
+  "pkg-administrativo": ["nr01", "epi"],
+  "pkg-lideranca": ["nr35", "nr01"],
+  "pkg-manutencao": ["nr12", "loto"],
+  "pkg-rh-sst": ["nr01", "integracao"]
+};
+
 const QUIZ_ANSWER_KEY = [1, 2, 1, 2, 0];
 
 let courseCatalog = loadCourseCatalog();
 let appState = loadAppData();
-
-const DEMO_LOGINS = Object.freeze(buildDemoLogins());
-const registeredUsers = new Map();
-
 let companyEmployees = loadInitialCompanyEmployees();
+await initializeRuntimeState();
 
 const ASSISTANT_INSTRUCTIONS = `
 Você é o atendente virtual oficial da FortixSeg, empresa de treinamentos online em Segurança do Trabalho.
@@ -97,37 +106,6 @@ const MIME_TYPES = {
 
 const rateLimits = new Map();
 
-function buildDemoLogins() {
-  const logins = {
-    [String(ENV.FORTIXSEG_STUDENT_EMAIL || "aluno@teste.com").toLowerCase()]: {
-      password: String(ENV.FORTIXSEG_STUDENT_PASSWORD || "123456"),
-      role: "student",
-      name: "João da Silva"
-    },
-    [String(ENV.FORTIXSEG_COMPANY_EMAIL || "empresa@teste.com").toLowerCase()]: {
-      password: String(ENV.FORTIXSEG_COMPANY_PASSWORD || "123456"),
-      role: "company",
-      name: "Empresa teste"
-    },
-    [String(ENV.FORTIXSEG_AFFILIATE_EMAIL || "afiliado@teste.com").toLowerCase()]: {
-      password: String(ENV.FORTIXSEG_AFFILIATE_PASSWORD || "123456"),
-      role: "affiliate",
-      name: "Afiliado FortixSeg"
-    }
-  };
-
-  const adminPassword = String(ENV.FORTIXSEG_ADMIN_PASSWORD || "123456");
-  if (adminPassword) {
-    logins[String(ENV.FORTIXSEG_ADMIN_EMAIL || "admin@teste.com").toLowerCase()] = {
-      password: adminPassword,
-      role: "admin",
-      name: "Administrador FortixSeg"
-    };
-  }
-
-  return logins;
-}
-
 export async function handleRequest(request, response) {
   const requestId = randomUUID();
   response.setHeader("X-Request-Id", requestId);
@@ -147,13 +125,13 @@ export async function handleRequest(request, response) {
     }
 
     if (request.method === "GET" && url.pathname === "/api/courses") {
-      return sendJson(response, 200, { courses: Object.values(courseCatalog).filter((course) => course.status === "published") });
+      return sendJson(response, 200, { courses: await serializeCourseList(Object.values(courseCatalog).filter((course) => course.status === "published")) });
     }
 
     if (request.method === "GET" && url.pathname === "/api/admin/courses") {
       const session = requireRole(request, response, ["admin"]);
       if (!session) return;
-      return sendJson(response, 200, { courses: Object.values(courseCatalog) });
+      return sendJson(response, 200, { courses: await serializeCourseList(Object.values(courseCatalog), { includeDrafts: true }) });
     }
 
     if (request.method === "POST" && url.pathname === "/api/admin/courses") {
@@ -205,13 +183,25 @@ export async function handleRequest(request, response) {
     if (request.method === "GET" && url.pathname === "/api/student/dashboard") {
       const session = requireRole(request, response, ["student", "admin"]);
       if (!session) return;
-      return sendJson(response, 200, buildStudentDashboard());
+      return sendJson(response, 200, await buildStudentDashboard(session));
     }
 
     if (request.method === "GET" && url.pathname === "/api/student/library") {
       const session = requireRole(request, response, ["student", "admin"]);
       if (!session) return;
-      return sendJson(response, 200, buildStudentLibrary());
+      return sendJson(response, 200, await buildStudentLibrary(session));
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/student/certificates/current") {
+      const session = requireRole(request, response, ["student", "admin"]);
+      if (!session) return;
+      return sendJson(response, 200, await buildCurrentCertificateResponse(session));
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/student/certificates/current.pdf") {
+      const session = requireRole(request, response, ["student", "admin"]);
+      if (!session) return;
+      return await handleCertificatePdf(response, session, url.searchParams.get("courseId"));
     }
 
     if (request.method === "POST" && url.pathname === "/api/student/profile") {
@@ -235,13 +225,13 @@ export async function handleRequest(request, response) {
     if (request.method === "GET" && url.pathname === "/api/company/dashboard") {
       const session = requireRole(request, response, ["company", "admin"]);
       if (!session) return;
-      return sendJson(response, 200, buildCompanyDashboard());
+      return sendJson(response, 200, buildCompanyDashboard(session));
     }
 
     if (request.method === "POST" && url.pathname === "/api/company/employees") {
       const session = requireRole(request, response, ["company", "admin"]);
       if (!session) return;
-      return await handleCompanyEmployeeAdd(request, response);
+      return await handleCompanyEmployeeAdd(request, response, session);
     }
 
     if (request.method === "POST" && url.pathname === "/api/company/settings") {
@@ -265,7 +255,7 @@ export async function handleRequest(request, response) {
     if (request.method === "GET" && url.pathname === "/api/admin/dashboard") {
       const session = requireRole(request, response, ["admin"]);
       if (!session) return;
-      return sendJson(response, 200, buildAdminDashboard());
+      return sendJson(response, 200, buildAdminDashboard(session));
     }
 
     if (request.method === "POST" && url.pathname === "/api/admin/settings") {
@@ -354,6 +344,10 @@ function loadAppData() {
     contactMessages: Array.isArray(source.contactMessages) ? source.contactMessages : [],
     supportTickets: Array.isArray(source.supportTickets) ? source.supportTickets : [],
     assessmentResults: Array.isArray(source.assessmentResults) ? source.assessmentResults : [],
+    users: Array.isArray(source.users) ? source.users.map(normalizeUserRecord).filter(Boolean) : [],
+    registrations: Array.isArray(source.registrations) ? source.registrations : [],
+    enrollments: Array.isArray(source.enrollments) ? source.enrollments : [],
+    orders: Array.isArray(source.orders) ? source.orders : [],
     studentProfiles: source.studentProfiles && typeof source.studentProfiles === "object" ? source.studentProfiles : {},
     companySettings: source.companySettings && typeof source.companySettings === "object" ? source.companySettings : {},
     affiliateSettings: source.affiliateSettings && typeof source.affiliateSettings === "object" ? source.affiliateSettings : {},
@@ -366,6 +360,138 @@ function loadAppData() {
 function saveAppData() {
   mkdirSync(DATA_DIR, { recursive: true });
   writeFileSync(APP_DATA_FILE, JSON.stringify(appState, null, 2), "utf8");
+}
+
+async function initializeRuntimeState() {
+  if (isDatabaseEnabled()) {
+    try {
+      const persisted = await loadDatabaseState({
+        defaultCourseCatalog: courseCatalog,
+        defaultAppData: appState
+      });
+      if (persisted) {
+        courseCatalog = Object.fromEntries(
+          Object.entries(persisted.courseCatalog || {}).map(([id, course]) => [id, normalizeCourse(course, id)])
+        );
+        appState = loadAppDataFromSource(persisted.appData);
+      }
+    } catch (error) {
+      console.error(`Não foi possível carregar dados do banco: ${error.message}`);
+    }
+  }
+
+  ensureSeedUsers();
+  companyEmployees = loadInitialCompanyEmployees();
+  await persistRuntimeState();
+}
+
+function loadAppDataFromSource(source = {}) {
+  return {
+    ...loadAppData(),
+    ...source,
+    proposals: Array.isArray(source.proposals) ? source.proposals : [],
+    contactMessages: Array.isArray(source.contactMessages) ? source.contactMessages : [],
+    supportTickets: Array.isArray(source.supportTickets) ? source.supportTickets : [],
+    assessmentResults: Array.isArray(source.assessmentResults) ? source.assessmentResults : [],
+    users: Array.isArray(source.users) ? source.users.map(normalizeUserRecord).filter(Boolean) : [],
+    registrations: Array.isArray(source.registrations) ? source.registrations : [],
+    enrollments: Array.isArray(source.enrollments) ? source.enrollments : [],
+    orders: Array.isArray(source.orders) ? source.orders : [],
+    studentProfiles: source.studentProfiles && typeof source.studentProfiles === "object" ? source.studentProfiles : {},
+    companySettings: source.companySettings && typeof source.companySettings === "object" ? source.companySettings : {},
+    affiliateSettings: source.affiliateSettings && typeof source.affiliateSettings === "object" ? source.affiliateSettings : {},
+    adminSettings: source.adminSettings && typeof source.adminSettings === "object" ? source.adminSettings : {},
+    companyEmployees: source.companyEmployees && typeof source.companyEmployees === "object" ? source.companyEmployees : {},
+    certificates: Array.isArray(source.certificates) ? source.certificates : []
+  };
+}
+
+async function persistRuntimeState() {
+  saveCourseCatalog();
+  saveAppData();
+  if (isDatabaseEnabled()) {
+    await saveDatabaseState({ courseCatalog, appData: appState });
+  }
+}
+
+function normalizeUserRecord(user) {
+  if (!user?.email) return null;
+  return {
+    id: cleanText(user.id || `user-${randomUUID()}`, 120),
+    role: ["student", "company", "affiliate", "admin"].includes(user.role) ? user.role : "student",
+    email: cleanText(user.email, 160).toLowerCase(),
+    name: cleanText(user.name || "Usuário FortixSeg", 160),
+    companyName: cleanText(user.companyName, 160),
+    responsibleName: cleanText(user.responsibleName, 160),
+    phone: cleanText(user.phone, 40),
+    document: cleanText(user.document, 24),
+    status: cleanText(user.status || "active", 40),
+    passwordHash: cleanText(user.passwordHash, 256),
+    passwordSalt: cleanText(user.passwordSalt, 120),
+    createdAt: user.createdAt || new Date().toISOString(),
+    updatedAt: user.updatedAt || new Date().toISOString(),
+    lastLoginAt: user.lastLoginAt || ""
+  };
+}
+
+function ensureSeedUsers() {
+  const seeds = [
+    {
+      email: String(ENV.FORTIXSEG_STUDENT_EMAIL || "aluno@teste.com").toLowerCase(),
+      password: String(ENV.FORTIXSEG_STUDENT_PASSWORD || "123456"),
+      role: "student",
+      name: "João da Silva",
+      document: "000.000.000-00",
+      phone: "(11) 99999-0000"
+    },
+    {
+      email: String(ENV.FORTIXSEG_COMPANY_EMAIL || "empresa@teste.com").toLowerCase(),
+      password: String(ENV.FORTIXSEG_COMPANY_PASSWORD || "123456"),
+      role: "company",
+      name: "Empresa Exemplo Ltda.",
+      companyName: "Empresa Exemplo Ltda.",
+      responsibleName: "Empresa Exemplo Ltda.",
+      document: "00.000.000/0001-00",
+      phone: "(11) 98888-0000"
+    },
+    {
+      email: String(ENV.FORTIXSEG_AFFILIATE_EMAIL || "afiliado@teste.com").toLowerCase(),
+      password: String(ENV.FORTIXSEG_AFFILIATE_PASSWORD || "123456"),
+      role: "affiliate",
+      name: "Afiliado FortixSeg",
+      phone: "(11) 97777-0000"
+    },
+    {
+      email: String(ENV.FORTIXSEG_ADMIN_EMAIL || "admin@teste.com").toLowerCase(),
+      password: String(ENV.FORTIXSEG_ADMIN_PASSWORD || "123456"),
+      role: "admin",
+      name: "Administrador FortixSeg"
+    }
+  ];
+
+  const nextUsers = [...appState.users];
+  for (const seed of seeds) {
+    if (!seed.email || !seed.password) continue;
+    const existing = nextUsers.find((item) => item.email === seed.email);
+    if (existing) {
+      const refreshed = createUserRecord({ ...seed, id: existing.id });
+      Object.assign(existing, {
+        role: refreshed.role,
+        name: refreshed.name,
+        companyName: seed.companyName || existing.companyName,
+        responsibleName: seed.responsibleName || existing.responsibleName,
+        phone: seed.phone || existing.phone,
+        document: seed.document || existing.document,
+        status: "active",
+        passwordSalt: refreshed.passwordSalt,
+        passwordHash: refreshed.passwordHash,
+        updatedAt: new Date().toISOString()
+      });
+      continue;
+    }
+    nextUsers.push(createUserRecord(seed));
+  }
+  appState.users = nextUsers;
 }
 
 function loadInitialCompanyEmployees() {
@@ -415,15 +541,44 @@ function normalizeCourse(input, fallbackId = "") {
 }
 
 function normalizeResource(resource) {
-  if (!resource || !resource.url) return null;
+  if (!resource || (!resource.url && !resource.pathname)) return null;
   return {
     id: cleanText(resource.id || randomUUID(), 100),
     type: "pdf",
     name: cleanText(resource.name || "Material do curso", 180),
     url: cleanText(resource.url, 500),
+    pathname: cleanText(resource.pathname, 500),
+    storage: cleanText(resource.storage, 40),
     mimeType: cleanText(resource.mimeType || "application/octet-stream", 100),
     size: Number(resource.size) || 0,
     createdAt: resource.createdAt || new Date().toISOString()
+  };
+}
+
+async function serializeCourseList(courses, options = {}) {
+  const serialized = [];
+  for (const course of courses) {
+    if (!options.includeDrafts && course.status !== "published") continue;
+    serialized.push(await serializeCourse(course));
+  }
+  return serialized;
+}
+
+async function serializeCourse(course) {
+  const resources = [];
+  for (const resource of course.resources || []) {
+    resources.push(await serializeResource(resource));
+  }
+  return { ...course, resources };
+}
+
+async function serializeResource(resource) {
+  const url = resource.storage === "blob-private"
+    ? await createBlobReadUrl(resource)
+    : cleanText(resource.url || "", 500);
+  return {
+    ...resource,
+    url
   };
 }
 
@@ -433,11 +588,10 @@ async function handleAdminCourseCreate(request, response) {
   if (!id || !cleanText(body.title, 180)) return sendJson(response, 400, { error: "Informe o nome e o código do curso." });
   if (courseCatalog[id]) return sendJson(response, 409, { error: "Já existe um curso com esse identificador." });
 
-  // TODO: exigir autenticação administrativa real e registrar auditoria.
   const course = normalizeCourse({ ...body, id, resources: [] }, id);
   courseCatalog[id] = course;
-  saveCourseCatalog();
-  return sendJson(response, 201, { course });
+  await persistRuntimeState();
+  return sendJson(response, 201, { course: await serializeCourse(course) });
 }
 
 async function handleAdminCourseUpdate(request, response, courseId) {
@@ -446,15 +600,21 @@ async function handleAdminCourseUpdate(request, response, courseId) {
   const body = await readJsonBody(request, 200_000);
   const course = normalizeCourse({ ...current, ...body, id: courseId, resources: current.resources }, courseId);
   courseCatalog[courseId] = course;
-  saveCourseCatalog();
-  return sendJson(response, 200, { course });
+  await persistRuntimeState();
+  return sendJson(response, 200, { course: await serializeCourse(course) });
 }
 
-function handleAdminCourseDelete(response, courseId) {
+async function handleAdminCourseDelete(response, courseId) {
   if (!courseCatalog[courseId]) return sendJson(response, 404, { error: "Curso não encontrado." });
+  const hasEnrollments = appState.enrollments.some((item) => item.courseId === courseId);
+  if (hasEnrollments) {
+    courseCatalog[courseId].status = "draft";
+    courseCatalog[courseId].updatedAt = new Date().toISOString();
+    await persistRuntimeState();
+    return sendJson(response, 200, { archived: true, id: courseId, message: "Curso arquivado porque já possui matrículas." });
+  }
   delete courseCatalog[courseId];
-  saveCourseCatalog();
-  // TODO: impedir exclusão quando houver matrículas e arquivar o curso em produção.
+  await persistRuntimeState();
   return sendJson(response, 200, { deleted: true, id: courseId });
 }
 
@@ -473,44 +633,66 @@ async function handleAdminCourseResourceUpload(request, response, courseId) {
   if (!fileType) return sendJson(response, 415, { error: "Por enquanto, envie somente arquivos PDF." });
 
   const bytes = Buffer.from(match[2], "base64");
-  if (!bytes.length || bytes.length > 12_000_000) return sendJson(response, 413, { error: "O arquivo demonstrativo deve ter no máximo 12 MB." });
+  if (!bytes.length || bytes.length > 12_000_000) return sendJson(response, 413, { error: "O arquivo deve ter no máximo 12 MB." });
 
-  const safeCourseId = slugify(courseId);
-  const uploadDir = resolve(COURSE_UPLOAD_DIR, safeCourseId);
-  if (!uploadDir.startsWith(`${COURSE_UPLOAD_DIR}${sep}`)) return sendJson(response, 403, { error: "Destino de upload inválido." });
-  mkdirSync(uploadDir, { recursive: true });
   const baseName = slugify(basename(cleanText(body.name, 180), extname(cleanText(body.name, 180)))) || "material";
   const fileName = `${Date.now()}-${baseName}${fileType.extension}`;
-  const filePath = resolve(uploadDir, fileName);
-  writeFileSync(filePath, bytes);
+  let resource;
 
-  const resource = normalizeResource({
-    id: randomUUID(),
-    type: fileType.type,
-    name: cleanText(body.name || fileName, 180),
-    url: `/assets/uploads/courses/${safeCourseId}/${fileName}`,
-    mimeType,
-    size: bytes.length
-  });
+  if (isBlobStorageEnabled()) {
+    const uploaded = await uploadBlobResource({
+      pathname: `courses/${slugify(courseId)}/${fileName}`,
+      bytes,
+      mimeType
+    });
+    resource = normalizeResource({
+      id: randomUUID(),
+      type: fileType.type,
+      name: cleanText(body.name || fileName, 180),
+      url: uploaded.storage === "blob-public" ? uploaded.url : "",
+      pathname: uploaded.pathname,
+      storage: uploaded.storage,
+      mimeType,
+      size: bytes.length
+    });
+  } else {
+    const safeCourseId = slugify(courseId);
+    const uploadDir = resolve(COURSE_UPLOAD_DIR, safeCourseId);
+    if (!uploadDir.startsWith(`${COURSE_UPLOAD_DIR}${sep}`)) return sendJson(response, 403, { error: "Destino de upload inválido." });
+    mkdirSync(uploadDir, { recursive: true });
+    const filePath = resolve(uploadDir, fileName);
+    writeFileSync(filePath, bytes);
+    resource = normalizeResource({
+      id: randomUUID(),
+      type: fileType.type,
+      name: cleanText(body.name || fileName, 180),
+      url: `/assets/uploads/courses/${safeCourseId}/${fileName}`,
+      mimeType,
+      size: bytes.length
+    });
+  }
+
   course.resources.push(resource);
   course.updatedAt = new Date().toISOString();
-  saveCourseCatalog();
-  return sendJson(response, 201, { resource, course });
+  await persistRuntimeState();
+  return sendJson(response, 201, { resource: await serializeResource(resource), course: await serializeCourse(course) });
 }
 
-function handleAdminCourseResourceDelete(response, courseId, resourceId) {
+async function handleAdminCourseResourceDelete(response, courseId, resourceId) {
   const course = courseCatalog[courseId];
   if (!course) return sendJson(response, 404, { error: "Curso não encontrado." });
   const resource = course.resources.find((item) => item.id === resourceId);
   if (!resource) return sendJson(response, 404, { error: "Material não encontrado." });
 
   course.resources = course.resources.filter((item) => item.id !== resourceId);
-  if (resource.url.startsWith("/assets/uploads/courses/")) {
+  if (resource.storage === "blob-private" || resource.storage === "blob-public") {
+    await deleteBlobResource(resource);
+  } else if (resource.url.startsWith("/assets/uploads/courses/")) {
     const filePath = resolve(ROOT_DIR, resource.url.replace(/^\/+/, ""));
     if (filePath.startsWith(`${COURSE_UPLOAD_DIR}${sep}`) && existsSync(filePath)) unlinkSync(filePath);
   }
-  saveCourseCatalog();
-  return sendJson(response, 200, { deleted: true, course });
+  await persistRuntimeState();
+  return sendJson(response, 200, { deleted: true, course: await serializeCourse(course) });
 }
 
 function slugify(value) {
@@ -526,15 +708,19 @@ async function handleDemoLogin(request, response) {
   const body = await readJsonBody(request);
   const email = cleanText(body.email, 160).toLowerCase();
   const password = String(body.password ?? "");
-  const user = DEMO_LOGINS[email] || registeredUsers.get(email);
+  const user = findUserByEmail(email);
 
-  // TODO: substituir login demonstrativo por Supabase Auth com sessão JWT.
-  if (!user || user.password !== password) {
+  if (!user || !verifyPassword(password, user.passwordSalt, user.passwordHash) || user.status !== "active") {
     return sendJson(response, 401, { error: "E-mail ou senha inválidos." });
   }
 
+  user.lastLoginAt = new Date().toISOString();
+  user.updatedAt = user.lastLoginAt;
+  await persistRuntimeState();
+
   return sendJson(response, 200, {
     user: {
+      id: user.id,
       email,
       name: user.name,
       role: user.role
@@ -580,28 +766,38 @@ async function handleRegister(request, response) {
     }
   }
 
-  if (DEMO_LOGINS[email] || registeredUsers.has(email)) {
+  if (findUserByEmail(email)) {
     return sendJson(response, 409, { error: "Já existe uma conta de teste com esse e-mail." });
   }
 
-  const user = {
+  const user = createUserRecord({
+    email,
     password,
     role,
     name,
+    companyName: cleanText(body.companyName, 160),
+    responsibleName: cleanText(body.companyResponsible, 160),
+    phone: cleanText(body.phone, 40),
+    document: cleanText(body.document || body.cpf || body.cnpj, 24)
+  });
+  appState.users.unshift(user);
+  appState.registrations.unshift({
+    id: `registration-${randomUUID()}`,
+    role,
+    email,
+    name,
     createdAt: new Date().toISOString()
-  };
-
-  // TODO: substituir este cadastro em memória por Supabase Auth e PostgreSQL.
-  registeredUsers.set(email, user);
+  });
+  await persistRuntimeState();
 
   return sendJson(response, 201, {
     user: {
+      id: user.id,
       email,
       name: user.name,
       role: user.role
     },
-    token: createSessionToken(email, user),
-    temporary: true
+    token: createSessionToken(email, user)
   });
 }
 
@@ -626,7 +822,7 @@ async function handleProposal(request, response) {
 
   appState.proposals.unshift(proposal);
   appState.proposals = appState.proposals.slice(0, 500);
-  saveAppData();
+  await persistRuntimeState();
   return sendJson(response, 201, { success: true, proposalId: proposal.id });
 }
 
@@ -649,12 +845,13 @@ async function handleContact(request, response) {
 
   appState.contactMessages.unshift(message);
   appState.contactMessages = appState.contactMessages.slice(0, 1000);
-  saveAppData();
+  await persistRuntimeState();
   return sendJson(response, 201, { success: true, contactId: message.id });
 }
 
 function createSessionToken(email, user) {
   const payload = Buffer.from(JSON.stringify({
+    userId: user.id,
     email,
     name: user.name,
     role: user.role,
@@ -694,7 +891,7 @@ function getRequestSession(request) {
 }
 
 function getStateUserKey(session) {
-  return slugify(session?.email || session?.role || "anonymous");
+  return slugify(session?.userId || session?.email || session?.role || "anonymous");
 }
 
 function requireRole(request, response, roles) {
@@ -705,6 +902,11 @@ function requireRole(request, response, roles) {
   }
   if (!roles.includes(session.role)) {
     sendJson(response, 403, { error: "Seu perfil não tem permissão para esta ação." });
+    return null;
+  }
+  const user = findSessionUser(session);
+  if (!user) {
+    sendJson(response, 401, { error: "Sessão inválida. Faça login novamente." });
     return null;
   }
   return session;
@@ -726,7 +928,15 @@ async function handleStudentProfile(request, response, session) {
   }
 
   appState.studentProfiles[key] = profile;
-  saveAppData();
+  const user = findSessionUser(session);
+  if (user) {
+    user.name = profile.name;
+    user.email = profile.email;
+    user.phone = profile.phone;
+    user.document = profile.cpf;
+    user.updatedAt = profile.updatedAt;
+  }
+  await persistRuntimeState();
   return sendJson(response, 200, { success: true, profile });
 }
 
@@ -748,7 +958,7 @@ async function handleStudentSupport(request, response, session) {
 
   appState.supportTickets.unshift(ticket);
   appState.supportTickets = appState.supportTickets.slice(0, 1000);
-  saveAppData();
+  await persistRuntimeState();
   return sendJson(response, 201, { success: true, ticket });
 }
 
@@ -771,13 +981,23 @@ async function handleStudentAssessment(request, response, session) {
 
   appState.assessmentResults.unshift(assessment);
   appState.assessmentResults = appState.assessmentResults.slice(0, 2000);
+  const user = findSessionUser(session);
+  const enrollment = ensureEnrollmentForUser(user?.id, courseId);
+  enrollment.attemptsUsed = Number(enrollment.attemptsUsed || 0) + 1;
+  enrollment.bestGrade = Math.max(Number(enrollment.bestGrade) || 0, grade);
+  enrollment.progress = approved ? 100 : Math.max(Number(enrollment.progress) || 0, 75);
+  enrollment.lessonsCompleted = approved ? enrollment.lessonsTotal : Math.max(Number(enrollment.lessonsCompleted) || 0, Math.max(1, enrollment.lessonsTotal - 2));
+  enrollment.status = approved ? "completed" : "in_progress";
+  enrollment.updatedAt = new Date().toISOString();
+  enrollment.lastAccessAt = enrollment.updatedAt;
 
   let certificate = null;
   if (approved) {
-    certificate = ensureCertificateForUser(session, courseId, grade);
+    certificate = ensureCertificateForUser(session, courseId, grade, user?.id);
+    enrollment.certificateId = certificate.id;
   }
 
-  saveAppData();
+  await persistRuntimeState();
   return sendJson(response, 200, {
     success: true,
     grade,
@@ -803,7 +1023,7 @@ async function handleCompanySettings(request, response, session) {
   }
 
   appState.companySettings[key] = settings;
-  saveAppData();
+  await persistRuntimeState();
   return sendJson(response, 200, { success: true, settings });
 }
 
@@ -823,7 +1043,7 @@ async function handleAffiliateSettings(request, response, session) {
   }
 
   appState.affiliateSettings[key] = settings;
-  saveAppData();
+  await persistRuntimeState();
   return sendJson(response, 200, { success: true, settings });
 }
 
@@ -843,11 +1063,11 @@ async function handleAdminSettings(request, response, session) {
   }
 
   appState.adminSettings[key] = settings;
-  saveAppData();
+  await persistRuntimeState();
   return sendJson(response, 200, { success: true, settings });
 }
 
-async function handleCompanyEmployeeAdd(request, response) {
+async function handleCompanyEmployeeAdd(request, response, session) {
   const body = await readJsonBody(request);
   const course = courseCatalog[cleanText(body.courseId, 40)] || courseCatalog.nr35 || Object.values(courseCatalog)[0];
   if (!course) return sendJson(response, 400, { error: "Nenhum curso disponível para matrícula." });
@@ -865,36 +1085,74 @@ async function handleCompanyEmployeeAdd(request, response) {
     return sendJson(response, 400, { error: "Nome e e-mail do colaborador são obrigatórios." });
   }
 
-  // TODO: salvar colaborador no PostgreSQL vinculado à empresa autenticada.
-  companyEmployees = [employee, ...companyEmployees].slice(0, 30);
-  appState.companyEmployees.default = companyEmployees;
-  saveAppData();
-  return sendJson(response, 201, buildCompanyDashboard());
+  const key = getStateUserKey(session);
+  const currentEmployees = Array.isArray(appState.companyEmployees[key]) ? appState.companyEmployees[key] : loadInitialCompanyEmployees();
+  appState.companyEmployees[key] = [employee, ...currentEmployees].slice(0, 300);
+  companyEmployees = appState.companyEmployees[key];
+  await persistRuntimeState();
+  return sendJson(response, 201, buildCompanyDashboard(session));
 }
 
-function buildStudentDashboard() {
+async function buildStudentDashboard(session) {
+  const user = findSessionUser(session);
+  const enrollments = appState.enrollments
+    .filter((item) => item.userId === user?.id)
+    .map((item) => ({ ...item, course: courseCatalog[item.courseId] }))
+    .filter((item) => item.course);
+  const certificates = getUserCertificates(user?.id, session.email);
+  const completed = enrollments.filter((item) => item.status === "completed").length;
+  const inProgress = enrollments.find((item) => item.status !== "completed") || enrollments[0];
+  const averageProgress = enrollments.length
+    ? Math.round(enrollments.reduce((total, item) => total + (Number(item.progress) || 0), 0) / enrollments.length)
+    : 0;
+  const latestCertificate = certificates[0] || null;
+
   return {
-    source: "api-demo",
+    source: isDatabaseEnabled() ? "api-database" : "api-local",
     profile: {
-      name: "João da Silva",
-      email: "aluno@teste.com",
-      activeCourse: "NR 35 - Trabalho em Altura"
+      name: user?.name || session.name || "Aluno",
+      email: user?.email || session.email,
+      activeCourse: inProgress?.course?.title || latestCertificate?.courseTitle || "Nenhum curso ativo"
     },
     metrics: {
-      enrolledCourses: 2,
-      completedCourses: 1,
-      certificates: 1,
-      averageProgress: 65
+      enrolledCourses: enrollments.length,
+      completedCourses: completed,
+      certificates: certificates.length,
+      averageProgress
     },
     nextActions: [
-      { title: "Continuar NR 35", description: "Módulo 03: Equipamentos de proteção contra quedas.", status: "Prioridade" },
-      { title: "Avaliação final", description: "Disponível após marcar todas as aulas como concluídas.", status: "Pendente" },
-      { title: "Certificado NR 35", description: "Liberado automaticamente após aprovação mínima de 70%.", status: "Bloqueado" }
+      {
+        title: inProgress ? `Continuar ${inProgress.course.title}` : "Adicionar novos treinamentos",
+        description: inProgress
+          ? `${inProgress.lessonsCompleted || 0} de ${inProgress.lessonsTotal || inProgress.course.lessons} aulas concluídas.`
+          : "Seu próximo curso será liberado após matrícula confirmada.",
+        status: inProgress ? "Prioridade" : "Pendente"
+      },
+      {
+        title: "Avaliação final",
+        description: inProgress
+          ? `Nota mínima ${inProgress.course.minimumGrade}% em até ${inProgress.course.attempts} tentativas.`
+          : "Disponível quando houver curso ativo.",
+        status: inProgress ? "Disponível" : "Aguardando matrícula"
+      },
+      {
+        title: latestCertificate ? "Certificado liberado" : "Certificado pendente",
+        description: latestCertificate
+          ? `Código ${latestCertificate.code}`
+          : "Liberado automaticamente após aprovação mínima.",
+        status: latestCertificate ? "Disponível" : "Bloqueado"
+      }
     ],
-    courses: [
-      { id: "nr35", code: "NR 35", title: "NR 35 - Trabalho em Altura", progress: 75, status: "Em andamento", lessonsCompleted: 5, lessonsTotal: 7 },
-      { id: "epi", code: "EPI", title: "Uso Correto de EPIs", progress: 100, status: "Concluído", lessonsCompleted: 5, lessonsTotal: 5 }
-    ],
+    courses: enrollments.map((item) => ({
+      id: item.course.id,
+      code: item.course.code,
+      title: item.course.title,
+      progress: Number(item.progress) || 0,
+      status: item.status === "completed" ? "Concluído" : item.status === "in_progress" ? "Em andamento" : "Não iniciado",
+      lessonsCompleted: Number(item.lessonsCompleted) || 0,
+      lessonsTotal: Number(item.lessonsTotal) || item.course.lessons
+    })),
+    latestCertificate: latestCertificate ? buildCertificateView(latestCertificate) : null,
     support: {
       sla: "Até 1 dia útil",
       channel: "fortixseg@gmail.com"
@@ -902,39 +1160,65 @@ function buildStudentDashboard() {
   };
 }
 
-function buildStudentLibrary() {
+async function buildStudentLibrary(session) {
+  const user = findSessionUser(session);
+  const enrollments = appState.enrollments.filter((item) => item.userId === user?.id);
+  const resources = [];
+  for (const enrollment of enrollments) {
+    const course = courseCatalog[enrollment.courseId];
+    if (!course) continue;
+    for (const resource of course.resources || []) {
+      const serialized = await serializeResource(resource);
+      resources.push({
+        id: serialized.id,
+        type: serialized.type,
+        title: serialized.name,
+        mimeType: serialized.mimeType,
+        url: serialized.url,
+        status: "Disponível",
+        courseId: course.id,
+        courseTitle: course.title
+      });
+    }
+  }
   return {
-    source: "api-demo",
-    courseId: "nr35",
-    resources: [
-      { id: "nr35-pdf-01", type: "pdf", title: "Apostila demonstrativa NR 35", mimeType: "application/pdf", url: "/assets/apostila-nr35-demonstrativa.pdf", status: "Disponível" }
-    ]
+    source: isDatabaseEnabled() ? "api-database" : "api-local",
+    courseId: enrollments[0]?.courseId || "nr35",
+    resources
   };
 }
 
-function buildCompanyDashboard() {
-  const activeEmployees = 125 + companyEmployees.length;
+function buildCompanyDashboard(session) {
+  const user = findSessionUser(session);
+  const key = getStateUserKey(session);
+  const employees = Array.isArray(appState.companyEmployees[key]) ? appState.companyEmployees[key] : loadInitialCompanyEmployees();
+  companyEmployees = employees;
+  const activeEmployees = employees.length;
+  const completed = employees.filter((item) => item.status === "Concluído").length;
+  const inProgress = employees.filter((item) => item.status === "Em andamento").length;
+  const pending = Math.max(0, activeEmployees - completed - inProgress);
+  const complianceRate = activeEmployees ? Math.round((completed / activeEmployees) * 100) : 0;
   return {
-    source: "api-demo",
+    source: isDatabaseEnabled() ? "api-database" : "api-local",
     company: {
-      name: "Amcor",
-      document: "00.000.000/0001-00",
+      name: user?.companyName || user?.name || "Empresa",
+      document: user?.document || "00.000.000/0001-00",
       plan: "Corporativo"
     },
     metrics: {
       activeEmployees,
-      coursesInProgress: 32,
-      certificates: 96,
-      expiringSoon: 18,
-      seatsAvailable: 42,
-      complianceRate: 78
+      coursesInProgress: inProgress,
+      certificates: employees.filter((item) => item.certificate).length,
+      expiringSoon: pending,
+      seatsAvailable: Math.max(0, 500 - activeEmployees),
+      complianceRate
     },
     alerts: [
-      { title: "18 certificados vencem em até 60 dias", severity: "warning" },
-      { title: "12 colaboradores estão acima de 70% de progresso", severity: "success" },
-      { title: "42 vagas disponíveis para novas matrículas", severity: "info" }
+      { title: `${pending} colaboradores aguardam início ou reciclagem`, severity: pending ? "warning" : "success" },
+      { title: `${inProgress} colaboradores estão em andamento`, severity: "info" },
+      { title: `${completed} certificados concluídos no ambiente atual`, severity: "success" }
     ],
-    employees: companyEmployees
+    employees
   };
 }
 
@@ -965,36 +1249,46 @@ function buildAffiliateDashboard(session = {}) {
 }
 
 function buildAdminDashboard() {
+  const students = appState.users.filter((user) => user.role === "student").length;
+  const companies = appState.users.filter((user) => user.role === "company").length;
+  const recentStudents = appState.enrollments.slice(0, 5).map((enrollment) => {
+    const user = findUserById(enrollment.userId);
+    const course = courseCatalog[enrollment.courseId];
+    return {
+      name: user?.name || "Aluno",
+      course: course?.code || enrollment.courseId,
+      status: enrollment.status === "completed" ? "Concluído" : "Em andamento",
+      date: formatDate(enrollment.updatedAt || enrollment.createdAt)
+    };
+  });
+  const recentPayments = appState.orders.slice(0, 5).map((order) => ({
+    client: findUserById(order.userId)?.name || order.customerName || "Cliente",
+    course: order.items?.map((item) => item.title).join(", ") || "Pedido",
+    value: Number(order.totalAmount) || 0,
+    status: order.status === "approved" ? "Aprovado" : order.status === "paid" ? "Pago" : "Pendente"
+  }));
   return {
-    source: "api-demo",
+    source: isDatabaseEnabled() ? "api-database" : "api-local",
     metrics: {
-      students: 25000,
-      companies: 1000,
-      courses: 50,
-      certificates: 150000
+      students,
+      companies,
+      courses: Object.keys(courseCatalog).length,
+      certificates: appState.certificates.length
     },
     apiStatus: {
       server: "online",
       openai: ENV.OPENAI_API_KEY ? "configurado" : "pendente",
       mercadoPago: ENV.MERCADO_PAGO_ACCESS_TOKEN ? "configurado" : "pendente",
-      database: "demo-local"
+      database: isDatabaseEnabled() ? "postgres" : "local-file"
     },
-    recentStudents: [
-      { name: "Mariana Costa", course: "NR 35", status: "Em andamento", date: "04/07/2026" },
-      { name: "Paulo Mendes", course: "NR 10", status: "Concluído", date: "03/07/2026" },
-      { name: "Renata Alves", course: "LOTO", status: "Em andamento", date: "03/07/2026" }
-    ],
-    recentPayments: [
-      { client: "Juliana Rocha", course: "NR 35", value: 149.90, status: "Aprovado" },
-      { client: "Marelli", course: "NR 12 - 20 vagas", value: 3598.00, status: "Aprovado" },
-      { client: "Eduardo Nunes", course: "NR 10", value: 249.90, status: "Pendente" }
-    ]
+    recentStudents,
+    recentPayments
   };
 }
 
-function ensureCertificateForUser(session, courseId, grade) {
+function ensureCertificateForUser(session, courseId, grade, userId = "") {
   const normalizedCourseId = slugify(courseId || "nr35") || "nr35";
-  const existing = appState.certificates.find((item) => item.userEmail === session.email && item.courseId === normalizedCourseId);
+  const existing = appState.certificates.find((item) => (item.userId === userId || item.userEmail === session.email) && item.courseId === normalizedCourseId);
   if (existing) {
     existing.grade = Math.max(Number(existing.grade) || 0, grade);
     existing.updatedAt = new Date().toISOString();
@@ -1005,13 +1299,14 @@ function ensureCertificateForUser(session, courseId, grade) {
   const certificate = {
     id: `certificate-${randomUUID()}`,
     code: buildCertificateCode(course?.code || "FS"),
+    userId,
     userEmail: session.email,
-    student: session.name || "Aluno",
+    studentName: session.name || "Aluno",
     courseId: normalizedCourseId,
-    course: course?.title || "Curso FortixSeg",
+    courseTitle: course?.title || "Curso FortixSeg",
     hours: `${course?.hours || 0} horas`,
     grade,
-    completedAt: new Intl.DateTimeFormat("pt-BR").format(new Date()),
+    completedAt: formatDate(new Date().toISOString()),
     issuedAt: new Date().toISOString(),
     status: "Válido"
   };
@@ -1034,14 +1329,7 @@ function validateDemoCertificate(rawCode) {
   if (stored) {
     return {
       valid: true,
-      certificate: {
-        code: stored.code,
-        student: stored.student || "Aluno",
-        course: stored.course || "Curso FortixSeg",
-        hours: stored.hours || "Carga horária não informada",
-        completedAt: stored.completedAt || new Intl.DateTimeFormat("pt-BR").format(new Date(stored.issuedAt || Date.now())),
-        status: stored.status || "Válido"
-      }
+      certificate: buildCertificateView(stored)
     };
   }
 
@@ -1060,6 +1348,131 @@ function validateDemoCertificate(rawCode) {
       status: "Válido"
     }
   };
+}
+
+function createUserRecord(input) {
+  const passwordSalt = randomUUID();
+  const createdAt = new Date().toISOString();
+  return normalizeUserRecord({
+    id: input.id || `user-${slugify(input.role || "student")}-${randomUUID()}`,
+    role: input.role || "student",
+    email: input.email,
+    name: input.name,
+    companyName: input.companyName,
+    responsibleName: input.responsibleName,
+    phone: input.phone,
+    document: input.document,
+    status: "active",
+    passwordSalt,
+    passwordHash: hashPassword(String(input.password || ""), passwordSalt),
+    createdAt,
+    updatedAt: createdAt,
+    lastLoginAt: ""
+  });
+}
+
+function hashPassword(password, salt) {
+  return pbkdf2Sync(password, salt, 120000, 64, "sha512").toString("hex");
+}
+
+function verifyPassword(password, salt, hash) {
+  if (!password || !salt || !hash) return false;
+  return hashPassword(password, salt) === hash;
+}
+
+function findUserByEmail(email) {
+  return appState.users.find((user) => user.email === cleanText(email, 160).toLowerCase()) || null;
+}
+
+function findUserById(userId) {
+  return appState.users.find((user) => user.id === userId) || null;
+}
+
+function findSessionUser(session) {
+  return findUserById(session?.userId) || findUserByEmail(session?.email);
+}
+
+function ensureEnrollmentForUser(userId, courseId) {
+  let enrollment = appState.enrollments.find((item) => item.userId === userId && item.courseId === courseId);
+  if (enrollment) return enrollment;
+  const course = courseCatalog[courseId] || DEFAULT_COURSE_CATALOG[courseId] || DEFAULT_COURSE_CATALOG.nr35;
+  const now = new Date().toISOString();
+  enrollment = {
+    id: `enrollment-${randomUUID()}`,
+    userId,
+    courseId,
+    progress: 0,
+    status: "not_started",
+    lessonsCompleted: 0,
+    lessonsTotal: Number(course.lessons) || 1,
+    attemptsUsed: 0,
+    bestGrade: 0,
+    certificateId: "",
+    createdAt: now,
+    updatedAt: now,
+    lastAccessAt: ""
+  };
+  appState.enrollments.unshift(enrollment);
+  return enrollment;
+}
+
+function getUserCertificates(userId, email) {
+  return appState.certificates
+    .filter((item) => item.userId === userId || item.userEmail === email)
+    .sort((left, right) => String(right.issuedAt || "").localeCompare(String(left.issuedAt || "")));
+}
+
+function buildCertificateView(certificate) {
+  return {
+    code: certificate.code,
+    student: certificate.studentName || certificate.student || "Aluno",
+    course: certificate.courseTitle || certificate.course || "Curso FortixSeg",
+    hours: certificate.hours || "Carga horária não informada",
+    grade: Number(certificate.grade) || 0,
+    completedAt: certificate.completedAt || formatDate(certificate.issuedAt),
+    status: certificate.status || "Válido"
+  };
+}
+
+async function buildCurrentCertificateResponse(session) {
+  const user = findSessionUser(session);
+  const certificate = getUserCertificates(user?.id, session.email)[0];
+  if (!certificate) return { certificate: null };
+  return {
+    certificate: buildCertificateView(certificate),
+    downloadPath: "/api/student/certificates/current.pdf"
+  };
+}
+
+async function handleCertificatePdf(response, session, requestedCourseId = "") {
+  const user = findSessionUser(session);
+  const certificates = getUserCertificates(user?.id, session.email);
+  const certificate = requestedCourseId
+    ? certificates.find((item) => item.courseId === slugify(requestedCourseId))
+    : certificates[0];
+  if (!certificate) {
+    return sendJson(response, 404, { error: "Nenhum certificado disponível para download." });
+  }
+  const verificationUrl = `${PUBLIC_BASE_URL || "http://127.0.0.1:3001"}/?certificate=${encodeURIComponent(certificate.code)}#certificates`;
+  const pdf = await buildCertificatePdf({
+    certificate: {
+      studentName: certificate.studentName || session.name || "Aluno",
+      courseTitle: certificate.courseTitle || "Curso FortixSeg",
+      hours: certificate.hours,
+      grade: certificate.grade,
+      code: certificate.code,
+      issuedAt: certificate.issuedAt
+    },
+    verificationUrl
+  });
+  response.statusCode = 200;
+  response.setHeader("Content-Type", "application/pdf");
+  response.setHeader("Content-Disposition", `attachment; filename=\"certificado-${certificate.code}.pdf\"`);
+  response.end(pdf);
+}
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat("pt-BR").format(new Date(value || Date.now()));
 }
 
 async function handleAssistant(request, response) {
@@ -1108,6 +1521,8 @@ async function handleCheckout(request, response) {
     return sendJson(response, 503, { code: "MERCADO_PAGO_NOT_CONFIGURED", error: "Mercado Pago não configurado." });
   }
 
+  const session = getRequestSession(request);
+  const user = session ? findSessionUser(session) : null;
   const body = await readJsonBody(request);
   if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 20) {
     return sendJson(response, 400, { error: "Carrinho inválido." });
@@ -1127,6 +1542,7 @@ async function handleCheckout(request, response) {
       return {
         id: product.id,
         title: product.title,
+        kind: "package",
         description: `Pacote empresarial - ${product.hours} horas`,
         quantity,
         currency_id: "BRL",
@@ -1148,10 +1564,10 @@ async function handleCheckout(request, response) {
       error.statusCode = 400;
       throw error;
     }
-    // TODO: validar pacotes, descontos e preços no PostgreSQL antes de criar a preferência real.
     return {
       id: productId,
       title,
+      kind: "course",
       description: hours ? `${kind} - ${hours} horas` : kind,
       quantity,
       currency_id: "BRL",
@@ -1159,12 +1575,46 @@ async function handleCheckout(request, response) {
     };
   });
 
+  const now = new Date().toISOString();
+  const externalReference = `fortixseg-${randomUUID()}`;
+  const order = {
+    id: `order-${randomUUID()}`,
+    userId: user?.id || "",
+    customerName: user?.name || cleanText(body.customerName, 160),
+    customerEmail: user?.email || cleanText(body.customerEmail, 160).toLowerCase(),
+    role: user?.role || "guest",
+    type: user?.role === "company" ? "company" : "student",
+    status: "pending",
+    items: items.map((item) => ({
+      courseId: item.kind === "course" ? item.id : "",
+      packageId: item.kind === "package" ? item.id : "",
+      kind: item.kind,
+      title: item.title,
+      quantity: item.quantity,
+      unitPrice: item.unit_price
+    })),
+    totalAmount: Number(items.reduce((total, item) => total + (item.unit_price * item.quantity), 0).toFixed(2)),
+    externalReference,
+    paymentProvider: "mercado_pago",
+    paymentId: "",
+    providerStatus: "preference_created",
+    lastWebhookAt: "",
+    releasedAt: "",
+    createdAt: now,
+    updatedAt: now,
+    approvedAt: ""
+  };
+  appState.orders.unshift(order);
+  appState.orders = appState.orders.slice(0, 5000);
+  await persistRuntimeState();
+
   const preference = {
     items,
-    external_reference: `fortixseg-${randomUUID()}`,
+    external_reference: externalReference,
     statement_descriptor: "FORTIXSEG",
     metadata: {
       brand: "FortixSeg",
+      order_id: order.id,
       course_ids: items.map((item) => item.id).join(",")
     }
   };
@@ -1191,6 +1641,9 @@ async function handleCheckout(request, response) {
     });
     data = await parseApiResponse(apiResponse, "Mercado Pago");
   } catch (error) {
+    order.providerStatus = "preference_error";
+    order.updatedAt = new Date().toISOString();
+    await persistRuntimeState();
     return sendJson(response, 502, {
       error: "Nao foi possivel criar o checkout no Mercado Pago agora.",
       details: cleanText(error.message, 240)
@@ -1201,7 +1654,10 @@ async function handleCheckout(request, response) {
   const checkoutUrl = useSandbox ? data.sandbox_init_point : data.init_point;
   if (!checkoutUrl) throw new Error("O Mercado Pago não retornou o endereço do checkout.");
 
-  // TODO: salvar a ordem e o external_reference no PostgreSQL antes de liberar o checkout.
+  order.providerStatus = "checkout_open";
+  order.paymentPreferenceId = cleanText(data.id, 120);
+  order.updatedAt = new Date().toISOString();
+  await persistRuntimeState();
   return sendJson(response, 200, { id: data.id, checkoutUrl });
 }
 
@@ -1220,10 +1676,66 @@ async function handleMercadoPagoWebhook(request, response, url) {
     return sendJson(response, 401, { error: "Assinatura do webhook inválida." });
   }
 
-  // TODO: consultar o pagamento no Mercado Pago, salvar o evento com idempotência
-  // e liberar o curso somente após confirmar o status approved no servidor.
-  console.log(`Webhook Mercado Pago validado: tipo=${cleanText(body.type, 40) || "desconhecido"}, id=${dataId || "sem-id"}`);
+  const accessToken = ENV.MERCADO_PAGO_ACCESS_TOKEN;
+  if (!accessToken) {
+    return sendJson(response, 503, { error: "Mercado Pago não configurado." });
+  }
+
+  const paymentId = dataId || cleanText(body.id, 120);
+  if (!paymentId) {
+    return sendJson(response, 400, { error: "Webhook sem identificador de pagamento." });
+  }
+
+  const paymentResponse = await fetchWithTimeout(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    }
+  });
+  const payment = await parseApiResponse(paymentResponse, "Mercado Pago");
+  const externalReference = cleanText(payment.external_reference || payment.metadata?.external_reference, 160);
+  const order = appState.orders.find((item) => item.externalReference === externalReference);
+  if (!order) {
+    return sendJson(response, 404, { error: "Pedido não encontrado para este pagamento." });
+  }
+
+  order.paymentId = cleanText(String(payment.id || paymentId), 120);
+  order.providerStatus = cleanText(payment.status || payment.status_detail || "received", 80);
+  order.lastWebhookAt = new Date().toISOString();
+  order.updatedAt = order.lastWebhookAt;
+
+  if (payment.status === "approved") {
+    finalizeApprovedOrder(order);
+  }
+
+  await persistRuntimeState();
   return sendJson(response, 200, { received: true });
+}
+
+function finalizeApprovedOrder(order) {
+  if (!order) return;
+  if (order.status !== "approved") {
+    order.status = "approved";
+    order.approvedAt = order.approvedAt || new Date().toISOString();
+  }
+  if (!order.releasedAt) {
+    releaseOrderEnrollments(order);
+    order.releasedAt = new Date().toISOString();
+  }
+  order.updatedAt = new Date().toISOString();
+}
+
+function releaseOrderEnrollments(order) {
+  if (!order?.userId) return;
+  for (const item of order.items || []) {
+    const courseIds = item.kind === "package"
+      ? (PACKAGE_RELEASE_MAP[item.packageId] || [])
+      : [item.courseId].filter(Boolean);
+    for (const courseId of courseIds) {
+      ensureEnrollmentForUser(order.userId, courseId);
+    }
+  }
 }
 
 function verifyMercadoPagoSignature(xSignature, xRequestId, dataId, secret) {

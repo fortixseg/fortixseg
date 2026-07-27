@@ -10,11 +10,11 @@
       "phone": "(11) 99999-0000",
       "document": "000.000.000-00",
       "status": "active",
-      "passwordHash": "e27f25f9d7db835ef37db94f964636a96c93ad2518a6e71ab197f9781515107fc8cf161026865bb39c4ddd2cbeb9f307676f9ff958fe34f0ee015289df7a72b1",
-      "passwordSalt": "4d879c2e-5514-42c0-a479-4319388ce673",
+      "passwordHash": "211efd1e4ecd47df8f14e05b3ee5afffa68741c50406fb8787e2cc2f46f29cec2e0699bb18508cd68095f8f4bc92f482aabd01a9a8628811b35e40753ebdb43c",
+      "passwordSalt": "88123377-0210-40c5-9314-f729cfbaeaaa",
       "createdAt": "2026-07-11T22:50:20.872Z",
-      "updatedAt": "2026-07-11T23:53:20.101Z",
-      "lastLoginAt": "2026-07-11T23:53:20.101Z"
+      "updatedAt": "2026-07-27T15:44:29.781Z",
+      "lastLoginAt": "2026-07-27T15:44:29.781Z"
     },
     {
       "id": "user-company-demo",
@@ -26,10 +26,10 @@
       "phone": "(11) 98888-0000",
       "document": "00.000.000/0001-00",
       "status": "active",
-      "passwordHash": "e27f25f9d7db835ef37db94f964636a96c93ad2518a6e71ab197f9781515107fc8cf161026865bb39c4ddd2cbeb9f307676f9ff958fe34f0ee015289df7a72b1",
-      "passwordSalt": "4d879c2e-5514-42c0-a479-4319388ce673",
+      "passwordHash": "7ab2dad730316195d7861b8ff1ef65ad939775679eada495aa01101144234dcbfcfb7b8eba458e48058c21e4721eadb07e14247e3412ec950e57b1056ea6f2b3",
+      "passwordSalt": "e7842604-e1eb-42e8-943a-005d03187c09",
       "createdAt": "2026-07-11T22:50:20.872Z",
-      "updatedAt": "2026-07-11T22:50:20.872Z",
+      "updatedAt": "2026-07-27T15:44:23.540Z",
       "lastLoginAt": ""
     },
     {
@@ -42,10 +42,10 @@
       "phone": "",
       "document": "",
       "status": "active",
-      "passwordHash": "e27f25f9d7db835ef37db94f964636a96c93ad2518a6e71ab197f9781515107fc8cf161026865bb39c4ddd2cbeb9f307676f9ff958fe34f0ee015289df7a72b1",
-      "passwordSalt": "4d879c2e-5514-42c0-a479-4319388ce673",
+      "passwordHash": "3d426aaa7e00cbd83a2718a4e6eb677bb70eeca16eb4c60fb246f2147a3d2a6fce62e11d00eb488c4b21589db09c37544720649d7b6d1bc285677a9d435d478f",
+      "passwordSalt": "64fec993-5a30-481b-9cf4-bd0edba3d9db",
       "createdAt": "2026-07-11T22:50:20.872Z",
-      "updatedAt": "2026-07-11T22:50:49.073Z",
+      "updatedAt": "2026-07-27T15:44:23.704Z",
       "lastLoginAt": "2026-07-11T22:50:49.073Z"
     },
     {
@@ -62,6 +62,22 @@
       "passwordSalt": "3cc402f2-8ed6-4948-b177-4997eb309a61",
       "createdAt": "2026-07-11T22:50:49.124Z",
       "updatedAt": "2026-07-11T22:50:49.124Z",
+      "lastLoginAt": ""
+    },
+    {
+      "id": "user-affiliate-e5378310-5d36-4183-a69d-1eb8b40a414b",
+      "role": "affiliate",
+      "email": "afiliado@teste.com",
+      "name": "Afiliado FortixSeg",
+      "companyName": "",
+      "responsibleName": "",
+      "phone": "(11) 97777-0000",
+      "document": "",
+      "status": "active",
+      "passwordHash": "4114197d6b7aefe09e0746e1e865ea3a10f3e0711dc0ccf81f9b8488d1aa95f00c07f1373058b7dcb43efd03c256bf2fe650b7cb19bcc5681cb33893b5b95c50",
+      "passwordSalt": "20c4d1f7-f4aa-4351-9999-3a8c99d81fee",
+      "createdAt": "2026-07-27T15:43:21.207Z",
+      "updatedAt": "2026-07-27T15:44:23.622Z",
       "lastLoginAt": ""
     }
   ],
@@ -266,5 +282,13 @@
       "issuedAt": "2026-07-11T23:47:42.127Z",
       "status": "valid"
     }
-  ]
+  ],
+  "proposals": [],
+  "contactMessages": [],
+  "supportTickets": [],
+  "assessmentResults": [],
+  "studentProfiles": {},
+  "companySettings": {},
+  "affiliateSettings": {},
+  "adminSettings": {}
 }

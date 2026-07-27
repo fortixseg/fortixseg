@@ -588,20 +588,6 @@ function applyStudentDashboard(data) {
     studentProgress = Math.max(studentProgress, Number(activeCourse.progress) || 0);
     updateStudentState();
   }
-
-  const certificate = data.latestCertificate;
-  if (certificate) {
-    APP_CONFIG.certificateCode = certificate.code || APP_CONFIG.certificateCode;
-    certificateUnlocked = true;
-    setText("certificateStudentName", certificate.student || "João da Silva");
-    setText("certificateCourseTitle", certificate.course || "NR 35 - Trabalho em Altura");
-    setText("certificateHours", certificate.hours || "8 horas");
-    setText("certificateDate", certificate.completedAt || "04/07/2026");
-    setText("certificateGrade", `${certificate.grade || 80}%`);
-    setText("certificateCodeDisplay", certificate.code || APP_CONFIG.certificateCode);
-    setText("certificateValidationCopy", "Validação digital ativa");
-    writeStorage("fortixsegCertificateUnlocked", true);
-  }
 }
 
 function applyCompanyDashboard(data) {
@@ -659,11 +645,7 @@ function applyAdminDashboard(data) {
   updateApiStatus("apiServerStatus", data.apiStatus?.server === "online" ? "Online" : "Indisponível", data.apiStatus?.server === "online");
   updateApiStatus("apiOpenAiStatus", data.apiStatus?.openai === "configurado" ? "Configurada" : "Pendente", data.apiStatus?.openai === "configurado");
   updateApiStatus("apiMercadoPagoStatus", data.apiStatus?.mercadoPago === "configurado" ? "Configurado" : "Pendente", data.apiStatus?.mercadoPago === "configurado");
-  updateApiStatus(
-    "apiDatabaseStatus",
-    data.apiStatus?.database === "postgres" ? "Postgres conectado" : data.apiStatus?.database === "local-file" ? "Arquivo local" : "Conectado",
-    data.apiStatus?.database === "postgres"
-  );
+  updateApiStatus("apiDatabaseStatus", data.apiStatus?.database === "demo-local" ? "Demo local" : "Conectado", data.apiStatus?.database !== "demo-local");
 
   const studentsBody = document.getElementById("adminStudentsTableBody");
   if (studentsBody && Array.isArray(data.recentStudents)) {
@@ -1237,11 +1219,16 @@ function handlePortalSubmit(event) {
   }
   if (form.id === "studentProfileForm") {
     event.preventDefault();
-    void submitStudentProfileForm(form);
+    writeStorage("fortixsegStudentProfile", Object.fromEntries(new FormData(form).entries()));
+    showToast("Dados do aluno atualizados.");
   }
   if (form.id === "studentSupportForm") {
     event.preventDefault();
-    void submitStudentSupportForm(form);
+    const tickets = readStorage("fortixsegSupportTickets", []);
+    tickets.push({ ...Object.fromEntries(new FormData(form).entries()), createdAt: new Date().toISOString() });
+    writeStorage("fortixsegSupportTickets", tickets);
+    form.reset();
+    showToast("Solicitação de suporte registrada.");
   }
   if (form.id === "companyPortalBulkForm") {
     event.preventDefault();
@@ -1250,15 +1237,18 @@ function handlePortalSubmit(event) {
   }
   if (form.id === "companySettingsForm") {
     event.preventDefault();
-    void submitCompanySettingsForm(form);
+    writeStorage("fortixsegCompanySettings", Object.fromEntries(new FormData(form).entries()));
+    showToast("Configurações da empresa salvas.");
   }
   if (form.id === "affiliateSettingsForm") {
     event.preventDefault();
-    void submitAffiliateSettingsForm(form);
+    writeStorage("fortixsegAffiliateSettings", Object.fromEntries(new FormData(form).entries()));
+    showToast("Dados do afiliado salvos.");
   }
   if (form.id === "adminSettingsForm") {
     event.preventDefault();
-    void submitAdminSettingsForm(form);
+    writeStorage("fortixsegAdminSettings", Object.fromEntries(new FormData(form).entries()));
+    showToast("Configurações administrativas salvas.");
   }
 }
 
@@ -2516,12 +2506,19 @@ async function checkout() {
   button.textContent = "Preparando checkout...";
 
   try {
-    const data = await apiRequest("/api/checkout-preference", {
+    const response = await fetch("/api/checkout-preference", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ items: cart })
     });
+    const data = await response.json().catch(() => ({}));
     const checkoutTarget = data.checkoutUrl || data.init_point || data.sandbox_init_point;
-    if (!checkoutTarget) throw new Error("Checkout indisponível.");
+    if (!response.ok || !checkoutTarget) {
+      const error = new Error(data.error || "Checkout indisponível.");
+      error.status = response.status;
+      error.code = data.code || "";
+      throw error;
+    }
     const checkoutUrl = new URL(checkoutTarget);
     if (checkoutUrl.protocol !== "https:") throw new Error("Endereço de checkout inválido.");
     window.location.assign(checkoutUrl.href);
@@ -2567,11 +2564,13 @@ function bindForms() {
   document.getElementById("registerForm").addEventListener("submit", handleRegister);
   document.getElementById("proposalForm").addEventListener("submit", (event) => {
     event.preventDefault();
-    void submitProposalForm(event.target);
+    event.target.reset();
+    showToast("Solicitação enviada com sucesso. Nossa equipe entrará em contato.");
   });
   document.getElementById("contactForm").addEventListener("submit", (event) => {
     event.preventDefault();
-    void submitContactForm(event.target);
+    event.target.reset();
+    showToast("Mensagem enviada com sucesso. Retornaremos em breve.");
   });
   document.getElementById("validationForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -2718,31 +2717,17 @@ function renderQuiz() {
   `;
 }
 
-async function gradeQuiz(event) {
+function gradeQuiz(event) {
   event.preventDefault();
   const formData = new FormData(event.target);
-  const answers = quizQuestions.map((_, index) => Number(formData.get(`question-${index}`)));
-
-  try {
-    const data = await apiRequest("/api/student/assessment", {
-      method: "POST",
-      body: JSON.stringify({ courseId: "nr35", answers })
-    });
-    applyQuizOutcome(data.grade, data.approved);
-    return;
-  } catch {
-    apiOnline = false;
-  }
-
   let correct = 0;
-  quizQuestions.forEach((question, index) => {
-    if (answers[index] === question.answer) correct += 1;
-  });
-  const grade = Math.round((correct / quizQuestions.length) * 100);
-  applyQuizOutcome(grade, grade >= 70);
-}
 
-function applyQuizOutcome(grade, approved) {
+  quizQuestions.forEach((question, index) => {
+    if (Number(formData.get(`question-${index}`)) === question.answer) correct += 1;
+  });
+
+  const grade = Math.round((correct / quizQuestions.length) * 100);
+  const approved = grade >= 70;
   lastQuizGrade = grade;
   writeStorage("fortixsegQuizGrade", grade);
 
@@ -2764,102 +2749,6 @@ function applyQuizOutcome(grade, approved) {
   const certificateButton = result.querySelector("[data-show-certificate]");
   if (certificateButton) certificateButton.addEventListener("click", () => navigate("certificate-view"));
   result.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-
-async function submitProposalForm(form) {
-  const payload = Object.fromEntries(new FormData(form).entries());
-  try {
-    await apiRequest("/api/proposals", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    form.reset();
-    showToast("Solicitação enviada com sucesso. Nossa equipe entrará em contato.");
-  } catch (error) {
-    showToast(error.message || "Não foi possível enviar a solicitação de proposta.");
-  }
-}
-
-async function submitContactForm(form) {
-  const payload = Object.fromEntries(new FormData(form).entries());
-  try {
-    await apiRequest("/api/contact", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    form.reset();
-    showToast("Mensagem enviada com sucesso. Retornaremos em breve.");
-  } catch (error) {
-    showToast(error.message || "Não foi possível enviar sua mensagem.");
-  }
-}
-
-async function submitStudentProfileForm(form) {
-  const payload = Object.fromEntries(new FormData(form).entries());
-  try {
-    await apiRequest("/api/student/profile", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  } catch {
-    writeStorage("fortixsegStudentProfile", payload);
-  }
-  showToast("Dados do aluno atualizados.");
-}
-
-async function submitStudentSupportForm(form) {
-  const payload = Object.fromEntries(new FormData(form).entries());
-  try {
-    await apiRequest("/api/student/support", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  } catch {
-    const tickets = readStorage("fortixsegSupportTickets", []);
-    tickets.push({ ...payload, createdAt: new Date().toISOString() });
-    writeStorage("fortixsegSupportTickets", tickets);
-  }
-  form.reset();
-  showToast("Solicitação de suporte registrada.");
-}
-
-async function submitCompanySettingsForm(form) {
-  const payload = Object.fromEntries(new FormData(form).entries());
-  try {
-    await apiRequest("/api/company/settings", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  } catch {
-    writeStorage("fortixsegCompanySettings", payload);
-  }
-  showToast("Configurações da empresa salvas.");
-}
-
-async function submitAffiliateSettingsForm(form) {
-  const payload = Object.fromEntries(new FormData(form).entries());
-  try {
-    await apiRequest("/api/affiliate/settings", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  } catch {
-    writeStorage("fortixsegAffiliateSettings", payload);
-  }
-  showToast("Dados do afiliado salvos.");
-}
-
-async function submitAdminSettingsForm(form) {
-  const payload = Object.fromEntries(new FormData(form).entries());
-  try {
-    await apiRequest("/api/admin/settings", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  } catch {
-    writeStorage("fortixsegAdminSettings", payload);
-  }
-  showToast("Configurações administrativas salvas.");
 }
 
 function updateStudentState() {
@@ -2925,37 +2814,9 @@ function renderCertificateValidation(result, data) {
 }
 
 function printCertificate() {
-  const token = localStorage.getItem("fortixsegApiToken");
-  if (!token) {
-    showToast("Faça login para baixar o certificado.");
-    return;
-  }
-
-  fetch("/api/student/certificates/current.pdf", {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
-    .then(async (response) => {
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Não foi possível gerar o PDF.");
-      }
-      return response.blob();
-    })
-    .then((blob) => {
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = `certificado-${APP_CONFIG.certificateCode}.pdf`;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
-    })
-    .catch((error) => {
-      showToast(error.message || "Não foi possível baixar o certificado.");
-    });
+  // TODO: gerar PDF real no backend futuramente
+  // TODO: gerar certificado real em PDF
+  window.print();
 }
 
 async function handleEmployeeAdd(event) {
