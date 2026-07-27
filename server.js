@@ -770,15 +770,17 @@ async function handleRegister(request, response) {
     return sendJson(response, 409, { error: "Já existe uma conta de teste com esse e-mail." });
   }
 
+  const registrationContact = extractRegistrationContact(body, accountType);
+
   const user = createUserRecord({
     email,
     password,
     role,
     name,
-    companyName: cleanText(body.companyName, 160),
-    responsibleName: cleanText(body.companyResponsible, 160),
-    phone: cleanText(body.phone, 40),
-    document: cleanText(body.document || body.cpf || body.cnpj, 24)
+    companyName: registrationContact.companyName,
+    responsibleName: registrationContact.responsibleName,
+    phone: registrationContact.phone,
+    document: registrationContact.document
   });
   appState.users.unshift(user);
   appState.registrations.unshift({
@@ -799,6 +801,38 @@ async function handleRegister(request, response) {
     },
     token: createSessionToken(email, user)
   });
+}
+
+function extractRegistrationContact(body, accountType) {
+  const normalizedType = ["candidate", "company", "affiliate", "admin"].includes(accountType) ? accountType : "candidate";
+  const byType = {
+    candidate: {
+      phone: body.phoneCandidate || body.phone,
+      document: body.cpf || body.document
+    },
+    company: {
+      companyName: body.companyName,
+      responsibleName: body.companyResponsible,
+      phone: body.phoneCompany || body.phone,
+      document: body.companyCnpj || body.cnpj || body.document
+    },
+    affiliate: {
+      phone: body.affiliatePhone || body.phone,
+      document: body.affiliateDocument || body.document
+    },
+    admin: {
+      phone: body.adminPhone || body.phone,
+      document: body.adminDocument || body.document
+    }
+  };
+
+  const source = byType[normalizedType] || byType.candidate;
+  return {
+    companyName: cleanText(source.companyName, 160),
+    responsibleName: cleanText(source.responsibleName, 160),
+    phone: cleanText(source.phone, 40),
+    document: cleanText(source.document, 24)
+  };
 }
 
 async function handleProposal(request, response) {

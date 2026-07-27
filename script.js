@@ -508,10 +508,16 @@ async function apiRequest(path, options = {}) {
       headers,
       signal: controller.signal
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "A API não respondeu corretamente.");
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+    if (!response.ok) throw new Error(data.error || data.message || text || "A API não respondeu corretamente.");
     apiOnline = true;
     return data;
+  } catch (error) {
+    if (error?.name === "SyntaxError") {
+      throw new Error("A API retornou uma resposta inválida.");
+    }
+    throw error;
   } finally {
     clearTimeout(timer);
   }
