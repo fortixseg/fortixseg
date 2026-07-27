@@ -72,7 +72,11 @@ const QUIZ_ANSWER_KEY = [1, 2, 1, 2, 0];
 let courseCatalog = loadCourseCatalog();
 let appState = loadAppData();
 let companyEmployees = loadInitialCompanyEmployees();
-await initializeRuntimeState();
+let runtimeStateIssue = "";
+const runtimeStateReady = initializeRuntimeState().catch((error) => {
+  runtimeStateIssue = cleanText(error?.message || "Falha ao inicializar estado da aplicação.", 240);
+  console.error(`Falha ao inicializar runtime: ${runtimeStateIssue}`);
+});
 
 const ASSISTANT_INSTRUCTIONS = `
 Você é o atendente virtual oficial da FortixSeg, empresa de treinamentos online em Segurança do Trabalho.
@@ -114,6 +118,7 @@ export async function handleRequest(request, response) {
   response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
 
   try {
+    await runtimeStateReady;
     const url = new URL(request.url || "/", `http://${request.headers.host || `localhost:${PORT}`}`);
 
     if (request.method === "GET" && url.pathname === "/api/health") {
@@ -121,7 +126,8 @@ export async function handleRequest(request, response) {
         ok: true,
         mercadoPagoConfigured: Boolean(ENV.MERCADO_PAGO_ACCESS_TOKEN),
         openAIConfigured: Boolean(ENV.OPENAI_API_KEY),
-        model: OPENAI_MODEL
+        model: OPENAI_MODEL,
+        runtimeStateIssue: runtimeStateIssue || undefined
       });
     }
 
@@ -383,7 +389,12 @@ async function initializeRuntimeState() {
 
   ensureSeedUsers();
   companyEmployees = loadInitialCompanyEmployees();
-  await persistRuntimeState();
+  try {
+    await persistRuntimeState();
+  } catch (error) {
+    runtimeStateIssue = cleanText(error?.message || "Falha ao persistir estado inicial.", 240);
+    console.error(`Não foi possível persistir estado inicial: ${runtimeStateIssue}`);
+  }
 }
 
 function loadAppDataFromSource(source = {}) {
