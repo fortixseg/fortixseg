@@ -1,168 +1,259 @@
 # FortixSeg
 
-Plataforma de treinamentos online em Segurança do Trabalho, com front-end demonstrativo, atendente virtual e estrutura de Checkout Pro do Mercado Pago.
+Plataforma MVP de treinamentos online em Seguranca do Trabalho.
 
-## Abrir no modo demonstrativo
+Este projeto esta pronto para teste publico controlado, mas ainda nao deve ser tratado como producao final. Ele ja possui site, login de teste, area do aluno, area da empresa, area administrativa, catalogo de cursos, carrinho, checkout preparado para Mercado Pago e cadastro de curso com material em PDF.
 
-Abra `index.html` diretamente no navegador. Navegação, cursos, carrinho, dashboards e atendente local funcionam sem instalação. Nesse modo não há cobrança nem consulta à IA externa.
+## Estado atual
 
-## Ativar Mercado Pago e IA
+Pronto para testar:
 
-É necessário Node.js 18 ou mais recente.
+- Home, cursos, pacotes, empresas, certificado, contato e FAQ.
+- Login de aluno, empresa, afiliado e admin.
+- Login administrativo com senha configurada no servidor.
+- Cadastro de teste para aluno, empresa, afiliado e admin.
+- Area do aluno com curso, PDF, avaliacao e certificado demonstrativo.
+- Area da empresa com colaboradores, relatorios e compra em lote demonstrativa.
+- Area do afiliado com link, cupom, indicacoes, comissoes e dados bancarios demonstrativos.
+- Admin com cadastro, edicao, exclusao e publicacao de cursos.
+- Upload de material somente em PDF.
+- Catalogo de cursos gravado em `data/courses.json`.
+- Checkout preparado para Mercado Pago via servidor.
 
-1. Duplique `.env.example` com o nome `.env`.
-2. Preencha as credenciais dentro do `.env`. Nunca coloque as chaves em `script.js`, publique o `.env` ou envie as chaves pelo chat.
-3. No terminal, dentro desta pasta, execute `npm start`.
-4. Abra `http://127.0.0.1:3001`.
+Ainda demonstrativo, nao final:
 
-O projeto não possui dependências externas de Node, portanto não é necessário executar `npm install`.
+- Cadastro fica em memoria enquanto o servidor estiver ligado.
+- Login ainda nao usa banco real.
+- Certificado e QR Code ainda sao demonstrativos.
+- Pagamento aprovado ainda nao libera matricula automaticamente.
+- Nao ha storage privado definitivo para arquivos.
+- Nao ha logs finais de acesso, aula e avaliacao.
 
-Exemplo de configuração local:
+## Como rodar para teste
+
+Precisa de Node.js 18 ou mais recente.
+
+1. Copie `.env.example` para `.env`.
+2. Preencha as variaveis do `.env`.
+3. Rode o servidor com `npm start`.
+4. Abra `http://127.0.0.1:3001` no servidor local.
+
+Se for subir em VPS, use o IP ou dominio publico no Nginx apontando para a porta do Node.
+
+## Configuracao obrigatoria no `.env`
 
 ```env
-PORT=3000
-PUBLIC_BASE_URL=
-MERCADO_PAGO_ACCESS_TOKEN=SEU_TOKEN
-MERCADO_PAGO_WEBHOOK_SECRET=SEU_SEGREDO
+PORT=3001
+PUBLIC_BASE_URL=https://seudominio.com.br
+
+MERCADO_PAGO_ACCESS_TOKEN=
+MERCADO_PAGO_WEBHOOK_SECRET=
 MERCADO_PAGO_USE_SANDBOX=true
-APP_JWT_SECRET=TROQUE_ESTE_SEGREDO
-OPENAI_API_KEY=SUA_CHAVE
+
+FORTIXSEG_SESSION_SECRET=troque-por-um-segredo-grande
+FORTIXSEG_STUDENT_EMAIL=aluno@teste.com
+FORTIXSEG_STUDENT_PASSWORD=123456
+FORTIXSEG_COMPANY_EMAIL=empresa@teste.com
+FORTIXSEG_COMPANY_PASSWORD=123456
+FORTIXSEG_AFFILIATE_EMAIL=afiliado@teste.com
+FORTIXSEG_AFFILIATE_PASSWORD=123456
+FORTIXSEG_ADMIN_EMAIL=admin@teste.com
+FORTIXSEG_ADMIN_PASSWORD=123456
+FORTIXSEG_ADMIN_REGISTRATION_CODE=FORTIX-ADMIN-2026
+
+OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
 ```
 
-## Mercado Pago
+Importante: nunca envie `.env` para GitHub, ZIP publico, hospedagem estatica ou chat. Ele contem chaves e senhas.
 
-O botão **Finalizar compra** envia apenas os IDs e quantidades ao servidor. O servidor consulta seu próprio catálogo, calcula os valores corretos, cria uma preferência do Checkout Pro e redireciona o cliente ao Mercado Pago.
+## Logins de teste
 
-Para publicar:
-
-- Defina `PUBLIC_BASE_URL` com o domínio público HTTPS, sem `localhost`.
-- Cadastre `/api/mercado-pago/webhook` como URL de notificação.
-- Use credenciais e usuários de teste antes de mudar para produção.
-- Confirme o status do pagamento no servidor antes de matricular ou liberar qualquer curso.
-
-O webhook já valida a assinatura secreta. A gravação da ordem, consulta final do pagamento, idempotência e matrícula estão marcadas como próximas etapas em `server.js`.
-
-## Atendente com IA
-
-Com `OPENAI_API_KEY` configurada, o chat chama a Responses API pelo servidor. A chave nunca chega ao navegador. Se a API estiver desligada ou indisponível, o atendente continua respondendo com a base local já existente.
-
-O modelo pode ser alterado em `OPENAI_MODEL`. O padrão é `gpt-5.4-mini`, escolhido para equilibrar qualidade, velocidade e custo.
-
-## Autenticação local
-
-O projeto agora usa autenticação local com JWT assinado no servidor e cookie `HttpOnly`. O navegador não armazena token de login em `localStorage`.
-
-- `POST /api/auth/login`: autentica aluno, empresa ou admin.
-- `POST /api/auth/register`: cria conta local de aluno ou empresa.
-- `GET /api/auth/session`: devolve o usuário autenticado pela sessão atual.
-- `POST /api/auth/logout`: encerra a sessão atual.
-
-Os usuários e cadastros locais ficam persistidos em `data/app-data.json`.
-
-## APIs demonstrativas da plataforma
-
-As áreas internas tentam carregar dados pelo servidor e usam o modo local como fallback:
-
-- `POST /api/auth/login`: login local com JWT em cookie `HttpOnly`.
-- `POST /api/auth/register`: criação de conta local.
-- `GET /api/auth/session`: leitura da sessão autenticada.
-- `POST /api/auth/logout`: encerramento da sessão.
-- `GET /api/courses`: catálogo e preços usados pelo front-end.
-- `GET /api/student/dashboard`: métricas e próximas ações do aluno.
-- `GET /api/student/library`: vídeos, PDFs e metadados da biblioteca do curso.
-- `POST /api/student/progress`: atualização do progresso do curso do aluno.
-- `POST /api/student/assessment`: envio do resultado da avaliação e emissão de certificado quando aprovado.
-- `GET /api/company/dashboard`: métricas, alertas e colaboradores da empresa.
-- `POST /api/company/employees`: cadastro demonstrativo de colaborador.
-- `GET /api/admin/dashboard`: métricas, integrações, alunos e pagamentos recentes.
-- `GET /api/admin/courses`: catálogo completo, incluindo rascunhos e materiais.
-- `POST /api/admin/courses`: cadastro de um novo curso.
-- `PUT /api/admin/courses/:id`: alteração de preço, regras e conteúdo programático.
-- `DELETE /api/admin/courses/:id`: exclusão demonstrativa de curso.
-- `POST /api/admin/courses/:id/resources`: upload de PDF, MP4, WebM ou OGV.
-- `DELETE /api/admin/courses/:id/resources/:resourceId`: remoção de material.
-- `POST /api/checkout/preference`: criação do pedido e tentativa de checkout.
-- `GET /api/orders/:id`: leitura de um pedido autenticado.
-- `GET /api/orders/resolve?external_reference=...&payment_id=...&status=...`: reconciliação do retorno do checkout.
-- `GET /api/certificates/validate?code=...`: validação pública demonstrativa.
-
-As rotas já possuem autenticação local, autorização por perfil e persistência JSON para ambiente de desenvolvimento. Pedidos, matrículas, progresso e certificados agora também ficam persistidos em `data/app-data.json`. A próxima etapa natural é migrar essa base para Supabase Auth e PostgreSQL.
-
-## Pedidos, matrículas e progresso
-
-- Quando o Mercado Pago não está configurado, o checkout entra em `demo_local`, aprova o pedido localmente e cria as matrículas correspondentes.
-- Matrículas do aluno ficam persistidas com progresso, tentativas e melhor nota.
-- A aprovação na avaliação emite um certificado com código único, já validável na rota pública.
-- Compras corporativas aprovadas aumentam a base de vagas disponíveis da empresa para novas matrículas.
-
-## Ciclo de pagamento
-
-- Todo checkout agora cria um pedido local antes de redirecionar para o provedor.
-- O retorno do checkout pode ser reconciliado pelo backend usando `external_reference` e `payment_id`.
-- O webhook do Mercado Pago consulta o pagamento na API oficial, atualiza o pedido local e aplica a liberação de acesso de forma idempotente.
-- Em ambiente sem Mercado Pago configurado, o pedido é aprovado localmente para manter o fluxo funcional de desenvolvimento.
-
-## Operação corporativa
-
-- Compras corporativas aprovadas passam a compor um saldo de vagas por curso.
-- O cadastro de colaborador consome uma vaga do curso selecionado e impede alocação acima do saldo disponível.
-- Cada colaborador da empresa fica persistido com vínculo de curso, progresso, status e eventual código de certificado.
-- O portal da empresa passa a refletir:
-  - saldo por curso (`compradas`, `alocadas`, `disponíveis`)
-  - progresso real dos colaboradores vinculados
-  - certificados emitidos para a equipe
-
-## Portais internos
-
-- Aluno: painel, cursos, biblioteca de aulas, avaliações, certificados, dados e suporte.
-- Empresa: dashboard, colaboradores, compra em lote, progresso, certificados, relatórios CSV, vencimentos e configurações.
-- Admin: dashboard, gerenciador completo de cursos, alunos, empresas, certificados, pagamentos, relatórios e configurações.
-
-No gerenciador de cursos, o administrador pode cadastrar ou editar nome, código, categoria, carga horária, preço, publicação, quantidade de aulas, nota mínima, tentativas, público-alvo, objetivo e conteúdo programático. Também pode anexar PDFs e vídeos. Os arquivos demonstrativos têm limite de 12 MB cada; em produção, devem ser enviados para storage privado com controle de acesso.
-
-A biblioteca do aluno já possui um PDF demonstrativo funcional. Os vídeos usam um player preparado para receber arquivos de storage privado ou URLs assinadas pelo backend.
-
-## Logins demonstrativos
-
-Todos usam a senha `123456`.
-
-- Aluno: `aluno@teste.com`
-- Empresa: `empresa@teste.com`
-- Admin: `admin@teste.com`
-
-## Onde alterar a marca
-
-No início de `script.js`, edite `APP_CONFIG`. O nome atual é FortixSeg e o contato é `fortixseg@gmail.com`.
-
-## Onde alterar cursos e preços
-
-Com o servidor ativo, entre como administrador e abra **Cursos**. As alterações são gravadas em `data/courses.json`, aparecem no catálogo público quando o status é **Publicado** e também atualizam o valor usado pelo checkout.
-
-O catálogo inicial de segurança continua em `DEFAULT_COURSE_CATALOG`, no início de `server.js`. A lista no começo de `script.js` é apenas o fallback para quando o site for aberto sem servidor.
-
-## Integrações futuras
-
-- Supabase Auth: substituir a autenticação JWT local por provedor externo.
-- PostgreSQL: substituir a persistência JSON local de usuários, pedidos, pagamentos, matrículas e progresso.
-- Mercado Pago: consultar cada pagamento recebido pelo webhook antes da liberação.
-- PDF e QR Code: gerar certificados reais no servidor.
-- Vídeos: usar storage protegido e controle de acesso.
-- Administração: proteger as rotas com Supabase Auth, autorização por perfil e logs de auditoria.
-- Logs: registrar acessos, aulas, avaliações e conclusões.
-
-## Estrutura
+Aluno:
 
 ```text
-qualiseg/
-|-- index.html
-|-- styles.css
-|-- script.js
-|-- server.js
-|-- package.json
-|-- .env.example
-|-- README.md
-`-- assets/
+aluno@teste.com
+123456
 ```
 
-Os números, usuários e registros atuais continuam demonstrativos até a conexão com banco de dados e autenticação real.
+Empresa:
+
+```text
+empresa@teste.com
+123456
+```
+
+Afiliado:
+
+```text
+afiliado@teste.com
+123456
+```
+
+Admin:
+
+```text
+admin@teste.com
+123456
+```
+
+Antes de abrir para cliente real, troque `FORTIXSEG_ADMIN_PASSWORD` e `FORTIXSEG_ADMIN_REGISTRATION_CODE` no `.env`.
+
+## Cadastro de teste
+
+O cadastro de aluno, empresa e afiliado funciona para teste: ao criar a conta, o usuario ja entra na area correta.
+
+O cadastro de admin tambem funciona, mas exige o codigo definido em:
+
+```text
+FORTIXSEG_ADMIN_REGISTRATION_CODE
+```
+
+Codigo demonstrativo padrao:
+
+```text
+FORTIX-ADMIN-2026
+```
+
+Nesta fase, o cadastro fica em memoria no servidor. Se o servidor reiniciar, os cadastros criados no teste sao perdidos. Em producao, isso deve ir para Supabase Auth/PostgreSQL.
+
+## Cursos e materiais
+
+O catalogo editavel fica em:
+
+```text
+data/courses.json
+```
+
+Pelo admin, e possivel cadastrar:
+
+- codigo do curso;
+- nome;
+- categoria;
+- carga horaria;
+- preco;
+- status publicado ou rascunho;
+- quantidade de aulas;
+- nota minima;
+- tentativas;
+- publico-alvo;
+- objetivo;
+- conteudo programatico;
+- materiais em PDF.
+
+Por enquanto, o treinamento aceita somente PDF. Outros formatos de aula devem entrar em uma fase futura com storage protegido e controle de acesso.
+
+PDFs enviados pelo admin ficam em:
+
+```text
+assets/uploads/courses/
+```
+
+Limite demonstrativo por arquivo:
+
+```text
+12 MB
+```
+
+Para uso real em escala, o recomendado e mover PDFs, apostilas e certificados para uma nuvem/storage privado, como Cloudflare R2, S3, Supabase Storage ou servidor dedicado com backup.
+
+## APIs principais
+
+Rotas publicas:
+
+- `GET /api/health`
+- `GET /api/courses`
+- `GET /api/certificates/validate?code=FS-NR35-2026-000123`
+- `POST /api/checkout/preference`
+- `POST /api/checkout-preference`
+
+Rotas de autenticacao:
+
+- `POST /api/auth/demo`
+- `POST /api/auth/register`
+
+Rotas protegidas por perfil:
+
+- `GET /api/student/dashboard`
+- `GET /api/student/library`
+- `GET /api/company/dashboard`
+- `POST /api/company/employees`
+- `GET /api/affiliate/dashboard`
+- `GET /api/admin/dashboard`
+- `GET /api/admin/courses`
+- `POST /api/admin/courses`
+- `PUT /api/admin/courses/:id`
+- `DELETE /api/admin/courses/:id`
+- `POST /api/admin/courses/:id/resources`
+- `DELETE /api/admin/courses/:id/resources/:resourceId`
+
+As rotas protegidas precisam receber o token criado no login.
+
+## Mercado Pago
+
+O checkout deve ser criado no servidor, nunca no navegador.
+
+Para testar:
+
+1. Coloque o token de teste em `MERCADO_PAGO_ACCESS_TOKEN`.
+2. Deixe `MERCADO_PAGO_USE_SANDBOX=true`.
+3. Configure `PUBLIC_BASE_URL` com a URL publica HTTPS do site.
+4. Teste comprando um curso pelo carrinho.
+
+O botao de checkout chama:
+
+```text
+/api/checkout/preference
+```
+
+Tambem existe compatibilidade com:
+
+```text
+/api/checkout-preference
+```
+
+Antes de vender de verdade, ainda falta salvar o pedido, receber webhook, confirmar pagamento aprovado no servidor e liberar a matricula somente depois disso.
+
+## Onde alterar marca e textos
+
+No inicio de `script.js`, edite `APP_CONFIG`.
+
+## Onde alterar pacotes
+
+No `script.js`, edite:
+
+- `trainingPackages`
+- `discountTiers`
+- textos das secoes publicas
+
+## Onde alterar catalogo inicial
+
+Com o servidor ligado, prefira alterar pelo admin. As mudancas sao gravadas em `data/courses.json`.
+
+A lista grande de fallback do front fica em `courseCatalogRows`, dentro de `script.js`.
+
+## Publicacao em VPS
+
+Fluxo recomendado:
+
+```text
+Node.js
+PM2
+Nginx
+SSL com Certbot
+Dominio apontado para o IP do VPS
+```
+
+O Nginx recebe o acesso publico e repassa para o Node. O SSL deixa o site em HTTPS.
+
+## Proximas etapas para producao
+
+- Supabase Auth ou outro login real.
+- PostgreSQL para usuarios, empresas, matriculas, pagamentos, certificados e progresso.
+- Storage privado para PDFs e certificados.
+- Geracao real de certificado em PDF.
+- QR Code unico por certificado.
+- Webhook Mercado Pago liberando matricula apos pagamento aprovado.
+- Logs de acesso, progresso, avaliacao e conclusao.
+- Backup automatico.
+- Politica de privacidade, termos de uso e LGPD.

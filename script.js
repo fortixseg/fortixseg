@@ -112,38 +112,104 @@ const courses = [
   }
 ];
 
-const quizQuestions = [
-  {
-    question: "O que é uma análise de risco?",
-    options: ["Uma inspeção apenas visual", "Um processo para identificar perigos e definir controles", "Um documento de compra de EPI", "Uma lista de presença"],
-    answer: 1
-  },
-  {
-    question: "Qual EPI é usado para proteção contra queda?",
-    options: ["Protetor auricular", "Respirador semifacial", "Cinturão de segurança tipo paraquedista", "Luva de raspa"],
-    answer: 2
-  },
-  {
-    question: "Quando o certificado deve ser liberado?",
-    options: ["Antes das aulas", "Após conclusão e aprovação", "No momento do cadastro", "Sem avaliação"],
-    answer: 1
-  },
-  {
-    question: "Qual a nota mínima de aprovação nesta demonstração?",
-    options: ["50%", "60%", "70%", "100%"],
-    answer: 2
-  },
-  {
-    question: "O treinamento deve possuir registro de conclusão?",
-    options: ["Sim", "Não", "Somente se impresso", "Apenas para empresas"],
-    answer: 0
-  }
-];
+const COURSE_CATEGORY_ACCENTS = {
+  "Chão de fábrica": "linear-gradient(145deg, #26322c, #08100c 68%)",
+  "Administrativo": "linear-gradient(145deg, #315f6e, #f5f7f5 150%)",
+  "Liderança": "linear-gradient(145deg, #1b4f3a, #08100c 72%)",
+  "RH/SESMT": "linear-gradient(145deg, #3b5369, #08100c 72%)",
+  "Manutenção": "linear-gradient(145deg, #7a5c22, #11160f 72%)",
+  "Logística": "linear-gradient(145deg, #224f68, #08100c 72%)",
+  "DDS": "linear-gradient(145deg, #2f6f2b, #0a140f 72%)",
+  "NRs": "linear-gradient(145deg, #226c3f, #08100c 72%)"
+};
 
-const defaultEmployees = [
-  { name: "Carlos Lima", course: "NR 35", progress: "75%", status: "Em andamento", certificate: false },
-  { name: "Ana Souza", course: "Uso Correto de EPIs", progress: "100%", status: "Concluído", certificate: true },
-  { name: "Marcos Silva", course: "NR 12", progress: "40%", status: "Em andamento", certificate: false }
+const courseCatalogRows = [
+  ["integ-chao", "INT", "Integração de Segurança", "Chão de fábrica", 4, 79.90],
+  ["epi", "EPI", "Uso Correto de EPIs", "Chão de fábrica", 4, 59.90],
+  ["percepcao-riscos", "RISCO", "Percepção de Riscos", "Chão de fábrica", 4, 69.90],
+  ["apr", "APR", "APR - Análise Preliminar de Risco", "Chão de fábrica", 4, 89.90],
+  ["pt", "PT", "Permissão de Trabalho - PT", "Chão de fábrica", 4, 99.90],
+  ["loto", "LOTO", "LOTO - Bloqueio e Etiquetagem", "Chão de fábrica", 4, 99.90],
+  ["nr12-introdutorio", "NR 12", "NR-12 Introdutório", "NRs", 8, 179.90],
+  ["nr12-operadores", "NR 12", "NR-12 para Operadores", "Chão de fábrica", 8, 199.90],
+  ["nr12-manutencao", "NR 12", "NR-12 para Manutenção", "Manutenção", 8, 219.90],
+  ["nr35", "NR 35", "NR-35 Trabalho em Altura - Teórico", "NRs", 8, 149.90],
+  ["nr33-nocoes", "NR 33", "NR-33 Espaço Confinado - Noções", "NRs", 8, 169.90],
+  ["nr10", "NR 10", "NR-10 Básico Teórico", "NRs", 40, 249.90],
+  ["risco-eletrico-nao-eletricistas", "ELE", "Riscos com Eletricidade para Não Eletricistas", "Chão de fábrica", 4, 89.90],
+  ["ferramentas-manuais", "FER", "Ferramentas Manuais com Segurança", "Manutenção", 2, 49.90],
+  ["ferramentas-eletricas", "FER", "Ferramentas Elétricas Portáteis", "Manutenção", 4, 79.90],
+  ["movimentacao-cargas", "CARGAS", "Movimentação Manual de Cargas", "Chão de fábrica", 4, 69.90],
+  ["ergonomia-posto", "NR 17", "Ergonomia no Posto de Trabalho - NR-17", "Chão de fábrica", 4, 79.90],
+  ["incendio-nocoes", "INC", "Proteção contra Incêndio - Noções", "Chão de fábrica", 4, 69.90],
+  ["produtos-quimicos", "NR 26", "Produtos Químicos e FDS/FISPQ - NR-26", "Chão de fábrica", 4, 89.90],
+  ["ar-comprimido", "AR", "Segurança com Ar Comprimido", "Manutenção", 2, 59.90],
+  ["solda-corte", "SOLDA", "Segurança em Solda e Corte - Noções", "Manutenção", 4, 99.90],
+  ["ponte-rolante", "PONTE", "Ponte Rolante - Teórico", "Logística", 8, 159.90],
+  ["talhas-icamento", "TALHAS", "Talhas e Dispositivos de Içamento", "Logística", 4, 89.90],
+  ["empilhadeira-reciclagem", "EMP", "Empilhadeira - Reciclagem Teórica", "Logística", 8, 149.90],
+  ["paleteira-eletrica", "PAL", "Paleteira Elétrica - Noções de Segurança", "Logística", 4, 79.90],
+  ["prensas", "PRENSA", "Segurança em Prensas", "Chão de fábrica", 4, 119.90],
+  ["maos-dedos", "MAOS", "Proteção de Mãos e Dedos", "Chão de fábrica", 2, 49.90],
+  ["quase-acidente", "QA", "Quase Acidente e Comportamento Seguro", "Chão de fábrica", 2, 49.90],
+  ["cinco-s-seguranca", "5S", "5S com Foco em Segurança", "Chão de fábrica", 4, 69.90],
+  ["ordem-limpeza", "5S", "Ordem, Limpeza e Organização Segura", "Chão de fábrica", 2, 39.90],
+  ["trabalho-quente", "TQ", "Trabalho a Quente - Noções", "Manutenção", 4, 89.90],
+  ["contratadas", "CONT", "Segurança para Contratadas", "RH/SESMT", 4, 99.90],
+  ["integ-adm", "ADM", "Integração de Segurança para Administrativo", "Administrativo", 4, 69.90],
+  ["ergonomia-escritorio", "NR 17", "Ergonomia em Escritório - NR-17", "Administrativo", 4, 79.90],
+  ["home-office", "HOME", "Home Office Seguro e Ergonomia", "Administrativo", 2, 49.90],
+  ["acidentes-adm", "ADM", "Prevenção de Acidentes no Ambiente Administrativo", "Administrativo", 2, 49.90],
+  ["primeiros-socorros", "PS", "Noções de Primeiros Socorros", "Administrativo", 4, 89.90],
+  ["evacuacao-emergencia", "EVAC", "Evacuação de Emergência e Abandono de Área", "Administrativo", 2, 49.90],
+  ["assedio", "RH", "Assédio Moral e Sexual no Trabalho", "Administrativo", 4, 79.90],
+  ["cipa-assedio", "NR 05", "NR-05 CIPA e Prevenção ao Assédio", "Administrativo", 8, 129.90],
+  ["saude-mental", "PSICO", "Saúde Mental e Segurança Psicológica", "Administrativo", 4, 89.90],
+  ["lgpd-rh-sst", "LGPD", "LGPD para RH e Segurança do Trabalho", "Administrativo", 4, 89.90],
+  ["comunicacao-riscos", "COM", "Comunicação de Riscos", "Administrativo", 2, 49.90],
+  ["direcao-defensiva", "FROTA", "Direção Defensiva para Frota Leve", "Administrativo", 4, 89.90],
+  ["escadas-portateis", "ESC", "Uso Seguro de Escadas Portáteis", "Administrativo", 2, 49.90],
+  ["almoxarifado", "ALM", "Organização Segura de Almoxarifado", "Administrativo", 4, 69.90],
+  ["ler-dort", "LER", "Qualidade de Vida e Prevenção de LER/DORT", "Administrativo", 4, 79.90],
+  ["sst-liderancas", "LID", "SST para Lideranças", "Liderança", 4, 119.90],
+  ["responsabilidade-lideranca", "LID", "Responsabilidade da Liderança em Segurança", "Liderança", 4, 119.90],
+  ["gro-pgr", "GRO", "Gestão de Riscos Ocupacionais - GRO/PGR", "Liderança", 8, 179.90],
+  ["dds-eficaz", "DDS", "Como Conduzir DDS Eficaz", "Liderança", 2, 69.90],
+  ["investigacao-acidentes", "INV", "Investigação e Análise de Acidentes", "Liderança", 8, 199.90],
+  ["tratamento-quase-acidentes", "QA", "Tratamento de Quase Acidentes", "Liderança", 4, 99.90],
+  ["indicadores-seguranca", "KPI", "Gestão de Indicadores de Segurança", "Liderança", 4, 129.90],
+  ["auditoria-comportamental", "AUD", "Auditoria Comportamental de Segurança", "Liderança", 4, 129.90],
+  ["pt-emitentes", "PT", "Permissão de Trabalho para Emitentes e Aprovadores", "Liderança", 4, 129.90],
+  ["gestao-contratadas", "CONT", "Gestão de Contratadas em SST", "Liderança", 4, 129.90],
+  ["gestao-reciclagens", "TREIN", "Gestão de Treinamentos e Reciclagens", "Liderança", 4, 99.90],
+  ["pae", "PAE", "Plano de Atendimento a Emergências - PAE", "Liderança", 4, 119.90],
+  ["cultura-seguranca", "CULT", "Cultura de Segurança e Comportamento Seguro", "Liderança", 4, 99.90],
+  ["comunicacao-supervisores", "COM", "Comunicação de Segurança para Supervisores", "Liderança", 2, 69.90],
+  ["documentos-sst", "DOC", "Gestão de Documentos de SST", "RH/SESMT", 4, 99.90],
+  ["controle-certificados", "CERT", "Controle de Certificados e Validades", "RH/SESMT", 2, 69.90],
+  ["esocial-sst", "eSOC", "Noções de eSocial SST", "RH/SESMT", 4, 119.90],
+  ["novos-colaboradores", "INT", "Integração de Novos Colaboradores", "RH/SESMT", 4, 79.90],
+  ["treinamentos-obrigatorios", "TREIN", "Gestão de Treinamentos Obrigatórios", "RH/SESMT", 4, 99.90],
+  ["nr01-rh", "NR 01", "NR-01 para RH e Gestores", "RH/SESMT", 4, 99.90],
+  ["matriz-treinamentos", "MATRIZ", "Como Montar Matriz de Treinamentos", "RH/SESMT", 4, 119.90],
+  ["evidencias-auditoria", "AUD", "Organização de Evidências para Auditoria", "RH/SESMT", 4, 119.90],
+  ["terceiros-documentacao", "TERC", "Terceiros e Documentação de Segurança", "RH/SESMT", 4, 119.90],
+  ["lgpd-colaboradores", "LGPD", "LGPD aplicada a Dados de Colaboradores", "RH/SESMT", 4, 89.90],
+  ["dds-altura", "DDS", "DDS - Trabalho em Altura", "DDS", 0.5, 19.90],
+  ["dds-epi", "DDS", "DDS - Uso Correto de EPIs", "DDS", 0.5, 19.90],
+  ["dds-maos", "DDS", "DDS - Proteção das Mãos", "DDS", 0.5, 19.90],
+  ["dds-quase-acidente", "DDS", "DDS - Quase Acidente", "DDS", 0.5, 19.90],
+  ["dds-ordem-limpeza", "DDS", "DDS - Ordem e Limpeza", "DDS", 0.5, 19.90],
+  ["dds-risco-eletrico", "DDS", "DDS - Risco Elétrico", "DDS", 0.5, 19.90],
+  ["dds-quimicos", "DDS", "DDS - Produtos Químicos", "DDS", 0.5, 19.90],
+  ["dds-ergonomia", "DDS", "DDS - Ergonomia", "DDS", 0.5, 19.90],
+  ["dds-cargas", "DDS", "DDS - Movimentação de Cargas", "DDS", 0.5, 19.90],
+  ["dds-bloqueio", "DDS", "DDS - Bloqueio de Energia", "DDS", 0.5, 19.90],
+  ["dds-escadas", "DDS", "DDS - Escadas Portáteis", "DDS", 0.5, 19.90],
+  ["dds-comunicacao-acidentes", "DDS", "DDS - Comunicação de Acidentes", "DDS", 0.5, 19.90],
+  ["dds-comportamento", "DDS", "DDS - Comportamento Seguro", "DDS", 0.5, 19.90],
+  ["dds-ferramentas", "DDS", "DDS - Uso de Ferramentas", "DDS", 0.5, 19.90],
+  ["dds-transito-interno", "DDS", "DDS - Trânsito Interno", "DDS", 0.5, 19.90]
 ];
 
 const trainingPackages = [
@@ -223,6 +289,74 @@ const discountTiers = [
   { min: 101, max: Infinity, label: "Acima de 100 colaboradores", discount: null, note: "sob proposta" }
 ];
 
+upsertCourseCatalog(courseCatalogRows);
+courses.forEach(enrichCourseDefaults);
+
+const quizQuestions = [
+  {
+    question: "O que é uma análise de risco?",
+    options: ["Uma inspeção apenas visual", "Um processo para identificar perigos e definir controles", "Um documento de compra de EPI", "Uma lista de presença"],
+    answer: 1
+  },
+  {
+    question: "Qual EPI é usado para proteção contra queda?",
+    options: ["Protetor auricular", "Respirador semifacial", "Cinturão de segurança tipo paraquedista", "Luva de raspa"],
+    answer: 2
+  },
+  {
+    question: "Quando o certificado deve ser liberado?",
+    options: ["Antes das aulas", "Após conclusão e aprovação", "No momento do cadastro", "Sem avaliação"],
+    answer: 1
+  },
+  {
+    question: "Qual a nota mínima de aprovação nesta demonstração?",
+    options: ["50%", "60%", "70%", "100%"],
+    answer: 2
+  },
+  {
+    question: "O treinamento deve possuir registro de conclusão?",
+    options: ["Sim", "Não", "Somente se impresso", "Apenas para empresas"],
+    answer: 0
+  }
+];
+
+const defaultEmployees = [
+  { name: "Carlos Lima", course: "NR 35", progress: "75%", status: "Em andamento", certificate: false },
+  { name: "Ana Souza", course: "Uso Correto de EPIs", progress: "100%", status: "Concluído", certificate: true },
+  { name: "Marcos Silva", course: "NR 12", progress: "40%", status: "Em andamento", certificate: false }
+];
+
+const companyAnalytics = {
+  "30": {
+    title: "Últimos 30 dias",
+    delta: "+4 p.p.",
+    trend: [{ label: "Sem 1", value: 74 }, { label: "Sem 2", value: 75 }, { label: "Sem 3", value: 77 }, { label: "Sem 4", value: 78 }],
+    status: [{ label: "Conformes", value: 78, color: "#2fa31f" }, { label: "Em andamento", value: 14, color: "#19708c" }, { label: "Atenção", value: 8, color: "#d28a1b" }],
+    courses: [{ label: "NR 35", value: 42 }, { label: "NR 12", value: 31 }, { label: "EPI", value: 29 }, { label: "NR 10", value: 26 }]
+  },
+  "90": {
+    title: "Últimos 90 dias",
+    delta: "+8 p.p.",
+    trend: [{ label: "Abril", value: 70 }, { label: "Maio", value: 74 }, { label: "Junho", value: 78 }],
+    status: [{ label: "Conformes", value: 78, color: "#2fa31f" }, { label: "Em andamento", value: 14, color: "#19708c" }, { label: "Atenção", value: 8, color: "#d28a1b" }],
+    courses: [{ label: "NR 35", value: 42 }, { label: "NR 12", value: 31 }, { label: "EPI", value: 29 }, { label: "NR 10", value: 26 }]
+  },
+  "365": {
+    title: "Últimos 12 meses",
+    delta: "+17 p.p.",
+    trend: [{ label: "Ago", value: 61 }, { label: "Out", value: 65 }, { label: "Dez", value: 68 }, { label: "Fev", value: 72 }, { label: "Abr", value: 75 }, { label: "Jun", value: 78 }],
+    status: [{ label: "Conformes", value: 78, color: "#2fa31f" }, { label: "Em andamento", value: 14, color: "#19708c" }, { label: "Atenção", value: 8, color: "#d28a1b" }],
+    courses: [{ label: "NR 35", value: 118 }, { label: "NR 12", value: 92 }, { label: "EPI", value: 84 }, { label: "NR 10", value: 68 }]
+  }
+};
+
+const demoLogins = {
+  "aluno@teste.com": { password: "123456", role: "student" },
+  "empresa@teste.com": { password: "123456", role: "company" },
+  "afiliado@teste.com": { password: "123456", role: "affiliate" },
+  "admin@teste.com": { password: "123456", role: "admin" }
+};
+
 let cart = readStorage("fortixsegCart", []);
 let employees = readStorage("fortixsegEmployees", defaultEmployees);
 let certificateUnlocked = readStorage("fortixsegCertificateUnlocked", true);
@@ -231,10 +365,9 @@ let lastQuizGrade = Number(readStorage("fortixsegQuizGrade", 80));
 let toastTimer;
 let apiOnline = false;
 let portalInitialized = false;
-const portalData = { student: null, company: null, admin: null };
+const portalData = { student: null, company: null, affiliate: null, admin: null };
 let adminCourseCatalog = [];
-let currentUser = null;
-let lastOrderStatus = null;
+let companyAnalyticsPeriod = "90";
 let activeCourseFilter = "Todos";
 
 document.addEventListener("DOMContentLoaded", init);
@@ -252,6 +385,7 @@ function init() {
   bindModals();
   bindForms();
   initPortalWorkspaces();
+  renderCompanyAnalytics(companyAnalyticsPeriod);
   bindInterface();
   initVirtualAssistant();
   syncCourseCatalog();
@@ -262,7 +396,7 @@ function init() {
 
   const initialPage = location.hash.replace("#", "") || "home";
   navigate(document.querySelector(`[data-page="${initialPage}"]`) ? initialPage : "home", false);
-  restoreAuthSession(initialPage);
+  handlePaymentReturn();
 }
 
 function readStorage(key, fallback) {
@@ -276,6 +410,71 @@ function readStorage(key, fallback) {
 
 function writeStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function upsertCourseCatalog(rows) {
+  rows.forEach((row) => {
+    const [id, code, title, category, hours, price] = row;
+    const existing = courses.find((course) => course.id === id);
+    const patch = {
+      id,
+      code,
+      title,
+      category,
+      hours,
+      price,
+      accent: COURSE_CATEGORY_ACCENTS[category] || "linear-gradient(145deg, #2d6f43, #081310)",
+      audience: category === "DDS" ? "Equipes que precisam de reforços rápidos e recorrentes de segurança." : `Profissionais e equipes da categoria ${category}.`,
+      objective: "Capacitar o participante com conteúdo objetivo, registro de conclusão e avaliação de aprendizagem.",
+      lessons: Math.max(1, Math.ceil(Number(hours) || 1)),
+      syllabus: [
+        "Conceitos principais do tema",
+        "Riscos e medidas de controle",
+        "Boas práticas aplicadas à rotina",
+        "Registro de conclusão",
+        "Avaliação final"
+      ]
+    };
+    if (existing) {
+      Object.assign(existing, {
+        id,
+        code,
+        title,
+        category,
+        hours,
+        price,
+        accent: patch.accent,
+        audience: existing.audience || patch.audience,
+        objective: existing.objective || patch.objective,
+        lessons: existing.lessons || patch.lessons,
+        syllabus: Array.isArray(existing.syllabus) && existing.syllabus.length ? existing.syllabus : patch.syllabus
+      });
+    } else {
+      courses.push(patch);
+    }
+  });
+}
+
+function enrichCourseDefaults(course) {
+  course.category = normalizeCourseCategory(course.category);
+  course.accent = COURSE_CATEGORY_ACCENTS[course.category] || course.accent || "linear-gradient(145deg, #2d6f43, #081310)";
+  course.modality = "Online";
+  course.lessons = course.lessons || Math.max(1, Math.ceil(Number(course.hours) || 1));
+  course.syllabus = Array.isArray(course.syllabus) && course.syllabus.length ? course.syllabus : ["Conceitos principais", "Aplicação na rotina", "Avaliação final"];
+  course.audience = course.audience || `Profissionais e equipes da categoria ${course.category}.`;
+  course.objective = course.objective || "Capacitar o participante com conteúdo objetivo e avaliação final.";
+  course.legalNotice = requiresNrLegalNotice(course);
+}
+
+function normalizeCourseCategory(category) {
+  const normalized = String(category || "").trim();
+  if (/trabalho em altura|espaços confinados|segurança elétrica|gerenciamento de riscos|máquinas|maquinas/i.test(normalized)) return "NRs";
+  if (/integração|proteção individual|controle de energias/i.test(normalized)) return "Chão de fábrica";
+  return normalized || "Chão de fábrica";
+}
+
+function requiresNrLegalNotice(course) {
+  return /\bNR\s?[-]?\s?(10|33|35)\b/i.test(`${course.code} ${course.title}`);
 }
 
 function setBrand() {
@@ -296,94 +495,25 @@ async function apiRequest(path, options = {}) {
   const { timeoutMs = 8000, ...requestOptions } = options;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const token = localStorage.getItem("fortixsegApiToken");
+  const headers = {
+    ...(requestOptions.body ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(requestOptions.headers || {})
+  };
 
   try {
     const response = await fetch(path, {
       ...requestOptions,
-      credentials: "same-origin",
-      headers: {
-        ...(requestOptions.body ? { "Content-Type": "application/json" } : {}),
-        ...(requestOptions.headers || {})
-      },
+      headers,
       signal: controller.signal
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const error = new Error(data.error || "A API não respondeu corretamente.");
-      error.statusCode = response.status;
-      error.code = data.code || "";
-      throw error;
-    }
+    if (!response.ok) throw new Error(data.error || "A API não respondeu corretamente.");
     apiOnline = true;
     return data;
   } finally {
     clearTimeout(timer);
-  }
-}
-
-function getProtectedPageRoles(pageName) {
-  return {
-    student: ["student", "admin"],
-    lesson: ["student", "admin"],
-    "certificate-view": ["student", "company", "admin"],
-    "company-dashboard": ["company", "admin"],
-    admin: ["admin"]
-  }[pageName] || null;
-}
-
-function getPortalPageForRole(role) {
-  if (role === "student") return "student";
-  if (role === "company") return "company-dashboard";
-  if (role === "admin") return "admin";
-  return "home";
-}
-
-function canAccessPage(pageName) {
-  const allowedRoles = getProtectedPageRoles(pageName);
-  if (!allowedRoles) return true;
-  return Boolean(currentUser && allowedRoles.includes(currentUser.role));
-}
-
-function applyAuthState() {
-  const isAuthenticated = Boolean(currentUser);
-  document.querySelectorAll("[data-auth]").forEach((button) => {
-    button.classList.toggle("hidden", isAuthenticated);
-  });
-
-  const homeTarget = getPortalPageForRole(currentUser?.role);
-  document.querySelectorAll("[data-auth-home-target]").forEach((button) => {
-    button.classList.toggle("hidden", !isAuthenticated);
-    if (isAuthenticated) button.dataset.nav = homeTarget;
-  });
-
-  if (currentUser) {
-    setTopbarIdentity("#page-student .app-topbar h1", `Olá, ${currentUser.name || "Aluno"}`);
-    setTopbarIdentity("#page-company-dashboard .app-topbar h1", currentUser.companyName || currentUser.name || "Portal corporativo");
-    setTopbarIdentity("#page-admin .app-topbar h1", `Administração - ${currentUser.name || "FortixSeg"}`);
-  }
-}
-
-function setTopbarIdentity(selector, text) {
-  const element = document.querySelector(selector);
-  if (element && text) element.textContent = text;
-}
-
-async function restoreAuthSession(initialPage = "home") {
-  try {
-    const data = await apiRequest("/api/auth/session", { timeoutMs: 5000 });
-    currentUser = data.user || null;
-    applyAuthState();
-    if (currentUser && canAccessPage(initialPage)) {
-      navigate(initialPage, false);
-    }
-  } catch {
-    currentUser = null;
-    applyAuthState();
-    if (getProtectedPageRoles(initialPage)) {
-      navigate("home", false);
-    }
-  } finally {
-    handlePaymentReturn();
   }
 }
 
@@ -398,17 +528,12 @@ async function hydratePortalData(pageName) {
       applyStudentDashboard(dashboard);
     } else if (pageName === "company-dashboard") {
       applyCompanyDashboard(await apiRequest("/api/company/dashboard"));
+    } else if (pageName === "affiliate") {
+      applyAffiliateDashboard(await apiRequest("/api/affiliate/dashboard"));
     } else if (pageName === "admin") {
       applyAdminDashboard(await apiRequest("/api/admin/dashboard"));
     }
-  } catch (error) {
-    if (error.statusCode === 401) {
-      currentUser = null;
-      applyAuthState();
-      showToast("Sua sessão expirou. Entre novamente para continuar.");
-      navigate("home");
-      return;
-    }
+  } catch {
     apiOnline = false;
     const studentStatus = document.getElementById("studentApiStatus");
     if (studentStatus) studentStatus.textContent = "Modo local";
@@ -449,30 +574,25 @@ function applyStudentDashboard(data) {
   portalData.student = data;
   const metrics = data.metrics || {};
   const firstAction = data.nextActions?.[0];
-  if (data.profile?.name) setTopbarIdentity("#page-student .app-topbar h1", `Olá, ${data.profile.name}`);
-  const activeCourse = data.courses?.find((course) => course.status === "Em andamento") || data.courses?.[0];
-  const availableCertificate = data.certificates?.[0] || null;
   setText("studentEnrolledMetric", metrics.enrolledCourses ?? 2);
-  setText("completedCoursesMetric", metrics.completedCourses ?? 0);
-  setText("studentCertificatesMetric", metrics.certificates ?? 0);
-  setText("averageProgressMetric", `${metrics.averageProgress ?? 0}%`);
+  setText("completedCoursesMetric", Math.max(metrics.completedCourses ?? 1, studentProgress === 100 ? 2 : 1));
+  setText("studentCertificatesMetric", Math.max(metrics.certificates ?? 0, certificateUnlocked ? 1 : 0));
+  setText("averageProgressMetric", `${studentProgress === 100 ? 100 : metrics.averageProgress ?? 65}%`);
   setText("studentNextActionTitle", firstAction?.title || "Continuar NR 35");
   setText("studentNextActionText", firstAction?.description || "Retome o curso de onde parou.");
   setText("studentSupportSla", data.support?.sla || "Até 1 dia útil");
   setText("studentApiStatus", "API sincronizada");
 
-  studentProgress = Number(activeCourse?.progress) || 0;
-  lastQuizGrade = availableCertificate?.grade ?? lastQuizGrade;
-  certificateUnlocked = Boolean(availableCertificate);
-  updateStudentState();
-  updateCertificateView(availableCertificate, activeCourse, data.profile);
-  syncStudentLibraryView();
+  const activeCourse = data.courses?.find((course) => course.status === "Em andamento");
+  if (activeCourse && studentProgress < 100) {
+    studentProgress = Math.max(studentProgress, Number(activeCourse.progress) || 0);
+    updateStudentState();
+  }
 }
 
 function applyCompanyDashboard(data) {
   portalData.company = data;
   const metrics = data.metrics || {};
-  if (data.company?.name) setTopbarIdentity("#page-company-dashboard .app-topbar h1", data.company.name);
   setText("activeEmployeesMetric", metrics.activeEmployees ?? 128);
   setText("companyCoursesMetric", metrics.coursesInProgress ?? 32);
   setText("companyCertificatesMetric", metrics.certificates ?? 96);
@@ -483,16 +603,35 @@ function applyCompanyDashboard(data) {
   setText("companyAlertText", data.alerts?.[0]?.title || "Certificados próximos do prazo de reciclagem.");
 
   if (Array.isArray(data.employees)) {
-    employees = [...data.employees];
+    const combined = [...data.employees];
+    employees.forEach((employee) => {
+      if (!combined.some((item) => item.name === employee.name)) combined.push(employee);
+    });
+    employees = combined;
     writeStorage("fortixsegEmployees", employees);
     renderEmployees();
   }
-  const seatBody = document.getElementById("companySeatBalanceBody");
-  if (seatBody) seatBody.innerHTML = buildCompanySeatRows();
-  const progressBody = document.getElementById("companyProgressBody");
-  if (progressBody) progressBody.innerHTML = buildCompanyProgressRows();
-  const certificateBody = document.getElementById("companyCertificateBody");
-  if (certificateBody) certificateBody.innerHTML = buildCompanyCertificateRows();
+
+  renderCompanyAnalytics(companyAnalyticsPeriod);
+}
+
+function applyAffiliateDashboard(data) {
+  portalData.affiliate = data;
+  const metrics = data.metrics || {};
+  setText("affiliateClicksMetric", formatNumber(metrics.clicks ?? 428));
+  setText("affiliateLeadsMetric", formatNumber(metrics.leads ?? 62));
+  setText("affiliateSalesMetric", formatNumber(metrics.sales ?? 18));
+  setText("affiliateCommissionMetric", formatCurrency(metrics.commission ?? 1248.70));
+  setText("affiliateCoupon", data.coupon || "FORTIX10");
+  setText("affiliateLink", data.referralLink || "fortixseg.com.br/?ref=fortix10");
+  setText("affiliateNextPayout", data.nextPayout || "05/08/2026");
+
+  const referralsBody = document.getElementById("affiliateReferralTableBody");
+  if (referralsBody && Array.isArray(data.referrals)) {
+    referralsBody.innerHTML = data.referrals.map((referral) => `
+      <tr><td>${escapeHtml(referral.name)}</td><td>${escapeHtml(referral.product)}</td><td>${formatCurrency(referral.value)}</td><td><span class="table-status ${referral.status === "Aprovado" ? "complete" : "pending"}">${escapeHtml(referral.status)}</span></td><td>${formatCurrency(referral.commission)}</td></tr>
+    `).join("");
+  }
 }
 
 function applyAdminDashboard(data) {
@@ -506,7 +645,7 @@ function applyAdminDashboard(data) {
   updateApiStatus("apiServerStatus", data.apiStatus?.server === "online" ? "Online" : "Indisponível", data.apiStatus?.server === "online");
   updateApiStatus("apiOpenAiStatus", data.apiStatus?.openai === "configurado" ? "Configurada" : "Pendente", data.apiStatus?.openai === "configurado");
   updateApiStatus("apiMercadoPagoStatus", data.apiStatus?.mercadoPago === "configurado" ? "Configurado" : "Pendente", data.apiStatus?.mercadoPago === "configurado");
-  updateApiStatus("apiDatabaseStatus", data.apiStatus?.database === "json-local" ? "JSON local" : "Conectado", data.apiStatus?.database !== "demo-local");
+  updateApiStatus("apiDatabaseStatus", data.apiStatus?.database === "demo-local" ? "Demo local" : "Conectado", data.apiStatus?.database !== "demo-local");
 
   const studentsBody = document.getElementById("adminStudentsTableBody");
   if (studentsBody && Array.isArray(data.recentStudents)) {
@@ -568,6 +707,18 @@ function initPortalWorkspaces() {
         ["settings", "Configurações", "Configurações"]
       ]
     },
+    affiliate: {
+      pageId: "page-affiliate",
+      eyebrow: "Portal do afiliado",
+      views: [
+        ["dashboard", "Dashboard", "Vendas e comissões"],
+        ["link", "Meu link", "Link e cupom"],
+        ["referrals", "Indicações", "Indicações"],
+        ["commissions", "Comissões", "Comissões"],
+        ["materials", "Materiais", "Materiais de divulgação"],
+        ["settings", "Dados bancários", "Dados bancários"]
+      ]
+    },
     admin: {
       pageId: "page-admin",
       eyebrow: "Painel administrativo",
@@ -588,6 +739,7 @@ function initPortalWorkspaces() {
   document.addEventListener("click", handlePortalClick);
   document.addEventListener("submit", handlePortalSubmit);
   document.addEventListener("input", handlePortalInput);
+  document.addEventListener("keydown", handlePortalKeydown);
   renderCompanyEmployeeDirectory();
 }
 
@@ -618,12 +770,135 @@ function setupPortalWorkspace(portal, config) {
   });
 
   topbar.dataset.portalEyebrow = config.eyebrow;
+
+  if (!topbar.querySelector("[data-portal-menu-toggle]")) {
+    topbar.insertAdjacentHTML("afterbegin", `
+      <button class="portal-menu-toggle" type="button" data-portal-menu-toggle aria-label="Abrir navegação" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    `);
+  }
+
+  const shell = page.querySelector(".app-shell");
+  if (shell && !shell.querySelector("[data-portal-menu-close]")) {
+    shell.insertAdjacentHTML("beforeend", '<button class="portal-sidebar-backdrop" type="button" data-portal-menu-close aria-label="Fechar navegação"></button>');
+  }
+}
+
+function renderCompanyAnalytics(period = "90") {
+  const data = companyAnalytics[period] || companyAnalytics["90"];
+  const trendChart = document.getElementById("companyComplianceChart");
+  const statusDonut = document.getElementById("companyStatusDonut");
+  const statusLegend = document.getElementById("companyStatusLegend");
+  const courseChart = document.getElementById("companyCourseChart");
+  if (!trendChart || !statusDonut || !statusLegend || !courseChart) return;
+
+  companyAnalyticsPeriod = period;
+  document.querySelectorAll("[data-company-period]").forEach((button) => {
+    const active = button.dataset.companyPeriod === period;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  setText("companyTrendTitle", data.title);
+  setText("companyTrendDelta", data.delta);
+
+  trendChart.innerHTML = data.trend.map((item, index) => `
+    <button class="company-column ${index === data.trend.length - 1 ? "active" : ""}" type="button" data-company-trend-index="${index}" aria-label="${escapeHtml(item.label)}: ${item.value}% de conformidade">
+      <strong>${item.value}%</strong>
+      <i><b style="height:${item.value}%"></b></i>
+      <span>${escapeHtml(item.label)}</span>
+    </button>
+  `).join("");
+
+  const firstStop = data.status[0].value;
+  const secondStop = firstStop + data.status[1].value;
+  statusDonut.style.background = `conic-gradient(${data.status[0].color} 0 ${firstStop}%, ${data.status[1].color} ${firstStop}% ${secondStop}%, ${data.status[2].color} ${secondStop}% 100%)`;
+  statusDonut.setAttribute("aria-label", data.status.map((item) => `${item.value}% ${item.label.toLowerCase()}`).join(", "));
+  statusLegend.innerHTML = data.status.map((item, index) => `
+    <button class="${index === 0 ? "active" : ""}" type="button" data-company-status-index="${index}">
+      <i style="background:${item.color}"></i><span>${escapeHtml(item.label)}</span><strong>${item.value}%</strong>
+    </button>
+  `).join("");
+
+  const courseTotal = data.courses.reduce((total, item) => total + item.value, 0);
+  const courseMaximum = Math.max(...data.courses.map((item) => item.value), 1);
+  setText("companyCourseTotal", `${courseTotal} matrículas`);
+  courseChart.innerHTML = data.courses.map((item, index) => `
+    <button class="company-horizontal-bar ${index === 0 ? "active" : ""}" type="button" data-company-course-index="${index}" aria-label="${escapeHtml(item.label)}: ${item.value} colaboradores">
+      <span><strong>${escapeHtml(item.label)}</strong><small>${item.value}</small></span>
+      <i><b style="width:${Math.round((item.value / courseMaximum) * 100)}%"></b></i>
+    </button>
+  `).join("");
+
+  selectCompanyTrend(data.trend.length - 1);
+  selectCompanyStatus(0);
+  selectCompanyCourse(0);
+}
+
+function selectCompanyTrend(index) {
+  const data = companyAnalytics[companyAnalyticsPeriod] || companyAnalytics["90"];
+  const selected = data.trend[index];
+  if (!selected) return;
+  document.querySelectorAll("[data-company-trend-index]").forEach((button) => {
+    const active = Number(button.dataset.companyTrendIndex) === index;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  setText("companySelectedPeriod", `${selected.label} - ${selected.value}% de conformidade`);
+}
+
+function selectCompanyStatus(index) {
+  const data = companyAnalytics[companyAnalyticsPeriod] || companyAnalytics["90"];
+  const selected = data.status[index];
+  if (!selected) return;
+  document.querySelectorAll("[data-company-status-index]").forEach((button) => {
+    const active = Number(button.dataset.companyStatusIndex) === index;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  setText("companyDonutValue", `${selected.value}%`);
+  setText("companyDonutLabel", selected.label);
+}
+
+function selectCompanyCourse(index) {
+  const data = companyAnalytics[companyAnalyticsPeriod] || companyAnalytics["90"];
+  const selected = data.courses[index];
+  if (!selected) return;
+  document.querySelectorAll("[data-company-course-index]").forEach((button) => {
+    const active = Number(button.dataset.companyCourseIndex) === index;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  setText("companySelectedCourse", `${selected.label} - ${selected.value} colaboradores`);
+}
+
+function togglePortalNavigation(page, force) {
+  if (!page) return;
+  const open = typeof force === "boolean" ? force : !page.classList.contains("portal-nav-open");
+  document.querySelectorAll(".app-page.portal-nav-open").forEach((item) => {
+    if (item !== page) item.classList.remove("portal-nav-open");
+  });
+  page.classList.toggle("portal-nav-open", open);
+  const toggle = page.querySelector("[data-portal-menu-toggle]");
+  toggle?.setAttribute("aria-expanded", String(open));
+  toggle?.setAttribute("aria-label", open ? "Fechar navegação" : "Abrir navegação");
+  document.body.classList.toggle("no-scroll", open);
+}
+
+function closePortalNavigation(page = document.querySelector(".app-page.portal-nav-open")) {
+  if (page) togglePortalNavigation(page, false);
+}
+
+function handlePortalKeydown(event) {
+  if (event.key === "Escape") closePortalNavigation();
 }
 
 function portalViewTemplate(portal, key, title) {
   const templates = {
     student: studentPortalTemplate,
     company: companyPortalTemplate,
+    affiliate: affiliatePortalTemplate,
     admin: adminPortalTemplate
   };
   return `<div class="portal-view" data-portal-view="${portal}:${key}">${templates[portal](key, title)}</div>`;
@@ -645,36 +920,36 @@ function studentPortalTemplate(key, title) {
       ${courses.slice(0, 2).map((course, index) => `
         <article class="portal-course-card">
           <div class="portal-course-cover" style="--course-bg:${course.accent}"><span>${escapeHtml(course.code)}</span></div>
-          <div><span class="course-status ${index ? "complete" : ""}">${index ? "Concluído" : "Em andamento"}</span><h3>${escapeHtml(course.title)}</h3><p>${course.hours} horas · Online · ${course.lessons} aulas</p><div class="progress-track"><i style="width:${index ? 100 : studentProgress}%"></i></div><button class="button ${index ? "button-secondary" : "button-primary"}" type="button" data-portal-action="${index ? "certificate" : "continue-course"}">${index ? "Ver certificado" : "Continuar curso"}</button></div>
+          <div><span class="course-status ${index ? "complete" : ""}">${index ? "Concluído" : "Em andamento"}</span><h3>${escapeHtml(course.title)}</h3><p>${course.hours} horas - Online - ${course.lessons} aulas</p><div class="progress-track"><i style="width:${index ? 100 : studentProgress}%"></i></div><button class="button ${index ? "button-secondary" : "button-primary"}" type="button" data-portal-action="${index ? "certificate" : "continue-course"}">${index ? "Ver certificado" : "Continuar curso"}</button></div>
         </article>
       `).join("")}
     </div>`;
 
   if (key === "lessons") return `
-    ${portalHeading("Central de conteúdo", title, "Vídeos, apostilas e materiais complementares organizados por módulo.")}
+    ${portalHeading("Central de conteúdo", title, "Apostilas em PDF e materiais complementares organizados por módulo.")}
     <div class="learning-library">
       <aside class="resource-list" aria-label="Materiais do curso">
-        <button class="active" type="button" data-portal-resource="video" data-resource-title="Introdução ao trabalho em altura"><span>Vídeo</span><strong>01. Introdução e conceitos</strong><small>12 min · concluído</small></button>
-        <button type="button" data-portal-resource="video" data-resource-title="Análise de risco"><span>Vídeo</span><strong>02. Análise de risco</strong><small>18 min · concluído</small></button>
-        <button type="button" data-portal-resource="video" data-resource-title="Equipamentos de proteção"><span>Vídeo</span><strong>03. Equipamentos de proteção</strong><small>22 min · em andamento</small></button>
-        <button type="button" data-portal-resource="pdf" data-resource-title="Apostila NR 35"><span>PDF</span><strong>Apostila demonstrativa NR 35</strong><small>Material para consulta</small></button>
+        <button class="active" type="button" data-portal-resource="pdf" data-resource-title="Apostila NR 35"><span>PDF</span><strong>Apostila demonstrativa NR 35</strong><small>Material principal do treinamento</small></button>
+        <button type="button" data-portal-resource="pdf" data-resource-title="Conteúdo programático"><span>PDF</span><strong>Conteúdo programático</strong><small>Estrutura do curso e tópicos</small></button>
+        <button type="button" data-portal-resource="pdf" data-resource-title="Material complementar"><span>PDF</span><strong>Material complementar</strong><small>Consulta e revisão antes da avaliação</small></button>
       </aside>
       <section class="media-viewer" id="studentMediaViewer">
-        <div class="media-viewer-header"><span>Vídeo da aula</span><h3>Introdução ao trabalho em altura</h3></div>
-        <div class="video-stage"><button type="button" data-portal-action="play-demo" aria-label="Reproduzir demonstração">▶</button><strong>Player preparado para vídeo protegido</strong><small>Integração futura: storage privado e URL assinada</small></div>
+        <div class="media-viewer-header"><span>Material PDF</span><h3>Apostila NR 35</h3></div>
+        <iframe class="pdf-viewer" src="assets/apostila-nr35-demonstrativa.pdf#toolbar=1" title="Apostila demonstrativa NR 35"></iframe>
+        <a class="button button-secondary media-download" href="assets/apostila-nr35-demonstrativa.pdf" target="_blank" rel="noopener">Abrir PDF em nova guia</a>
       </section>
     </div>`;
 
   if (key === "assessments") return `
     ${portalHeading("Desempenho", title, "Consulte tentativas, notas e avaliações disponíveis.")}
     <div class="portal-card-grid compact">
-      <article class="portal-data-card"><span>NR 35</span><h3>Avaliação final</h3><p>Nota mínima: 70% · 3 tentativas</p><strong class="status-copy">Disponível</strong><button class="button button-primary" type="button" data-portal-action="open-quiz">Fazer avaliação</button></article>
+      <article class="portal-data-card"><span>NR 35</span><h3>Avaliação final</h3><p>Nota mínima: 70% - 3 tentativas</p><strong class="status-copy">Disponível</strong><button class="button button-primary" type="button" data-portal-action="open-quiz">Fazer avaliação</button></article>
       <article class="portal-data-card"><span>Uso Correto de EPIs</span><h3>Avaliação concluída</h3><p>Melhor nota registrada</p><strong class="grade-copy">${lastQuizGrade}%</strong><button class="button button-secondary" type="button" data-portal-action="certificate">Ver certificado</button></article>
     </div>`;
 
   if (key === "certificates") return `
     ${portalHeading("Documentos", title, "Certificados liberados após conclusão e aprovação.")}
-    <div class="portal-list-card"><div><span class="document-mark">PDF</span><div><strong>Uso Correto de EPIs</strong><small>4 horas · Código FS-EPI-2026-000122</small></div></div><button class="button button-secondary" type="button" data-portal-action="certificate">Visualizar</button></div>
+    <div class="portal-list-card"><div><span class="document-mark">PDF</span><div><strong>Uso Correto de EPIs</strong><small>4 horas - Código FS-EPI-2026-000122</small></div></div><button class="button button-secondary" type="button" data-portal-action="certificate">Visualizar</button></div>
     <div class="portal-list-card locked"><div><span class="document-mark">NR</span><div><strong>NR 35 - Trabalho em Altura</strong><small>Certificado liberado após aprovação</small></div></div><span class="table-status pending">Pendente</span></div>`;
 
   if (key === "profile") return `
@@ -694,19 +969,19 @@ function companyPortalTemplate(key, title) {
 
   if (key === "purchase") return `
     ${portalHeading("Licenças corporativas", title, "Escolha o treinamento e adicione vagas ao carrinho da empresa.")}
-    <form class="portal-form" id="companyPortalBulkForm"><div class="form-grid"><label class="field full"><span>Curso</span><select id="companyPortalBulkCourse" required>${courses.map((course) => `<option value="${course.id}">${escapeHtml(course.title)} · ${formatCurrency(course.price)}</option>`).join("")}</select></label><label class="field"><span>Quantidade de vagas</span><input id="companyPortalBulkQuantity" type="number" min="1" max="500" value="10" required></label><label class="field"><span>Centro de custo</span><input name="costCenter" placeholder="Ex.: Operações"></label></div><div class="purchase-summary"><span>Estimativa</span><strong id="companyBulkEstimate">${formatCurrency(courses[0].price * 10)}</strong></div><button class="button button-primary" type="submit">Adicionar ao carrinho corporativo</button></form><div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Curso</th><th>Compradas</th><th>Alocadas</th><th>Disponíveis</th></tr></thead><tbody id="companySeatBalanceBody">${buildCompanySeatRows()}</tbody></table></div></div>`;
+    <form class="portal-form" id="companyPortalBulkForm"><div class="form-grid"><label class="field full"><span>Curso</span><select id="companyPortalBulkCourse" required>${courses.map((course) => `<option value="${course.id}">${escapeHtml(course.title)} - ${formatCurrency(course.price)}</option>`).join("")}</select></label><label class="field"><span>Quantidade de vagas</span><input id="companyPortalBulkQuantity" type="number" min="1" max="500" value="10" required></label><label class="field"><span>Centro de custo</span><input name="costCenter" placeholder="Ex.: Operações"></label></div><div class="purchase-summary"><span>Estimativa</span><strong id="companyBulkEstimate">${formatCurrency(courses[0].price * 10)}</strong></div><button class="button button-primary" type="submit">Adicionar ao carrinho corporativo</button></form>`;
 
   if (key === "progress") return `
     ${portalHeading("Acompanhamento", title, "Monitore matrículas e identifique quem precisa de apoio.")}
-    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Progresso</th><th>Status</th><th>Último acesso</th></tr></thead><tbody id="companyProgressBody">${buildCompanyProgressRows()}</tbody></table></div></div>`;
+    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Aulas</th><th>Progresso</th><th>Último acesso</th></tr></thead><tbody><tr><td>Carlos Lima</td><td>NR 35</td><td>5 de 7</td><td><span class="table-status progress">75%</span></td><td>Hoje, 09:42</td></tr><tr><td>Marcos Silva</td><td>NR 12</td><td>3 de 8</td><td><span class="table-status progress">40%</span></td><td>03/07/2026</td></tr><tr><td>Ana Souza</td><td>Uso Correto de EPIs</td><td>5 de 5</td><td><span class="table-status complete">100%</span></td><td>02/07/2026</td></tr></tbody></table></div></div>`;
 
   if (key === "certificates") return `
     ${portalHeading("Documentos da equipe", title, "Consulte certificados emitidos e códigos de validação.")}
-    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Emissão</th><th>Código</th><th>Ação</th></tr></thead><tbody id="companyCertificateBody">${buildCompanyCertificateRows()}</tbody></table></div></div>`;
+    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Emissão</th><th>Código</th><th>Ação</th></tr></thead><tbody><tr><td>Ana Souza</td><td>Uso Correto de EPIs</td><td>02/07/2026</td><td>FS-EPI-2026-000122</td><td><button class="certificate-link" type="button" data-portal-action="certificate">Visualizar</button></td></tr><tr><td>Fernanda Reis</td><td>NR 35</td><td>28/06/2026</td><td>FS-NR35-2026-000121</td><td><button class="certificate-link" type="button" data-portal-action="certificate">Visualizar</button></td></tr></tbody></table></div></div>`;
 
   if (key === "reports") return `
     ${portalHeading("Indicadores", title, "Gere arquivos para conferência interna e auditorias.")}
-    <div class="portal-card-grid compact"><article class="portal-data-card"><span>Relatório operacional</span><h3>Colaboradores e progresso</h3><p>Exportação CSV com matrícula, curso e situação.</p><button class="button button-primary" type="button" data-portal-action="export-company-report">Exportar CSV</button></article><article class="portal-data-card"><span>Resumo executivo</span><h3>Conformidade da equipe</h3><p>78% dentro do ciclo esperado · 18 vencimentos próximos.</p><button class="button button-secondary" type="button" data-portal-action="print-report">Imprimir resumo</button></article></div>`;
+    <div class="portal-card-grid compact"><article class="portal-data-card"><span>Relatório operacional</span><h3>Colaboradores e progresso</h3><p>Exportação CSV com matrícula, curso e situação.</p><button class="button button-primary" type="button" data-portal-action="export-company-report">Exportar CSV</button></article><article class="portal-data-card"><span>Resumo executivo</span><h3>Conformidade da equipe</h3><p>78% dentro do ciclo esperado - 18 vencimentos próximos.</p><button class="button button-secondary" type="button" data-portal-action="print-report">Imprimir resumo</button></article></div>`;
 
   if (key === "expirations") return `
     ${portalHeading("Reciclagens", title, "Antecipe vencimentos e organize novas turmas.")}
@@ -714,22 +989,47 @@ function companyPortalTemplate(key, title) {
 
   return `
     ${portalHeading("Conta corporativa", title, "Configure alertas e preferências operacionais.")}
-    <form class="portal-form" id="companySettingsForm"><div class="form-grid"><label class="field full"><span>Razão social</span><input name="company" value="Empresa Exemplo Ltda." required></label><label class="field"><span>E-mail responsável</span><input name="email" type="email" value="empresa@teste.com" required></label><label class="field"><span>Alerta de vencimento</span><select name="expiryAlert"><option>60 dias antes</option><option>30 dias antes</option><option>15 dias antes</option></select></label><label class="field full"><span>Receber resumo semanal</span><select name="weekly"><option>Sim</option><option>Não</option></select></label></div><button class="button button-primary" type="submit">Salvar configurações</button></form>`;
+    <form class="portal-form" id="companySettingsForm"><div class="form-grid"><label class="field full"><span>Razão social</span><input name="company" value="Amcor" required></label><label class="field"><span>E-mail responsável</span><input name="email" type="email" value="empresa@teste.com" required></label><label class="field"><span>Alerta de vencimento</span><select name="expiryAlert"><option>60 dias antes</option><option>30 dias antes</option><option>15 dias antes</option></select></label><label class="field full"><span>Receber resumo semanal</span><select name="weekly"><option>Sim</option><option>Não</option></select></label></div><button class="button button-primary" type="submit">Salvar configurações</button></form>`;
+}
+
+function affiliatePortalTemplate(key, title) {
+  if (key === "link") return `
+    ${portalHeading("Rastreamento", title, "Use seu link e cupom para divulgar os treinamentos e acompanhar vendas atribuídas.")}
+    <div class="portal-card-grid compact">
+      <article class="portal-data-card"><span>Link principal</span><h3>fortixseg.com.br/?ref=fortix10</h3><p>Compartilhe em WhatsApp, Instagram, LinkedIn ou proposta comercial.</p><button class="button button-secondary" type="button" data-copy-text="fortixseg.com.br/?ref=fortix10">Copiar link</button></article>
+      <article class="portal-data-card"><span>Cupom</span><h3>FORTIX10</h3><p>Cupom demonstrativo para rastrear origem da venda.</p><button class="button button-secondary" type="button" data-copy-text="FORTIX10">Copiar cupom</button></article>
+    </div>`;
+
+  if (key === "referrals") return `
+    ${portalHeading("Funil comercial", title, "Veja indicações, produtos de interesse e situação de cada venda.")}
+    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Lead</th><th>Produto</th><th>Valor</th><th>Status</th><th>Comissão</th></tr></thead><tbody><tr><td>Empresa Horizonte</td><td>Pacote Chão de Fábrica</td><td>R$ 3.499,00</td><td><span class="table-status complete">Aprovado</span></td><td>R$ 349,90</td></tr><tr><td>Bruno Martins</td><td>NR 35</td><td>R$ 149,90</td><td><span class="table-status complete">Aprovado</span></td><td>R$ 14,99</td></tr><tr><td>Grupo Alpha</td><td>Administrativo Seguro</td><td>R$ 2.499,00</td><td><span class="table-status pending">Em análise</span></td><td>R$ 249,90</td></tr></tbody></table></div></div>`;
+
+  if (key === "commissions") return `
+    ${portalHeading("Financeiro do afiliado", title, "Acompanhe valores aprovados, em análise e previsão de pagamento.")}
+    <div class="portal-card-grid compact"><article class="portal-data-card"><span>Aprovado</span><h3>R$ 1.248,70</h3><p>Comissões liberadas para o próximo ciclo.</p><strong class="status-copy">Próximo pagamento: 05/08/2026</strong></article><article class="portal-data-card"><span>Em análise</span><h3>R$ 249,90</h3><p>Aguardando confirmação do pedido corporativo.</p><strong class="status-copy">Validação pendente</strong></article></div>`;
+
+  if (key === "materials") return `
+    ${portalHeading("Divulgação", title, "Materiais demonstrativos para apoiar venda consultiva dos treinamentos.")}
+    <div class="portal-card-grid compact"><article class="portal-data-card"><span>PDF comercial</span><h3>Apresentação FortixSeg</h3><p>Use para explicar pacotes, área do aluno e certificado com QR Code.</p><button class="button button-secondary" type="button" data-nav="courses">Ver catálogo</button></article><article class="portal-data-card"><span>Argumento de venda</span><h3>Pacotes para empresas</h3><p>Integração, chão de fábrica, manutenção, liderança e RH/SESMT.</p><button class="button button-secondary" type="button" data-nav="companies">Ver empresas</button></article></div>`;
+
+  return `
+    ${portalHeading("Conta do afiliado", title, "Atualize seus dados de contato e recebimento de comissão.")}
+    <form class="portal-form" id="affiliateSettingsForm"><div class="form-grid"><label class="field full"><span>Nome do afiliado</span><input name="name" value="Afiliado FortixSeg" required></label><label class="field"><span>E-mail</span><input name="email" type="email" value="afiliado@teste.com" required></label><label class="field"><span>Telefone</span><input name="phone" value="(11) 99999-0000" required></label><label class="field full"><span>Chave Pix</span><input name="pix" placeholder="Informe a chave Pix para repasse"></label></div><button class="button button-primary" type="submit">Salvar dados</button></form>`;
 }
 
 function adminPortalTemplate(key, title) {
   if (key === "courses") return adminCourseManagerTemplate(title);
   if (key === "students") return `${portalHeading("Usuários", title, "Acompanhe cadastros, cursos e situação acadêmica.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Aluno</th><th>Curso</th><th>Status</th><th>Último acesso</th></tr></thead><tbody><tr><td>Mariana Costa</td><td>NR 35</td><td><span class="table-status progress">Em andamento</span></td><td>Hoje</td></tr><tr><td>Paulo Mendes</td><td>NR 10</td><td><span class="table-status complete">Concluído</span></td><td>03/07/2026</td></tr></tbody></table></div></div>`;
-  if (key === "companies") return `${portalHeading("Contas B2B", title, "Visualize empresas, colaboradores e consumo de licenças.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Empresa Exemplo Ltda.</span><h3>128 colaboradores</h3><p>42 vagas disponíveis · 78% de conformidade</p><strong class="status-copy">Ativa</strong></article><article class="portal-data-card"><span>Atlas Serviços</span><h3>76 colaboradores</h3><p>18 vagas disponíveis · 84% de conformidade</p><strong class="status-copy">Ativa</strong></article></div>`;
+  if (key === "companies") return `${portalHeading("Contas B2B", title, "Visualize empresas, colaboradores e consumo de licenças.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Amcor</span><h3>128 colaboradores</h3><p>42 vagas disponíveis - 78% de conformidade</p><strong class="status-copy">Ativa</strong></article><article class="portal-data-card"><span>Marelli</span><h3>76 colaboradores</h3><p>18 vagas disponíveis - 84% de conformidade</p><strong class="status-copy">Ativa</strong></article><article class="portal-data-card"><span>Braskem</span><h3>64 colaboradores</h3><p>21 vagas disponíveis - 81% de conformidade</p><strong class="status-copy">Ativa</strong></article><article class="portal-data-card"><span>AkzoNobel</span><h3>52 colaboradores</h3><p>14 vagas disponíveis - 86% de conformidade</p><strong class="status-copy">Ativa</strong></article></div>`;
   if (key === "certificates") return `${portalHeading("Rastreabilidade", title, "Consulte documentos emitidos e validações públicas.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Total emitido</span><h3>150.000 certificados</h3><p>Códigos únicos registrados na demonstração.</p><button class="button button-secondary" type="button" data-nav="certificates">Abrir validador</button></article><article class="portal-data-card"><span>Hoje</span><h3>184 emissões</h3><p>12 aguardando processamento.</p><strong class="status-copy">Operação normal</strong></article></div>`;
-  if (key === "payments") return `${portalHeading("Financeiro", title, "Acompanhe transações e o estado da integração.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Pedido</th><th>Valor</th><th>Status</th></tr></thead><tbody><tr><td>Juliana Rocha</td><td>NR 35</td><td>R$ 149,90</td><td><span class="table-status complete">Aprovado</span></td></tr><tr><td>Atlas Serviços</td><td>NR 12 - 20 vagas</td><td>R$ 3.598,00</td><td><span class="table-status complete">Aprovado</span></td></tr><tr><td>Eduardo Nunes</td><td>NR 10</td><td>R$ 249,90</td><td><span class="table-status pending">Pendente</span></td></tr></tbody></table></div></div>`;
+  if (key === "payments") return `${portalHeading("Financeiro", title, "Acompanhe transações e o estado da integração.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Pedido</th><th>Valor</th><th>Status</th></tr></thead><tbody><tr><td>Amcor</td><td>NR 35 - 30 vagas</td><td>R$ 4.497,00</td><td><span class="table-status complete">Aprovado</span></td></tr><tr><td>Marelli</td><td>NR 12 - 20 vagas</td><td>R$ 3.598,00</td><td><span class="table-status complete">Aprovado</span></td></tr><tr><td>CMK</td><td>NR 10 - 10 vagas</td><td>R$ 2.499,00</td><td><span class="table-status pending">Pendente</span></td></tr></tbody></table></div></div>`;
   if (key === "reports") return `${portalHeading("Dados", title, "Exporte uma visão consolidada da operação.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Operação</span><h3>Resumo da plataforma</h3><p>Alunos, empresas, certificados e pagamentos.</p><button class="button button-primary" type="button" data-portal-action="export-admin-report">Exportar CSV</button></article><article class="portal-data-card"><span>Integrações</span><h3>Saúde da API</h3><p>Servidor online; OpenAI e Mercado Pago dependem das credenciais.</p><button class="button button-secondary" type="button" data-portal-action="refresh-admin">Atualizar status</button></article></div>`;
   return `${portalHeading("Sistema", title, "Preferências visuais e operacionais da administração.")}<form class="portal-form" id="adminSettingsForm"><div class="form-grid"><label class="field full"><span>Nome da plataforma</span><input name="brand" value="FortixSeg" required></label><label class="field"><span>E-mail de suporte</span><input name="supportEmail" type="email" value="fortixseg@gmail.com" required></label><label class="field"><span>Nota mínima</span><input name="minimumGrade" type="number" min="0" max="100" value="70" required></label><label class="field full"><span>Modo de manutenção</span><select name="maintenance"><option>Desativado</option><option>Ativado</option></select></label></div><button class="button button-primary" type="submit">Salvar configurações</button></form>`;
 }
 
 function adminCourseManagerTemplate(title) {
   return `
-    ${portalHeading("Catálogo e conteúdo", title, "Crie cursos completos, altere preços e gerencie PDFs e vídeos.", '<button class="button button-primary" type="button" data-portal-action="admin-new-course">Novo curso</button>')}
+    ${portalHeading("Catálogo e conteúdo", title, "Crie cursos completos, altere preços e gerencie apostilas em PDF.", '<button class="button button-primary" type="button" data-portal-action="admin-new-course">Novo curso</button>')}
     <div class="admin-course-manager">
       <section class="admin-course-list-panel">
         <div class="portal-toolbar admin-course-toolbar">
@@ -758,8 +1058,8 @@ function adminCourseManagerTemplate(title) {
           </div>
 
           <div class="admin-resource-manager">
-            <div><span>Biblioteca do curso</span><h4>PDFs e vídeos</h4><p>PDF, MP4, WebM ou OGV. Nesta demonstração, cada arquivo pode ter até 12 MB.</p></div>
-            <label class="admin-upload-field"><input id="adminCourseFiles" type="file" accept="application/pdf,video/mp4,video/webm,video/ogg" multiple><span>Selecionar arquivos</span></label>
+            <div><span>Biblioteca do curso</span><h4>Apostilas em PDF</h4><p>Envie somente arquivos PDF. Nesta demonstração, cada arquivo pode ter até 12 MB.</p></div>
+            <label class="admin-upload-field"><input id="adminCourseFiles" type="file" accept="application/pdf" multiple><span>Selecionar PDFs</span></label>
             <div class="admin-file-selection" id="adminCourseFileSelection" aria-live="polite"></div>
             <div class="admin-resource-list" id="adminCourseResourceList"><p>Nenhum material adicionado.</p></div>
           </div>
@@ -795,10 +1095,46 @@ function activatePortalView(button) {
 
   if (portal === "company" && key === "employees") renderCompanyEmployeeDirectory();
   if (portal === "admin" && key === "courses") loadAdminCourseCatalog();
+  closePortalNavigation(page);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function handlePortalClick(event) {
+  const menuToggle = event.target.closest("[data-portal-menu-toggle]");
+  if (menuToggle) {
+    togglePortalNavigation(menuToggle.closest(".app-page"));
+    return;
+  }
+
+  if (event.target.closest("[data-portal-menu-close]")) {
+    closePortalNavigation();
+    return;
+  }
+
+  const periodButton = event.target.closest("[data-company-period]");
+  if (periodButton) {
+    renderCompanyAnalytics(periodButton.dataset.companyPeriod);
+    return;
+  }
+
+  const trendButton = event.target.closest("[data-company-trend-index]");
+  if (trendButton) {
+    selectCompanyTrend(Number(trendButton.dataset.companyTrendIndex));
+    return;
+  }
+
+  const statusButton = event.target.closest("[data-company-status-index]");
+  if (statusButton) {
+    selectCompanyStatus(Number(statusButton.dataset.companyStatusIndex));
+    return;
+  }
+
+  const courseButton = event.target.closest("[data-company-course-index]");
+  if (courseButton) {
+    selectCompanyCourse(Number(courseButton.dataset.companyCourseIndex));
+    return;
+  }
+
   const portalButton = event.target.closest("[data-portal-target]");
   if (portalButton) {
     activatePortalView(portalButton);
@@ -807,7 +1143,13 @@ function handlePortalClick(event) {
 
   const resourceButton = event.target.closest("[data-portal-resource]");
   if (resourceButton) {
-    void showStudentResource(resourceButton);
+    showStudentResource(resourceButton);
+    return;
+  }
+
+  const copyButton = event.target.closest("[data-copy-text]");
+  if (copyButton) {
+    copyToClipboard(copyButton.dataset.copyText);
     return;
   }
 
@@ -818,10 +1160,6 @@ function handlePortalClick(event) {
   if (action === "continue-course") navigate("lesson");
   if (action === "certificate") navigate("certificate-view");
   if (action === "add-employee") openModal("employeeModal");
-  if (action === "play-demo") {
-    actionButton.textContent = "❚❚";
-    showToast("Player demonstrativo iniciado. O vídeo real será entregue por storage protegido.");
-  }
   if (action === "open-quiz") {
     navigate("lesson");
     setTimeout(() => {
@@ -848,51 +1186,27 @@ function handlePortalClick(event) {
   }
 }
 
-function syncStudentLibraryView() {
-  const resourceList = document.querySelector('[data-portal-view="student:lessons"] .resource-list');
-  if (!resourceList || !Array.isArray(portalData.student?.library) || !portalData.student.library.length) return;
-  resourceList.innerHTML = portalData.student.library.map((resource, index) => `
-    <button ${index === 0 ? 'class="active"' : ""} type="button"
-      data-portal-resource="${escapeHtml(resource.type || "pdf")}"
-      data-resource-title="${escapeHtml(resource.title || resource.name || "Material do curso")}"
-      data-resource-url="${escapeHtml(resource.accessUrl || resource.url || "")}">
-      <span>${resource.type === "video" ? "Vídeo" : "PDF"}</span>
-      <strong>${escapeHtml(resource.title || resource.name || "Material do curso")}</strong>
-      <small>${escapeHtml(resource.status || "Disponível")}</small>
-    </button>
-  `).join("");
+async function copyToClipboard(value) {
+  const text = String(value || "");
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("Copiado para a área de transferência.");
+  } catch {
+    showToast(text);
+  }
 }
 
-async function showStudentResource(button) {
+function showStudentResource(button) {
   document.querySelectorAll(".resource-list button").forEach((item) => item.classList.toggle("active", item === button));
   const viewer = document.getElementById("studentMediaViewer");
   if (!viewer) return;
   const title = button.dataset.resourceTitle || "Material do curso";
-  let accessUrl = button.dataset.resourceUrl || "";
-
-  try {
-    if (accessUrl.startsWith("/api/resources/")) {
-      const data = await apiRequest(accessUrl);
-      accessUrl = data.resource?.accessUrl || "";
-    }
-  } catch (error) {
-    showToast(error.message || "Não foi possível abrir este material.");
-    return;
-  }
-
-  if (button.dataset.portalResource === "pdf") {
-    viewer.innerHTML = `
-      <div class="media-viewer-header"><span>Material PDF</span><h3>${escapeHtml(title)}</h3></div>
-      <iframe class="pdf-viewer" src="${escapeHtml((accessUrl || "assets/apostila-nr35-demonstrativa.pdf"))}#toolbar=1" title="${escapeHtml(title)}"></iframe>
-      <a class="button button-secondary media-download" href="${escapeHtml(accessUrl || "assets/apostila-nr35-demonstrativa.pdf")}" target="_blank" rel="noopener">Abrir PDF em nova guia</a>
-    `;
-    return;
-  }
 
   viewer.innerHTML = `
-    <div class="media-viewer-header"><span>Vídeo da aula</span><h3>${escapeHtml(title)}</h3></div>
-    <div class="video-stage"><button type="button" data-portal-action="play-demo" aria-label="Reproduzir demonstração">▶</button><strong>${accessUrl ? "Abrir vídeo protegido" : "Player preparado para vídeo protegido"}</strong><small>${accessUrl ? "O link é assinado e expira automaticamente." : "Integração futura: storage privado e URL assinada"}</small></div>
-    ${accessUrl ? `<a class="button button-secondary media-download" href="${escapeHtml(accessUrl)}" target="_blank" rel="noopener">Abrir vídeo</a>` : ""}
+    <div class="media-viewer-header"><span>Material PDF</span><h3>${escapeHtml(title)}</h3></div>
+    <iframe class="pdf-viewer" src="assets/apostila-nr35-demonstrativa.pdf#toolbar=1" title="Apostila demonstrativa NR 35"></iframe>
+    <a class="button button-secondary media-download" href="assets/apostila-nr35-demonstrativa.pdf" target="_blank" rel="noopener">Abrir PDF em nova guia</a>
   `;
 }
 
@@ -925,6 +1239,11 @@ function handlePortalSubmit(event) {
     event.preventDefault();
     writeStorage("fortixsegCompanySettings", Object.fromEntries(new FormData(form).entries()));
     showToast("Configurações da empresa salvas.");
+  }
+  if (form.id === "affiliateSettingsForm") {
+    event.preventDefault();
+    writeStorage("fortixsegAffiliateSettings", Object.fromEntries(new FormData(form).entries()));
+    showToast("Dados do afiliado salvos.");
   }
   if (form.id === "adminSettingsForm") {
     event.preventDefault();
@@ -962,13 +1281,7 @@ async function loadAdminCourseCatalog() {
     const data = await apiRequest("/api/admin/courses");
     adminCourseCatalog = data.courses || [];
     renderAdminCourseList();
-  } catch (error) {
-    if (error.statusCode === 401 || error.statusCode === 403) {
-      showToast(error.message || "Acesso administrativo indisponível.");
-      adminCourseCatalog = [];
-      renderAdminCourseList();
-      return;
-    }
+  } catch {
     apiOnline = false;
     adminCourseCatalog = courses.map((course) => ({
       ...course,
@@ -1000,7 +1313,7 @@ function renderAdminCourseList(query = "", status = "all") {
         <div class="admin-course-item-main">
           <span class="course-status ${course.status === "draft" ? "draft" : "published"}">${statusLabel}</span>
           <h4>${escapeHtml(course.title)}</h4>
-          <p>${escapeHtml(course.code)} · ${course.hours}h · ${topicCount} tópicos · ${resourceCount} materiais</p>
+          <p>${escapeHtml(course.code)} - ${course.hours}h - ${topicCount} tópicos - ${resourceCount} materiais</p>
         </div>
         <div class="admin-course-item-side">
           <strong>${formatCurrency(course.price)}</strong>
@@ -1062,9 +1375,9 @@ function renderAdminCourseResources(course) {
   const resources = course?.resources || [];
   container.innerHTML = resources.map((resource) => `
     <article class="admin-resource-item">
-      <span class="admin-resource-type ${resource.type}">${resource.type === "video" ? "Vídeo" : "PDF"}</span>
+      <span class="admin-resource-type pdf">PDF</span>
       <div><strong>${escapeHtml(resource.name)}</strong><small>${formatFileSize(resource.size)}</small></div>
-      <a class="icon-button" href="${escapeHtml(resource.storage === "blob-private" ? `/api/resources/${encodeURIComponent(course.id)}/${encodeURIComponent(resource.id)}/access?redirect=1` : resource.url)}" target="_blank" rel="noopener" aria-label="Abrir ${escapeHtml(resource.name)}" title="Abrir material">↗</a>
+      <a class="icon-button" href="${escapeHtml(resource.url)}" target="_blank" rel="noopener" aria-label="Abrir ${escapeHtml(resource.name)}" title="Abrir material">↗</a>
       <button class="icon-button danger" type="button" data-portal-action="admin-delete-resource" data-course-id="${escapeHtml(course.id)}" data-resource-id="${escapeHtml(resource.id)}" aria-label="Excluir ${escapeHtml(resource.name)}" title="Excluir material">×</button>
     </article>
   `).join("") || "<p>Nenhum material adicionado. Salve o curso com arquivos selecionados para iniciar a biblioteca.</p>";
@@ -1075,7 +1388,7 @@ function renderSelectedAdminFiles(fileList) {
   if (!container) return;
   const files = Array.from(fileList || []);
   container.innerHTML = files.length
-    ? `<strong>${files.length} ${files.length === 1 ? "arquivo selecionado" : "arquivos selecionados"}</strong>${files.map((file) => `<span>${escapeHtml(file.name)} · ${formatFileSize(file.size)}</span>`).join("")}`
+    ? `<strong>${files.length} ${files.length === 1 ? "arquivo selecionado" : "arquivos selecionados"}</strong>${files.map((file) => `<span>${escapeHtml(file.name)} - ${formatFileSize(file.size)}</span>`).join("")}`
     : "";
 }
 
@@ -1098,6 +1411,10 @@ async function saveAdminCourse(form) {
   if (!payload.syllabus.length) {
     showToast("Adicione pelo menos um tópico ao conteúdo programático.");
     form.elements.namedItem("syllabus")?.focus();
+    return;
+  }
+  if (files.some((file) => file.type !== "application/pdf")) {
+    showToast("Por enquanto, anexe somente arquivos PDF ao curso.");
     return;
   }
   if (files.some((file) => file.size > 12_000_000)) {
@@ -1134,8 +1451,8 @@ async function saveAdminCourse(form) {
 }
 
 async function uploadAdminCourseResource(courseId, file) {
-  const allowedTypes = ["application/pdf", "video/mp4", "video/webm", "video/ogg"];
-  if (!allowedTypes.includes(file.type)) throw new Error(`Formato não permitido: ${file.name}`);
+  const allowedTypes = ["application/pdf"];
+  if (!allowedTypes.includes(file.type)) throw new Error(`Formato não permitido: ${file.name}. Envie somente PDF.`);
   const data = await fileToDataUrl(file);
   return apiRequest(`/api/admin/courses/${encodeURIComponent(courseId)}/resources`, {
     method: "POST",
@@ -1203,54 +1520,6 @@ function renderCompanyEmployeeDirectory(query = "") {
   setText("companyEmployeeCount", `${filtered.length} ${filtered.length === 1 ? "colaborador" : "colaboradores"}`);
 }
 
-function buildCompanySeatRows() {
-  const balances = portalData.company?.seatBalances || [];
-  if (!balances.length) return `<tr><td colspan="4">Nenhuma vaga corporativa comprada ainda.</td></tr>`;
-  return balances.map((balance) => `
-    <tr>
-      <td>${escapeHtml(balance.title)}</td>
-      <td>${formatNumber(balance.purchased)}</td>
-      <td>${formatNumber(balance.assigned)}</td>
-      <td><span class="table-status ${balance.available > 0 ? "complete" : "pending"}">${formatNumber(balance.available)}</span></td>
-    </tr>
-  `).join("");
-}
-
-function buildCompanyProgressRows() {
-  const companyEmployees = portalData.company?.employees || employees;
-  if (!companyEmployees.length) return `<tr><td colspan="5">Nenhum colaborador matriculado.</td></tr>`;
-  return companyEmployees.map((employee) => `
-    <tr>
-      <td>${escapeHtml(employee.name)}</td>
-      <td>${escapeHtml(employee.course)}</td>
-      <td>${escapeHtml(employee.progress)}</td>
-      <td><span class="table-status ${employee.status === "Concluído" ? "complete" : employee.status === "Não iniciado" ? "pending" : "progress"}">${escapeHtml(employee.status)}</span></td>
-      <td>${escapeHtml(formatCompanyDate(employee.lastAccessAt))}</td>
-    </tr>
-  `).join("");
-}
-
-function buildCompanyCertificateRows() {
-  const certificatedEmployees = (portalData.company?.employees || employees).filter((employee) => employee.certificate);
-  if (!certificatedEmployees.length) return `<tr><td colspan="5">Nenhum certificado emitido para a equipe.</td></tr>`;
-  return certificatedEmployees.map((employee) => `
-    <tr>
-      <td>${escapeHtml(employee.name)}</td>
-      <td>${escapeHtml(employee.course)}</td>
-      <td>${escapeHtml(formatCompanyDate(employee.completedAt || employee.updatedAt))}</td>
-      <td>${escapeHtml(employee.certificateCode || "Pendente")}</td>
-      <td><button class="certificate-link" type="button" data-nav="certificates">Validar</button></td>
-    </tr>
-  `).join("");
-}
-
-function formatCompanyDate(value) {
-  if (!value) return "Sem registro";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Sem registro";
-  return new Intl.DateTimeFormat("pt-BR").format(date);
-}
-
 function exportCompanyReport() {
   const rows = [["Nome", "Curso", "Progresso", "Status"], ...employees.map((employee) => [employee.name, employee.course, employee.progress, employee.status])];
   downloadCsv("fortixseg-relatorio-colaboradores.csv", rows);
@@ -1289,15 +1558,21 @@ function bindNavigation() {
 }
 
 function navigate(pageName, updateHash = true) {
-  if (!canAccessPage(pageName)) {
-    if (!currentUser) {
-      showToast("Faça login para acessar esta área.");
-      openAuth("login");
-      pageName = "home";
-    } else {
-      showToast("Sua conta não tem permissão para acessar esta área.");
-      pageName = getPortalPageForRole(currentUser.role);
-    }
+  const currentUser = readStorage("fortixsegCurrentUser", null);
+  const pageAccess = {
+    student: ["student", "admin"],
+    lesson: ["student", "admin"],
+    "company-dashboard": ["company", "admin"],
+    affiliate: ["affiliate", "admin"],
+    admin: ["admin"]
+  };
+  const allowedRoles = pageAccess[pageName];
+  const hasApiToken = Boolean(localStorage.getItem("fortixsegApiToken"));
+
+  if (allowedRoles && (!currentUser || !allowedRoles.includes(currentUser.role) || (pageName === "admin" && !hasApiToken))) {
+    pageName = "home";
+    openAuth("login");
+    showToast("Faça login com o perfil correto para acessar essa área.");
   }
 
   document.querySelectorAll(".page").forEach((page) => page.classList.remove("active"));
@@ -1305,6 +1580,11 @@ function navigate(pageName, updateHash = true) {
   if (!targetPage) return;
 
   targetPage.classList.add("active");
+  const hasSession = Boolean(currentUser);
+  const portalModePages = ["student", "company-dashboard", "affiliate", "admin", "lesson"];
+  const portalMode = portalModePages.includes(pageName) || (pageName === "certificate-view" && hasSession);
+  document.body.classList.toggle("portal-mode", portalMode);
+  closePortalNavigation();
   document.querySelectorAll(".main-nav [data-nav]").forEach((button) => {
     button.classList.toggle("active", button.dataset.nav === pageName);
   });
@@ -1336,39 +1616,18 @@ function renderCourses(list) {
         : `<p class="empty-filter">Nenhum treinamento encontrado para este filtro.</p>`;
     }
   }
+
   const count = document.getElementById("courseResultCount");
   const total = activeCourseFilter === "Pacotes" ? trainingPackages.length : filtered.length;
   if (count) count.textContent = `${total} ${total === 1 ? "treinamento disponível" : "treinamentos disponíveis"}`;
   renderCourseFilters();
 }
 
-function courseCardTemplate(course) {
-  return `
-    <article class="course-card ${course.legalNotice ? "course-card-regulatory" : ""}">
-      <!-- TODO: substituir este placeholder por imagem real do curso ${escapeHtml(course.code)} -->
-      <div class="course-visual" style="--course-bg:${course.accent}">
-        <strong class="course-code">${escapeHtml(course.code)}</strong>
-        <span class="course-category">${escapeHtml(course.category)}</span>
-      </div>
-      <div class="course-body">
-        <h3>${escapeHtml(course.title)}</h3>
-        <div class="course-meta"><span>${formatHours(course.hours)}</span><span>Modalidade online</span></div>
-        ${course.legalNotice ? `<p class="course-legal-note">Pode exigir etapa prática/presencial ou autorização complementar conforme atividade e norma aplicável.</p>` : ""}
-        <div class="course-price"><span>Investimento</span><strong>${formatCurrency(course.price)}</strong></div>
-        <div class="course-actions">
-          <button class="button button-secondary" type="button" data-course-details="${course.id}">Ver Curso</button>
-          <button class="button button-primary" type="button" data-course-buy="${course.id}">Comprar</button>
-        </div>
-      </div>
-    </article>
-  `;
-}
-
 function renderCourseFilters() {
   const holder = document.getElementById("courseFilters");
   if (!holder) return;
 
-  const categories = ["Todos", "Trabalho em altura", "Máquinas e equipamentos", "Segurança elétrica", "Espaços confinados", "Proteção individual", "Integração", "Gerenciamento de riscos", "Controle de energias", "Pacotes"];
+  const categories = ["Todos", "Chão de fábrica", "Administrativo", "Liderança", "RH/SESMT", "Manutenção", "Logística", "DDS", "NRs", "Pacotes"];
   holder.innerHTML = categories.map((category) => `
     <button class="${category === activeCourseFilter ? "active" : ""}" type="button" data-course-filter="${escapeHtml(category)}">
       ${escapeHtml(category)}
@@ -1419,10 +1678,31 @@ function renderTrainingPackages() {
   });
 }
 
+function courseCardTemplate(course) {
+  return `
+    <article class="course-card ${course.legalNotice ? "course-card-regulatory" : ""}">
+      <!-- TODO: substituir este placeholder por imagem real do curso ${escapeHtml(course.code)} -->
+      <div class="course-visual" style="--course-bg:${course.accent}">
+        <strong class="course-code">${escapeHtml(course.code)}</strong>
+        <span class="course-category">${escapeHtml(course.category)}</span>
+      </div>
+      <div class="course-body">
+        <h3>${escapeHtml(course.title)}</h3>
+        <div class="course-meta"><span>${formatHours(course.hours)}</span><span>Modalidade online</span></div>
+        ${course.legalNotice ? `<p class="course-legal-note">Pode exigir etapa prática/presencial ou autorização complementar conforme atividade e norma aplicável.</p>` : ""}
+        <div class="course-price"><span>Investimento</span><strong>${formatCurrency(course.price)}</strong></div>
+        <div class="course-actions">
+          <button class="button button-secondary" type="button" data-course-details="${course.id}">Ver Curso</button>
+          <button class="button button-primary" type="button" data-course-buy="${course.id}">Comprar</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
 function packageCardTemplate(pkg, featured = false) {
-  const limit = featured ? 7 : 5;
-  const listItems = pkg.courses.slice(0, limit).map((course) => `<li>${escapeHtml(course)}</li>`).join("");
-  const remaining = pkg.courses.length > limit ? `<li>+${pkg.courses.length - limit} treinamento(s) incluso(s)</li>` : "";
+  const listItems = pkg.courses.slice(0, featured ? 7 : 5).map((course) => `<li>${escapeHtml(course)}</li>`).join("");
+  const remaining = pkg.courses.length > (featured ? 7 : 5) ? `<li>+${pkg.courses.length - (featured ? 7 : 5)} treinamento(s) incluso(s)</li>` : "";
 
   return `
     <article class="package-card ${featured ? "package-card-featured" : ""}">
@@ -1442,7 +1722,7 @@ function packageCardTemplate(pkg, featured = false) {
         <span>Colaboradores</span>
         <input type="number" min="1" max="500" value="10" data-package-quantity="${escapeHtml(pkg.id)}">
       </label>
-      <button class="button button-primary button-block" type="button" data-package-interest="${escapeHtml(pkg.id)}">Solicitar este pacote</button>
+      <button class="button button-primary button-block" type="button" data-package-buy="${escapeHtml(pkg.id)}">Comprar pacote</button>
     </article>
   `;
 }
@@ -1457,7 +1737,7 @@ function bindInterface() {
   document.addEventListener("click", (event) => {
     const detailButton = event.target.closest("[data-course-details]");
     const buyButton = event.target.closest("[data-course-buy]");
-    const packageButton = event.target.closest("[data-package-interest]");
+    const packageButton = event.target.closest("[data-package-buy]");
     const filterButton = event.target.closest("[data-course-filter]");
     const proposalButton = event.target.closest("[data-proposal-jump]");
     const removeButton = event.target.closest("[data-remove-cart]");
@@ -1466,26 +1746,31 @@ function bindInterface() {
       openCourseModal(detailButton.dataset.courseDetails);
       return;
     }
+
     if (buyButton) {
       addToCart(buyButton.dataset.courseBuy);
       return;
     }
+
     if (packageButton) {
-      const packageId = packageButton.dataset.packageInterest;
+      const packageId = packageButton.dataset.packageBuy;
       const quantityInput = packageButton.closest(".package-card")?.querySelector(`[data-package-quantity="${packageId}"]`);
       const quantity = Math.max(1, Number(quantityInput?.value) || 1);
-      preparePackageProposal(packageId, quantity);
+      addPackageToCart(packageId, quantity);
       return;
     }
+
     if (filterButton) {
       activeCourseFilter = filterButton.dataset.courseFilter;
       renderCourses(courses);
       return;
     }
+
     if (proposalButton) {
       scrollToProposalForm();
       return;
     }
+
     if (removeButton) removeFromCart(removeButton.dataset.removeCart);
   });
 
@@ -1537,6 +1822,7 @@ function bindInterface() {
       closeAllModals();
       closeCart();
       closeMobileMenu();
+      closePortalNavigation();
       closeAssistant();
     }
   });
@@ -1695,14 +1981,28 @@ function addAssistantMessage(text, sender, actions = []) {
 function getAssistantResponse(rawQuestion) {
   const question = normalizeText(rawQuestion);
   const compactQuestion = question.replace(/\s+/g, "");
+  const matchedPackage = trainingPackages.find((pkg) => {
+    const compactCode = normalizeText(pkg.code).replace(/\s+/g, "");
+    return compactQuestion.includes(compactCode) || question.includes(normalizeText(pkg.title));
+  });
   const matchedCourse = courses.find((course) => {
     const compactCode = normalizeText(course.code).replace(/\s+/g, "");
     return compactQuestion.includes(compactCode) || question.includes(normalizeText(course.title));
   });
 
+  if (matchedPackage) {
+    return {
+      text: `${matchedPackage.title} custa ${formatCurrency(matchedPackage.price)} por colaborador, possui ${formatHours(matchedPackage.hours)} de carga total e inclui treinamentos como ${matchedPackage.courses.slice(0, 3).join(", ")}. O carrinho aplica desconto automático por quantidade.`,
+      actions: [
+        { label: "Ver pacotes", type: "companies" },
+        { label: "Solicitar proposta", type: "proposal" }
+      ]
+    };
+  }
+
   if (matchedCourse) {
     return {
-      text: `${matchedCourse.title} possui ${matchedCourse.hours} horas, é 100% online e custa ${formatCurrency(matchedCourse.price)}. O certificado digital é liberado após conclusão e aprovação com nota mínima de 70%.`,
+      text: `${matchedCourse.title} possui ${formatHours(matchedCourse.hours)}, é online e custa ${formatCurrency(matchedCourse.price)}. O certificado digital é liberado após conclusão e aprovação com nota mínima de 70%.${matchedCourse.legalNotice ? " Para NR-10, NR-33 e NR-35, pode haver etapa prática/presencial conforme atividade e procedimento da empresa." : ""}`,
       actions: [
         { label: "Ver detalhes", type: "course", value: matchedCourse.id },
         { label: "Comprar", type: "buy", value: matchedCourse.id }
@@ -1710,27 +2010,78 @@ function getAssistantResponse(rawQuestion) {
     };
   }
 
+  if (includesAny(question, ["desconto", "descontos", "quantidade", "colaboradores", "turma", "vagas"])) {
+    return {
+      text: "Os pacotes empresariais têm desconto automático por quantidade: 6 a 20 colaboradores recebem 10%, 21 a 50 recebem 15%, 51 a 100 recebem 20% e acima de 100 fica sob proposta.",
+      actions: [
+        { label: "Ver pacotes", type: "companies" },
+        { label: "Solicitar proposta", type: "proposal" }
+      ]
+    };
+  }
+
   if (includesAny(question, ["curso", "treinamento", "preco", "valor", "catalogo", "nr "])) {
     return {
-      text: "A FortixSeg possui treinamentos de NR 35, NR 12, NR 10, NR 33, EPIs, Integração de Segurança, NR 01 e LOTO. Os valores vão de R$ 59,90 a R$ 249,90.",
+      text: "A FortixSeg possui catálogo completo para chão de fábrica, administrativo, manutenção, liderança, RH/SESMT, DDS e NRs. Há cursos individuais a partir de R$ 19,90 e pacotes empresariais por colaborador.",
       actions: [{ label: "Abrir catálogo", type: "courses" }]
     };
   }
 
   if (includesAny(question, ["certificado", "qr code", "validar", "validade", "codigo"])) {
     return {
-      text: "O certificado digital é liberado após a conclusão das aulas e aprovação na avaliação. Ele possui código único e QR Code para consulta pública. A nota mínima é 70%.",
+      text: `O certificado digital é liberado após conclusão das aulas e aprovação na avaliação. Ele possui código único e QR Code para consulta pública. Código demonstrativo válido: ${APP_CONFIG.certificateCode}.`,
       actions: [{ label: "Validar certificado", type: "certificates" }]
     };
   }
 
-  if (includesAny(question, ["empresa", "colaborador", "equipe", "lote", "relatorio", "vencimento", "proposta"])) {
+  if (includesAny(question, ["empresa", "empresarial", "empresariais", "pacote", "pacotes", "colaborador", "equipe", "lote", "relatorio", "vencimento", "proposta"])) {
     return {
-      text: "Para empresas, a plataforma permite comprar vagas em lote, cadastrar colaboradores, acompanhar progresso, centralizar certificados, consultar relatórios e controlar vencimentos.",
+      text: "Para empresas, há pacotes prontos como Integração Essencial, Chão de Fábrica, Liderança, Manutenção e RH/SESMT, com descontos por quantidade e painel para acompanhar progresso, certificados e vencimentos.",
       actions: [
         { label: "Soluções para empresas", type: "companies" },
         { label: "Solicitar proposta", type: "contact" }
       ]
+    };
+  }
+
+  if (includesAny(question, ["dashboard", "painel", "graficos", "gráfico", "indicador", "indicadores", "relatorios", "relatórios"])) {
+    return {
+      text: "A área da empresa mostra colaboradores ativos, cursos em andamento, certificados emitidos, vencimentos próximos, gráficos de conformidade, situação da equipe, matrículas por curso e relatórios para acompanhamento.",
+      actions: [
+        { label: "Ver página Empresas", type: "companies" },
+        { label: "Entrar como empresa", type: "login" }
+      ]
+    };
+  }
+
+  if (includesAny(question, ["pdf", "apostila", "aula", "material", "upload", "conteudo programatico", "conteúdo programático"])) {
+    return {
+      text: "Nesta fase, a plataforma está preparada para cursos com apostilas em PDF, conteúdo programático e avaliação. No painel admin é possível cadastrar curso, preço, aulas, programa e anexar PDFs.",
+      actions: [
+        { label: "Entrar como admin", type: "login" },
+        { label: "Ver catálogo", type: "courses" }
+      ]
+    };
+  }
+
+  if (includesAny(question, ["admin", "administrador", "adicionar curso", "alterar preco", "alterar preço", "subir curso", "cadastrar curso"])) {
+    return {
+      text: "O painel admin permite cadastrar cursos, alterar preços, editar conteúdo programático, definir nota mínima, tentativas, status de publicação e anexar PDFs. O acesso admin deve usar a senha configurada no servidor.",
+      actions: [{ label: "Entrar", type: "login" }]
+    };
+  }
+
+  if (includesAny(question, ["aluno", "candidato", "meus cursos", "aulas", "meus certificados", "area do aluno", "área do aluno"])) {
+    return {
+      text: "A área do aluno possui painel, cursos matriculados, aulas, avaliações, certificados, dados e suporte. O certificado aparece após conclusão e aprovação. Login demo: aluno@teste.com / 123456.",
+      actions: [{ label: "Entrar", type: "login" }]
+    };
+  }
+
+  if (includesAny(question, ["nr10", "nr 10", "nr33", "nr 33", "nr35", "nr 35", "pratica", "prática", "presencial"])) {
+    return {
+      text: "Os treinamentos de NR-10, NR-33 e NR-35 podem exigir etapa prática/presencial, autorização formal ou avaliação complementar conforme atividade, risco e procedimento da empresa. A plataforma deixa essa observação nos cursos regulatórios.",
+      actions: [{ label: "Ver cursos", type: "courses" }]
     };
   }
 
@@ -1753,8 +2104,15 @@ function getAssistantResponse(rawQuestion) {
 
   if (includesAny(question, ["pagamento", "pagar", "pix", "cartao", "boleto", "checkout", "carrinho", "mercado pago"])) {
     return {
-      text: "Nesta versão o carrinho e o checkout são demonstrativos. A integração real de pagamento será feita com o Mercado Pago antes da publicação comercial.",
+      text: "Com o servidor configurado, o carrinho cria uma compra segura no Mercado Pago e redireciona para o checkout. A FortixSeg não solicita dados de cartão pelo chat ou formulários do site.",
       actions: [{ label: "Ver cursos", type: "courses" }]
+    };
+  }
+
+  if (includesAny(question, ["vercel", "netlify", "funcao", "função", "erro checkout", "nao abre checkout", "não abre checkout", "api", "integracao", "integração", "openai", "ia"])) {
+    return {
+      text: "Para checkout real na Vercel, a funcao api/checkout-preference.js precisa estar publicada e a variavel MERCADO_PAGO_ACCESS_TOKEN precisa estar configurada no painel. Para IA real, configure OPENAI_API_KEY no servidor; sem isso, o atendimento usa a base local.",
+      actions: [{ label: "Abrir contato", type: "contact" }]
     };
   }
 
@@ -1803,6 +2161,11 @@ function handleAssistantAction(type, value) {
   if (type === "login" || type === "register") {
     closeAssistant();
     openAuth(type);
+    return;
+  }
+  if (type === "proposal") {
+    closeAssistant();
+    scrollToProposalForm();
     return;
   }
 
@@ -1886,20 +2249,36 @@ function switchAuthPanel(mode) {
 }
 
 function switchAccountType(type) {
-  document.getElementById("accountType").value = type;
-  document.getElementById("candidateFields").classList.toggle("hidden", type !== "candidate");
-  document.getElementById("companyFields").classList.toggle("hidden", type !== "company");
-  document.getElementById("registerEmailLabel").textContent = type === "company" ? "E-mail corporativo" : "E-mail";
+  const normalizedType = ["candidate", "company", "affiliate", "admin"].includes(type) ? type : "candidate";
+  document.getElementById("accountType").value = normalizedType;
+  document.getElementById("candidateFields").classList.toggle("hidden", normalizedType !== "candidate");
+  document.getElementById("companyFields").classList.toggle("hidden", normalizedType !== "company");
+  document.getElementById("affiliateFields")?.classList.toggle("hidden", normalizedType !== "affiliate");
+  document.getElementById("adminFields")?.classList.toggle("hidden", normalizedType !== "admin");
+
+  const emailLabels = {
+    company: "E-mail corporativo",
+    affiliate: "E-mail do afiliado",
+    admin: "E-mail do administrador",
+    candidate: "E-mail"
+  };
+  document.getElementById("registerEmailLabel").textContent = emailLabels[normalizedType] || "E-mail";
 
   document.querySelectorAll("[data-account-type]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.accountType === type);
+    button.classList.toggle("active", button.dataset.accountType === normalizedType);
   });
 
   document.querySelectorAll("[data-required-candidate]").forEach((input) => {
-    input.required = type === "candidate";
+    input.required = normalizedType === "candidate";
   });
   document.querySelectorAll("[data-required-company]").forEach((input) => {
-    input.required = type === "company";
+    input.required = normalizedType === "company";
+  });
+  document.querySelectorAll("[data-required-affiliate]").forEach((input) => {
+    input.required = normalizedType === "affiliate";
+  });
+  document.querySelectorAll("[data-required-admin]").forEach((input) => {
+    input.required = normalizedType === "admin";
   });
 }
 
@@ -1907,8 +2286,10 @@ function fillDemoLogin(role) {
   const emails = {
     student: "aluno@teste.com",
     company: "empresa@teste.com",
+    affiliate: "afiliado@teste.com",
     admin: "admin@teste.com"
   };
+  if (!emails[role]) return;
   document.getElementById("loginEmail").value = emails[role];
   document.getElementById("loginPassword").value = "123456";
 }
@@ -1928,7 +2309,7 @@ function openCourseModal(courseId) {
           <span>Detalhes do curso</span>
           <h2 id="courseModalTitle">${escapeHtml(course.title)}</h2>
           <div class="detail-meta">
-            <span>${course.hours} horas</span>
+            <span>${formatHours(course.hours)}</span>
             <span>Modalidade: Online</span>
             <span>${course.lessons} aulas</span>
             <span>Nota mínima: 70%</span>
@@ -1942,6 +2323,7 @@ function openCourseModal(courseId) {
           <p>${escapeHtml(course.objective)}</p>
           <h3>Conteúdo programático</h3>
           <ul>${course.syllabus.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+          ${course.legalNotice ? `<p class="course-legal-note">Observação: este treinamento pode exigir etapa prática/presencial, autorização formal ou avaliação complementar conforme atividade, norma aplicável e procedimento da empresa.</p>` : ""}
           <p><strong>Certificado digital após aprovação na avaliação final.</strong></p>
         </div>
         <div class="detail-purchase">
@@ -1955,15 +2337,18 @@ function openCourseModal(courseId) {
 }
 
 function addToCart(courseId, quantity = 1, corporate = false) {
-  const course = courses.find((item) => item.id === courseId);
+  const course = getCourseById(courseId);
   if (!course) return;
 
   const key = corporate ? `corporate-${courseId}` : courseId;
   const existing = cart.find((item) => item.key === key);
   if (existing) {
     existing.quantity += quantity;
+    existing.title = course.title;
+    existing.unitPrice = course.price;
+    existing.kind = "course";
   } else {
-    cart.push({ key, courseId, quantity, corporate });
+    cart.push({ key, courseId, quantity, corporate, kind: "course", title: course.title, unitPrice: course.price });
   }
 
   writeStorage("fortixsegCart", cart);
@@ -1972,26 +2357,25 @@ function addToCart(courseId, quantity = 1, corporate = false) {
   showToast(`${course.title} adicionado ao carrinho.`);
 }
 
-function getPackageById(packageId) {
-  return trainingPackages.find((item) => item.id === packageId);
-}
-
-function preparePackageProposal(packageId, quantity = 1) {
+function addPackageToCart(packageId, quantity = 1) {
   const pkg = getPackageById(packageId);
   if (!pkg) return;
 
-  scrollToProposalForm();
-  setTimeout(() => {
-    const form = document.getElementById("proposalForm");
-    const employeesField = form?.elements?.namedItem("employees");
-    const messageField = form?.elements?.namedItem("message");
-    if (employeesField) employeesField.value = String(quantity);
-    if (messageField) {
-      messageField.value = `Tenho interesse no pacote ${pkg.code} - ${pkg.title} para ${quantity} colaborador${quantity > 1 ? "es" : ""}.`;
-    }
-  }, 140);
+  const safeQuantity = Math.max(1, Math.min(500, Number(quantity) || 1));
+  const key = `package-${packageId}`;
+  const existing = cart.find((item) => item.key === key);
+  if (existing) {
+    existing.quantity += safeQuantity;
+    existing.title = pkg.title;
+    existing.unitPrice = pkg.price;
+    existing.kind = "package";
+  } else {
+    cart.push({ key, packageId, quantity: safeQuantity, type: "package", kind: "package", title: pkg.title, unitPrice: pkg.price });
+  }
 
-  showToast("Pacote selecionado. Preencha os dados para solicitar a proposta.");
+  writeStorage("fortixsegCart", cart);
+  renderCart();
+  showToast(`${pkg.title} adicionado para ${safeQuantity} colaborador(es).`);
 }
 
 function removeFromCart(key) {
@@ -2000,33 +2384,94 @@ function removeFromCart(key) {
   renderCart();
 }
 
+function getCourseById(courseId) {
+  return courses.find((item) => item.id === courseId);
+}
+
+function getPackageById(packageId) {
+  return trainingPackages.find((item) => item.id === packageId);
+}
+
+function getDiscountTier(quantity) {
+  const total = Number(quantity) || 1;
+  return discountTiers.find((tier) => total >= tier.min && total <= tier.max) || discountTiers[0];
+}
+
+function getCartLine(item) {
+  if (item.packageId || item.type === "package") {
+    const product = getPackageById(item.packageId);
+    if (!product) return null;
+
+    const tier = getDiscountTier(item.quantity);
+    const hasProposalPrice = tier.discount === null;
+    const discount = Number(tier.discount) || 0;
+    const effectiveUnitPrice = hasProposalPrice ? product.price : product.price * (1 - discount);
+
+    return {
+      item,
+      product,
+      type: "package",
+      code: product.code,
+      title: product.title,
+      label: `${item.quantity} colaborador${item.quantity > 1 ? "es" : ""}`,
+      unitPrice: product.price,
+      effectiveUnitPrice,
+      subtotal: hasProposalPrice ? null : effectiveUnitPrice * item.quantity,
+      tier,
+      proposal: hasProposalPrice
+    };
+  }
+
+  const product = getCourseById(item.courseId);
+  if (!product) return null;
+  return {
+    item,
+    product,
+    type: "course",
+    code: product.code,
+    title: product.title,
+    label: item.corporate ? `${item.quantity} vagas corporativas` : `${item.quantity} unidade${item.quantity > 1 ? "s" : ""}`,
+    unitPrice: product.price,
+    effectiveUnitPrice: product.price,
+    subtotal: product.price * item.quantity,
+    tier: null,
+    proposal: false
+  };
+}
+
 function renderCart() {
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
   document.getElementById("cartCount").textContent = itemCount;
 
   const itemsContainer = document.getElementById("cartItems");
-  if (!cart.length) {
-    itemsContainer.innerHTML = `<div class="empty-cart"><div><strong>Seu carrinho está vazio</strong><p>Adicione um curso para continuar.</p></div></div>`;
+  const lines = cart.map(getCartLine).filter(Boolean);
+  if (!lines.length) {
+    itemsContainer.innerHTML = `<div class="empty-cart"><div><strong>Seu carrinho está vazio</strong><p>Adicione cursos ou pacotes para continuar.</p></div></div>`;
   } else {
-    itemsContainer.innerHTML = cart.map((item) => {
-      const course = courses.find((entry) => entry.id === item.courseId);
-      const label = item.corporate ? `${item.quantity} vagas corporativas` : `${item.quantity} unidade${item.quantity > 1 ? "s" : ""}`;
+    itemsContainer.innerHTML = lines.map((line) => {
+      const discountNote = line.type === "package" && line.tier
+        ? `<span class="cart-discount">${escapeHtml(line.tier.note)}</span>`
+        : "";
+      const subtotal = line.proposal ? "Sob proposta" : formatCurrency(line.subtotal);
       return `
         <article class="cart-item">
-          <span class="cart-item-code">${escapeHtml(course.code)}</span>
-          <div><strong>${escapeHtml(course.title)}</strong><small>${label} · ${formatCurrency(course.price)} cada</small></div>
-          <button type="button" data-remove-cart="${escapeHtml(item.key)}">Remover</button>
+          <span class="cart-item-code">${escapeHtml(line.code)}</span>
+          <div>
+            <strong>${escapeHtml(line.title)}</strong>
+            <small>${escapeHtml(line.label)} - ${formatCurrency(line.unitPrice)} cada</small>
+            ${discountNote}
+            <span class="cart-subtotal">Subtotal: ${subtotal}</span>
+          </div>
+          <button type="button" data-remove-cart="${escapeHtml(line.item.key)}">Remover</button>
         </article>
       `;
     }).join("");
   }
 
-  const total = cart.reduce((sum, item) => {
-    const course = courses.find((entry) => entry.id === item.courseId);
-    return sum + course.price * item.quantity;
-  }, 0);
-  document.getElementById("cartTotal").textContent = formatCurrency(total);
-  document.getElementById("checkoutButton").disabled = cart.length === 0;
+  const total = lines.reduce((sum, line) => sum + (Number(line.subtotal) || 0), 0);
+  const hasProposalLine = lines.some((line) => line.proposal);
+  document.getElementById("cartTotal").textContent = hasProposalLine ? (total ? `${formatCurrency(total)} + proposta` : "Sob proposta") : formatCurrency(total);
+  document.getElementById("checkoutButton").disabled = lines.length === 0;
 }
 
 function openCart() {
@@ -2047,45 +2492,47 @@ function closeCart() {
 
 async function checkout() {
   if (!cart.length) return;
-  if (!currentUser) {
-    showToast("Faça login para concluir a compra.");
-    openAuth("login");
+  const lines = cart.map(getCartLine).filter(Boolean);
+  if (lines.some((line) => line.proposal)) {
+    closeCart();
+    scrollToProposalForm();
+    showToast("Para mais de 100 colaboradores, solicite uma proposta personalizada.");
     return;
   }
+
   const button = document.getElementById("checkoutButton");
   const originalText = button.textContent;
   button.disabled = true;
   button.textContent = "Preparando checkout...";
 
   try {
-    const data = await apiRequest("/api/checkout/preference", {
+    const response = await fetch("/api/checkout-preference", {
       method: "POST",
-      body: JSON.stringify({
-        items: cart.map(({ courseId, quantity, corporate }) => ({ courseId, quantity, corporate }))
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: cart })
     });
-    if (data.mode === "demo_local") {
-      cart = [];
-      writeStorage("fortixsegCart", cart);
-      writeStorage("fortixsegLastOrderId", data.orderId || "");
-      renderCart();
-      closeCart();
-      if (data.dashboard && currentUser?.role === "student") applyStudentDashboard(data.dashboard);
-      if (data.dashboard && currentUser?.role === "company") applyCompanyDashboard(data.dashboard);
-      navigate(getPortalPageForRole(currentUser.role));
-      showToast("Pedido confirmado em modo local. As matrículas foram atualizadas.");
-      return;
+    const data = await response.json().catch(() => ({}));
+    const checkoutTarget = data.checkoutUrl || data.init_point || data.sandbox_init_point;
+    if (!response.ok || !checkoutTarget) {
+      const error = new Error(data.error || "Checkout indisponível.");
+      error.status = response.status;
+      error.code = data.code || "";
+      throw error;
     }
-    if (!data.checkoutUrl) throw new Error("Checkout indisponível.");
-    if (data.orderId) writeStorage("fortixsegLastOrderId", data.orderId);
-    const checkoutUrl = new URL(data.checkoutUrl);
+    const checkoutUrl = new URL(checkoutTarget);
     if (checkoutUrl.protocol !== "https:") throw new Error("Endereço de checkout inválido.");
     window.location.assign(checkoutUrl.href);
   } catch (error) {
-    const isConfiguration = /configurado|Failed to fetch|fetch|URL scheme/i.test(error.message);
-    showToast(isConfiguration
-      ? "Checkout em modo demonstrativo. Configure o Mercado Pago no servidor para cobrar."
-      : "Não foi possível abrir o checkout. Tente novamente em instantes.");
+    const status = Number(error.status) || 0;
+    let message = "Não foi possível abrir o checkout do Mercado Pago. Confira a credencial de teste e tente novamente.";
+    if (status === 404 || status === 405) {
+      message = "A funcao de checkout nao foi publicada na Vercel. Inclua a pasta api e faca um novo deploy.";
+    } else if (status === 503 || error.code === "MERCADO_PAGO_NOT_CONFIGURED" || /configurado|not configured/i.test(error.message)) {
+      message = "Falta configurar MERCADO_PAGO_ACCESS_TOKEN nas variaveis de ambiente da Vercel e fazer novo deploy.";
+    } else if (/Failed to fetch|fetch|URL scheme|NetworkError/i.test(error.message)) {
+      message = "O site nao conseguiu falar com a funcao de checkout. Verifique o deploy da Vercel e tente novamente.";
+    }
+    showToast(message);
   } finally {
     button.textContent = originalText;
     button.disabled = cart.length === 0;
@@ -2101,33 +2548,14 @@ function scrollToProposalForm() {
   }, 120);
 }
 
-async function handlePaymentReturn() {
+function handlePaymentReturn() {
   const payment = new URLSearchParams(location.search).get("payment");
-  const externalReference = new URLSearchParams(location.search).get("external_reference");
-  const paymentId = new URLSearchParams(location.search).get("payment_id");
-  if (payment || externalReference || paymentId) {
-    try {
-      if (currentUser && (externalReference || paymentId)) {
-        const params = new URLSearchParams();
-        if (externalReference) params.set("external_reference", externalReference);
-        if (paymentId) params.set("payment_id", paymentId);
-        if (payment) params.set("status", payment);
-        const result = await apiRequest(`/api/orders/resolve?${params.toString()}`, { timeoutMs: 10_000 });
-        lastOrderStatus = result.order?.status || payment;
-        if (result.dashboard && currentUser.role === "student") applyStudentDashboard(result.dashboard);
-        if (result.dashboard && currentUser.role === "company") applyCompanyDashboard(result.dashboard);
-      }
-    } catch {}
-
-    if ((lastOrderStatus || payment) === "approved" || payment === "success") {
-      showToast("Pagamento aprovado. Seu pedido foi atualizado.");
-    } else if ((lastOrderStatus || payment) === "pending") {
-      showToast("Pagamento pendente. O pedido continua aguardando confirmação.");
-    } else {
-      showToast("O pagamento não foi concluído. Você pode tentar novamente.");
-    }
-    const cleanUrl = `${location.pathname}${location.hash || "#home"}`;
-    history.replaceState(null, "", cleanUrl);
+  if (payment === "success") {
+    showToast("Pagamento recebido. A confirmação será validada com o Mercado Pago.");
+  } else if (payment === "pending") {
+    showToast("Pagamento pendente. O acesso será liberado após a confirmação.");
+  } else if (payment === "failure") {
+    showToast("O pagamento não foi concluído. Você pode tentar novamente.");
   }
 }
 
@@ -2163,24 +2591,48 @@ async function handleLogin(event) {
   event.preventDefault();
   const email = document.getElementById("loginEmail").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
+  let login = demoLogins[email];
+  localStorage.removeItem("fortixsegApiToken");
+
   try {
-    const session = await apiRequest("/api/auth/login", {
+    const session = await apiRequest("/api/auth/demo", {
       method: "POST",
       body: JSON.stringify({ email, password })
     });
-    currentUser = session.user;
-    applyAuthState();
-    closeAllModals();
-    event.target.reset();
-    navigate(getPortalPageForRole(session.user.role));
-    showToast("Login realizado com sucesso.");
-  } catch (error) {
+    login = { role: session.user.role, password };
+    localStorage.setItem("fortixsegApiToken", session.token);
+  } catch {
     apiOnline = false;
-    currentUser = null;
-    applyAuthState();
-    showToast(error.message || "Não foi possível entrar com este usuário.");
+  }
+
+  // TODO: conectar login ao Supabase Auth
+  // TODO: proteger rota administrativa com autenticação real
+  if (!login || login.password !== password) {
+    showToast("E-mail ou senha inválidos.");
     return;
   }
+
+  if (login.role === "admin" && !localStorage.getItem("fortixsegApiToken")) {
+    showToast("O acesso administrativo precisa do servidor online.");
+    return;
+  }
+
+  localStorage.setItem("fortixsegCurrentUser", JSON.stringify({ email, role: login.role, apiOnline }));
+  closeAllModals();
+  event.target.reset();
+
+  navigate(getHomePageForRole(login.role));
+  showToast("Login realizado com sucesso.");
+}
+
+function getHomePageForRole(role) {
+  const pages = {
+    student: "student",
+    company: "company-dashboard",
+    affiliate: "affiliate",
+    admin: "admin"
+  };
+  return pages[role] || "student";
 }
 
 async function handleRegister(event) {
@@ -2188,6 +2640,11 @@ async function handleRegister(event) {
   const formData = new FormData(event.target);
   const password = formData.get("password");
   const confirmation = formData.get("confirmPassword");
+  const accountType = document.getElementById("accountType").value;
+  const payload = {
+    accountType,
+    ...Object.fromEntries(formData.entries())
+  };
 
   if (password !== confirmation) {
     showToast("As senhas informadas não são iguais.");
@@ -2195,52 +2652,50 @@ async function handleRegister(event) {
   }
 
   try {
-    const payload = Object.fromEntries(formData.entries());
-    payload.accountType = document.getElementById("accountType").value;
-    const result = await apiRequest("/api/auth/register", {
+    const session = await apiRequest("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify(payload),
-      timeoutMs: 12_000
+      body: JSON.stringify(payload)
     });
-    currentUser = result.user;
-    applyAuthState();
-    closeAllModals();
+
+    const registrations = readStorage("fortixsegRegistrations", []);
+    registrations.push({
+      type: accountType,
+      data: { ...payload, password: "demo-hidden", confirmPassword: "demo-hidden" },
+      createdAt: new Date().toISOString()
+    });
+
+    // TODO: substituir cadastro demonstrativo por Supabase Auth e banco de dados.
+    writeStorage("fortixsegRegistrations", registrations);
+    localStorage.setItem("fortixsegApiToken", session.token);
+    localStorage.setItem("fortixsegCurrentUser", JSON.stringify({
+      email: session.user.email,
+      role: session.user.role,
+      apiOnline: true
+    }));
+
     event.target.reset();
     switchAccountType("candidate");
-    switchAuthPanel("login");
-    navigate(getPortalPageForRole(result.user.role));
-    showToast("Conta criada com sucesso.");
+    closeAllModals();
+    navigate(getHomePageForRole(session.user.role));
+    showToast("Cadastro de teste criado. Você já está logado.");
   } catch (error) {
-    showToast(error.message || "Não foi possível criar a conta.");
+    apiOnline = false;
+    showToast(error.message || "Não foi possível criar o cadastro de teste.");
   }
 }
 
-async function logout() {
-  try {
-    await apiRequest("/api/auth/logout", { method: "POST" });
-  } catch {}
-  currentUser = null;
-  applyAuthState();
+function logout() {
+  localStorage.removeItem("fortixsegCurrentUser");
+  localStorage.removeItem("fortixsegApiToken");
   navigate("home");
   showToast("Sessão encerrada.");
 }
 
-async function completeLesson() {
-  if (!currentUser || !portalData.student?.courses?.length) return;
-  const activeCourse = portalData.student.courses.find((course) => course.status === "Em andamento") || portalData.student.courses[0];
-  try {
-    const result = await apiRequest("/api/student/progress", {
-      method: "POST",
-      body: JSON.stringify({
-        courseId: activeCourse.id,
-        progress: Math.max(85, Number(activeCourse.progress || 0))
-      })
-    });
-    applyStudentDashboard(result.dashboard);
-    showToast("Aula marcada como concluída. Seu progresso foi atualizado.");
-  } catch (error) {
-    showToast(error.message || "Não foi possível registrar o progresso.");
-  }
+function completeLesson() {
+  studentProgress = Math.max(studentProgress, 85);
+  writeStorage("fortixsegStudentProgress", studentProgress);
+  updateStudentState();
+  showToast("Aula marcada como concluída. Seu progresso foi atualizado.");
 }
 
 function renderQuiz() {
@@ -2262,7 +2717,7 @@ function renderQuiz() {
   `;
 }
 
-async function gradeQuiz(event) {
+function gradeQuiz(event) {
   event.preventDefault();
   const formData = new FormData(event.target);
   let correct = 0;
@@ -2272,27 +2727,28 @@ async function gradeQuiz(event) {
   });
 
   const grade = Math.round((correct / quizQuestions.length) * 100);
-  const activeCourse = portalData.student?.courses?.find((course) => course.status === "Em andamento") || portalData.student?.courses?.[0];
-  const result = document.getElementById("quizResult");
-  try {
-    const assessment = await apiRequest("/api/student/assessment", {
-      method: "POST",
-      body: JSON.stringify({ courseId: activeCourse?.id || "nr35", grade })
-    });
-    const approved = Boolean(assessment.approved);
-    lastQuizGrade = assessment.grade;
-    applyStudentDashboard(assessment.dashboard);
-    result.classList.remove("hidden", "failed");
-    result.classList.toggle("failed", !approved);
-    result.innerHTML = approved
-      ? `<h3>Aprovado. Seu certificado está disponível.</h3><p>Nota final: ${assessment.grade}%. O documento já pode ser acessado na área do aluno.</p><button class="button button-primary" type="button" data-show-certificate>Ver certificado</button>`
-      : `<h3>Reprovado. Revise o conteúdo e tente novamente.</h3><p>Nota final: ${assessment.grade}%. A nota mínima é 70%.</p>`;
-    const certificateButton = result.querySelector("[data-show-certificate]");
-    if (certificateButton) certificateButton.addEventListener("click", () => navigate("certificate-view"));
-    result.scrollIntoView({ behavior: "smooth", block: "center" });
-  } catch (error) {
-    showToast(error.message || "Não foi possível registrar o resultado da avaliação.");
+  const approved = grade >= 70;
+  lastQuizGrade = grade;
+  writeStorage("fortixsegQuizGrade", grade);
+
+  if (approved) {
+    certificateUnlocked = true;
+    studentProgress = 100;
+    writeStorage("fortixsegCertificateUnlocked", true);
+    writeStorage("fortixsegStudentProgress", 100);
   }
+
+  updateStudentState();
+  const result = document.getElementById("quizResult");
+  result.classList.remove("hidden", "failed");
+  result.classList.toggle("failed", !approved);
+  result.innerHTML = approved
+    ? `<h3>Aprovado. Seu certificado está disponível.</h3><p>Nota final: ${grade}%. O documento já pode ser acessado na área do aluno.</p><button class="button button-primary" type="button" data-show-certificate>Ver certificado</button>`
+    : `<h3>Reprovado. Revise o conteúdo e tente novamente.</h3><p>Nota final: ${grade}%. A nota mínima é 70%.</p>`;
+
+  const certificateButton = result.querySelector("[data-show-certificate]");
+  if (certificateButton) certificateButton.addEventListener("click", () => navigate("certificate-view"));
+  result.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function updateStudentState() {
@@ -2304,31 +2760,10 @@ function updateStudentState() {
   if (progressBar) progressBar.style.width = `${studentProgress}%`;
   if (lessonText) lessonText.textContent = `${studentProgress}%`;
   if (lessonBar) lessonBar.style.width = `${studentProgress}%`;
-  if (!portalData.student) {
-    document.getElementById("averageProgressMetric").textContent = studentProgress === 100 ? "100%" : "65%";
-    document.getElementById("studentCertificatesMetric").textContent = certificateUnlocked ? "1" : "0";
-    document.getElementById("completedCoursesMetric").textContent = studentProgress === 100 ? "2" : "1";
-  }
+  document.getElementById("averageProgressMetric").textContent = studentProgress === 100 ? "100%" : "65%";
+  document.getElementById("studentCertificatesMetric").textContent = certificateUnlocked ? "1" : "0";
+  document.getElementById("completedCoursesMetric").textContent = studentProgress === 100 ? "2" : "1";
   document.getElementById("certificateGrade").textContent = `${lastQuizGrade}%`;
-}
-
-function updateCertificateView(certificate, activeCourse, profile) {
-  const studentName = certificate?.student || profile?.name || currentUser?.name || "João da Silva";
-  const courseTitle = certificate?.course || activeCourse?.title || "NR 35 - Trabalho em Altura";
-  const hours = certificate?.hours || `${courses.find((course) => course.id === activeCourse?.id)?.hours || 8} horas`;
-  const code = certificate?.code || APP_CONFIG.certificateCode;
-  const completedAt = certificate?.completedAt || new Intl.DateTimeFormat("pt-BR").format(new Date());
-  const codeBlock = document.querySelector(".certificate-code strong");
-  const studentHeading = document.querySelector(".certificate-border h1");
-  const courseHeading = document.querySelector(".certificate-border h2");
-  const hoursField = document.querySelector(".certificate-meta span:first-child");
-  if (studentHeading) studentHeading.textContent = studentName;
-  if (courseHeading) courseHeading.textContent = courseTitle;
-  if (hoursField) hoursField.innerHTML = `<b>Carga horária</b>${escapeHtml(hours)}`;
-  if (codeBlock) codeBlock.textContent = code;
-  setText("certificateDate", completedAt);
-  setText("certificateGrade", `${certificate?.grade ?? lastQuizGrade}%`);
-  document.body.dataset.certificatePdfUrl = certificate?.pdfUrl || "";
 }
 
 async function validateCertificate(rawCode) {
@@ -2374,17 +2809,13 @@ function renderCertificateValidation(result, data) {
       <p><strong>Carga horária:</strong> ${escapeHtml(certificate.hours)}</p>
       <p><strong>Conclusão:</strong> ${escapeHtml(certificate.completedAt)}</p>
       <p><strong>Status:</strong> ${escapeHtml(certificate.status)}</p>
-      ${certificate.pdfUrl ? `<p><a class="button button-secondary" href="${escapeHtml(certificate.pdfUrl)}" target="_blank" rel="noopener">Abrir PDF do certificado</a></p>` : ""}
     </div>
   `;
 }
 
 function printCertificate() {
-  const pdfUrl = document.body.dataset.certificatePdfUrl;
-  if (pdfUrl) {
-    window.open(pdfUrl, "_blank", "noopener");
-    return;
-  }
+  // TODO: gerar PDF real no backend futuramente
+  // TODO: gerar certificado real em PDF
   window.print();
 }
 
@@ -2412,13 +2843,17 @@ async function handleEmployeeAdd(event) {
         courseId: course.id
       })
     });
+    employees = data.employees || [employee, ...employees];
     applyCompanyDashboard(data);
-    event.target.reset();
-    closeAllModals();
-    showToast("Colaborador adicionado com sucesso.");
-  } catch (error) {
-    showToast(error.message || "Não foi possível adicionar o colaborador.");
+  } catch {
+    employees.push(employee);
   }
+
+  writeStorage("fortixsegEmployees", employees);
+  renderEmployees();
+  event.target.reset();
+  closeAllModals();
+  showToast("Colaborador adicionado com sucesso.");
 }
 
 function renderEmployees() {
@@ -2433,7 +2868,6 @@ function renderEmployees() {
   `).join("");
 
   document.getElementById("activeEmployeesMetric").textContent = 125 + employees.length;
-  setText("companyEmployeeCount", `${employees.length} ${employees.length === 1 ? "colaborador" : "colaboradores"}`);
   document.querySelectorAll("#employeeTableBody [data-show-certificate]").forEach((button) => {
     button.addEventListener("click", () => navigate("certificate-view"));
   });
@@ -2466,6 +2900,14 @@ function formatCurrency(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
+function formatHours(value) {
+  const hours = Number(value);
+  if (!Number.isFinite(hours) || hours <= 0) return "0 hora";
+  if (hours < 1) return `${Math.round(hours * 60)} min`;
+  const formatted = Number.isInteger(hours) ? String(hours) : hours.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+  return `${formatted} ${hours === 1 ? "hora" : "horas"}`;
+}
+
 function formatNumber(value) {
   return new Intl.NumberFormat("pt-BR").format(Number(value) || 0);
 }
@@ -2488,6 +2930,6 @@ function escapeHtml(value) {
 // TODO: criar Área do aluno real com Supabase
 // TODO: criar Área da empresa real
 // TODO: criar Painel admin real
-// TODO: implementar upload e streaming protegido de vídeos
+// TODO: implementar storage protegido para PDFs em produção
 // TODO: criar logs de acesso conforme requisitos do treinamento EAD
 // TODO: integrar banco PostgreSQL e políticas de acesso
