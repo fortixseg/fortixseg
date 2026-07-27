@@ -146,6 +146,83 @@ const defaultEmployees = [
   { name: "Marcos Silva", course: "NR 12", progress: "40%", status: "Em andamento", certificate: false }
 ];
 
+const trainingPackages = [
+  {
+    id: "pkg-integracao",
+    code: "PCT 01",
+    title: "Integração Essencial",
+    price: 199.90,
+    hours: 12,
+    featured: true,
+    badge: "Mais indicado para novos colaboradores",
+    description: "Ideal para admissão, terceiros e integração inicial de segurança.",
+    courses: ["Integração de Segurança", "Uso Correto de EPIs", "Percepção de Riscos", "Proteção contra Incêndio - Noções", "Abandono de Área e Emergência"]
+  },
+  {
+    id: "pkg-chao-fabrica",
+    code: "PCT 02",
+    title: "Chão de Fábrica",
+    price: 349.90,
+    hours: 24,
+    featured: true,
+    badge: "Mais vendido para indústria",
+    description: "Treinamentos essenciais para operadores, auxiliares, produção e manutenção industrial.",
+    courses: ["NR-12 Introdutório", "LOTO - Bloqueio e Etiquetagem", "APR - Análise Preliminar de Risco", "Permissão de Trabalho", "Proteção de Mãos e Dedos", "Movimentação Manual de Cargas", "Produtos Químicos e FDS/FISPQ"]
+  },
+  {
+    id: "pkg-administrativo",
+    code: "PCT 03",
+    title: "Administrativo Seguro",
+    price: 249.90,
+    hours: 18,
+    featured: false,
+    badge: "Ideal para administrativo",
+    description: "Capacitação para escritórios, RH, áreas administrativas e trabalho remoto.",
+    courses: ["Ergonomia em Escritório - NR-17", "Home Office Seguro e Ergonomia", "Prevenção de Acidentes no Ambiente Administrativo", "Assédio Moral e Sexual no Trabalho", "Saúde Mental e Segurança Psicológica", "Noções de Primeiros Socorros", "Evacuação de Emergência"]
+  },
+  {
+    id: "pkg-lideranca",
+    code: "PCT 04",
+    title: "Liderança em Segurança",
+    price: 449.90,
+    hours: 28,
+    featured: true,
+    badge: "Maior valor corporativo",
+    description: "Formação para líderes, supervisores, coordenadores e gestores de área.",
+    courses: ["SST para Lideranças", "Responsabilidade da Liderança em Segurança", "Como Conduzir DDS Eficaz", "Investigação e Análise de Acidentes", "Gestão de Indicadores de Segurança", "Cultura de Segurança e Comportamento Seguro", "Gestão de Contratadas em SST"]
+  },
+  {
+    id: "pkg-manutencao",
+    code: "PCT 05",
+    title: "Manutenção Segura",
+    price: 399.90,
+    hours: 26,
+    featured: false,
+    badge: "Para manutenção industrial",
+    description: "Indicado para mecânicos, eletricistas, técnicos e equipes de manutenção.",
+    courses: ["Riscos com Eletricidade para Não Eletricistas", "NR-12 para Manutenção", "LOTO - Bloqueio e Etiquetagem", "Trabalho a Quente - Noções", "Ferramentas Manuais e Elétricas", "Segurança com Ar Comprimido", "APR e Permissão de Trabalho"]
+  },
+  {
+    id: "pkg-rh-sst",
+    code: "PCT 06",
+    title: "RH e Gestão SST",
+    price: 299.90,
+    hours: 20,
+    featured: false,
+    badge: "Para RH, DP e SESMT",
+    description: "Voltado para RH, DP, SESMT e responsáveis por treinamentos e documentos.",
+    courses: ["Gestão de Treinamentos Obrigatórios", "Controle de Certificados e Validades", "Noções de eSocial SST", "Como Montar Matriz de Treinamentos", "Gestão de Documentos de SST", "Terceiros e Documentação de Segurança", "LGPD aplicada a dados de colaboradores"]
+  }
+];
+
+const discountTiers = [
+  { min: 1, max: 5, label: "1 a 5 colaboradores", discount: 0, note: "preço normal" },
+  { min: 6, max: 20, label: "6 a 20 colaboradores", discount: 0.10, note: "10% de desconto" },
+  { min: 21, max: 50, label: "21 a 50 colaboradores", discount: 0.15, note: "15% de desconto" },
+  { min: 51, max: 100, label: "51 a 100 colaboradores", discount: 0.20, note: "20% de desconto" },
+  { min: 101, max: Infinity, label: "Acima de 100 colaboradores", discount: null, note: "sob proposta" }
+];
+
 let cart = readStorage("fortixsegCart", []);
 let employees = readStorage("fortixsegEmployees", defaultEmployees);
 let certificateUnlocked = readStorage("fortixsegCertificateUnlocked", true);
@@ -158,12 +235,14 @@ const portalData = { student: null, company: null, admin: null };
 let adminCourseCatalog = [];
 let currentUser = null;
 let lastOrderStatus = null;
+let activeCourseFilter = "Todos";
 
 document.addEventListener("DOMContentLoaded", init);
 
 function init() {
   setBrand();
   renderCourses(courses);
+  renderTrainingPackages();
   renderCourseSelects();
   renderCart();
   renderEmployees();
@@ -387,6 +466,7 @@ function applyStudentDashboard(data) {
   certificateUnlocked = Boolean(availableCertificate);
   updateStudentState();
   updateCertificateView(availableCertificate, activeCourse, data.profile);
+  syncStudentLibraryView();
 }
 
 function applyCompanyDashboard(data) {
@@ -727,7 +807,7 @@ function handlePortalClick(event) {
 
   const resourceButton = event.target.closest("[data-portal-resource]");
   if (resourceButton) {
-    showStudentResource(resourceButton);
+    void showStudentResource(resourceButton);
     return;
   }
 
@@ -768,24 +848,51 @@ function handlePortalClick(event) {
   }
 }
 
-function showStudentResource(button) {
+function syncStudentLibraryView() {
+  const resourceList = document.querySelector('[data-portal-view="student:lessons"] .resource-list');
+  if (!resourceList || !Array.isArray(portalData.student?.library) || !portalData.student.library.length) return;
+  resourceList.innerHTML = portalData.student.library.map((resource, index) => `
+    <button ${index === 0 ? 'class="active"' : ""} type="button"
+      data-portal-resource="${escapeHtml(resource.type || "pdf")}"
+      data-resource-title="${escapeHtml(resource.title || resource.name || "Material do curso")}"
+      data-resource-url="${escapeHtml(resource.accessUrl || resource.url || "")}">
+      <span>${resource.type === "video" ? "Vídeo" : "PDF"}</span>
+      <strong>${escapeHtml(resource.title || resource.name || "Material do curso")}</strong>
+      <small>${escapeHtml(resource.status || "Disponível")}</small>
+    </button>
+  `).join("");
+}
+
+async function showStudentResource(button) {
   document.querySelectorAll(".resource-list button").forEach((item) => item.classList.toggle("active", item === button));
   const viewer = document.getElementById("studentMediaViewer");
   if (!viewer) return;
   const title = button.dataset.resourceTitle || "Material do curso";
+  let accessUrl = button.dataset.resourceUrl || "";
+
+  try {
+    if (accessUrl.startsWith("/api/resources/")) {
+      const data = await apiRequest(accessUrl);
+      accessUrl = data.resource?.accessUrl || "";
+    }
+  } catch (error) {
+    showToast(error.message || "Não foi possível abrir este material.");
+    return;
+  }
 
   if (button.dataset.portalResource === "pdf") {
     viewer.innerHTML = `
       <div class="media-viewer-header"><span>Material PDF</span><h3>${escapeHtml(title)}</h3></div>
-      <iframe class="pdf-viewer" src="assets/apostila-nr35-demonstrativa.pdf#toolbar=1" title="Apostila demonstrativa NR 35"></iframe>
-      <a class="button button-secondary media-download" href="assets/apostila-nr35-demonstrativa.pdf" target="_blank" rel="noopener">Abrir PDF em nova guia</a>
+      <iframe class="pdf-viewer" src="${escapeHtml((accessUrl || "assets/apostila-nr35-demonstrativa.pdf"))}#toolbar=1" title="${escapeHtml(title)}"></iframe>
+      <a class="button button-secondary media-download" href="${escapeHtml(accessUrl || "assets/apostila-nr35-demonstrativa.pdf")}" target="_blank" rel="noopener">Abrir PDF em nova guia</a>
     `;
     return;
   }
 
   viewer.innerHTML = `
     <div class="media-viewer-header"><span>Vídeo da aula</span><h3>${escapeHtml(title)}</h3></div>
-    <div class="video-stage"><button type="button" data-portal-action="play-demo" aria-label="Reproduzir demonstração">▶</button><strong>Player preparado para vídeo protegido</strong><small>Integração futura: storage privado e URL assinada</small></div>
+    <div class="video-stage"><button type="button" data-portal-action="play-demo" aria-label="Reproduzir demonstração">▶</button><strong>${accessUrl ? "Abrir vídeo protegido" : "Player preparado para vídeo protegido"}</strong><small>${accessUrl ? "O link é assinado e expira automaticamente." : "Integração futura: storage privado e URL assinada"}</small></div>
+    ${accessUrl ? `<a class="button button-secondary media-download" href="${escapeHtml(accessUrl)}" target="_blank" rel="noopener">Abrir vídeo</a>` : ""}
   `;
 }
 
@@ -957,7 +1064,7 @@ function renderAdminCourseResources(course) {
     <article class="admin-resource-item">
       <span class="admin-resource-type ${resource.type}">${resource.type === "video" ? "Vídeo" : "PDF"}</span>
       <div><strong>${escapeHtml(resource.name)}</strong><small>${formatFileSize(resource.size)}</small></div>
-      <a class="icon-button" href="${escapeHtml(resource.url)}" target="_blank" rel="noopener" aria-label="Abrir ${escapeHtml(resource.name)}" title="Abrir material">↗</a>
+      <a class="icon-button" href="${escapeHtml(resource.storage === "blob-private" ? `/api/resources/${encodeURIComponent(course.id)}/${encodeURIComponent(resource.id)}/access?redirect=1` : resource.url)}" target="_blank" rel="noopener" aria-label="Abrir ${escapeHtml(resource.name)}" title="Abrir material">↗</a>
       <button class="icon-button danger" type="button" data-portal-action="admin-delete-resource" data-course-id="${escapeHtml(course.id)}" data-resource-id="${escapeHtml(resource.id)}" aria-label="Excluir ${escapeHtml(resource.name)}" title="Excluir material">×</button>
     </article>
   `).join("") || "<p>Nenhum material adicionado. Salve o curso com arquivos selecionados para iniciar a biblioteca.</p>";
@@ -1216,15 +1323,28 @@ function navigate(pageName, updateHash = true) {
 function renderCourses(list) {
   const featured = document.getElementById("featuredCourses");
   const catalog = document.getElementById("courseCatalog");
+  const query = document.getElementById("courseSearch")?.value || "";
+  const filtered = filterCourses(list, query, activeCourseFilter);
+
   if (featured) featured.innerHTML = list.slice(0, 4).map(courseCardTemplate).join("");
-  if (catalog) catalog.innerHTML = list.map(courseCardTemplate).join("");
+  if (catalog) {
+    if (activeCourseFilter === "Pacotes") {
+      catalog.innerHTML = trainingPackages.map((item) => packageCardTemplate(item, false)).join("");
+    } else {
+      catalog.innerHTML = filtered.length
+        ? filtered.map(courseCardTemplate).join("")
+        : `<p class="empty-filter">Nenhum treinamento encontrado para este filtro.</p>`;
+    }
+  }
   const count = document.getElementById("courseResultCount");
-  if (count) count.textContent = `${list.length} ${list.length === 1 ? "curso disponível" : "cursos disponíveis"}`;
+  const total = activeCourseFilter === "Pacotes" ? trainingPackages.length : filtered.length;
+  if (count) count.textContent = `${total} ${total === 1 ? "treinamento disponível" : "treinamentos disponíveis"}`;
+  renderCourseFilters();
 }
 
 function courseCardTemplate(course) {
   return `
-    <article class="course-card">
+    <article class="course-card ${course.legalNotice ? "course-card-regulatory" : ""}">
       <!-- TODO: substituir este placeholder por imagem real do curso ${escapeHtml(course.code)} -->
       <div class="course-visual" style="--course-bg:${course.accent}">
         <strong class="course-code">${escapeHtml(course.code)}</strong>
@@ -1232,13 +1352,97 @@ function courseCardTemplate(course) {
       </div>
       <div class="course-body">
         <h3>${escapeHtml(course.title)}</h3>
-        <div class="course-meta"><span>${course.hours} horas</span><span>Modalidade online</span></div>
+        <div class="course-meta"><span>${formatHours(course.hours)}</span><span>Modalidade online</span></div>
+        ${course.legalNotice ? `<p class="course-legal-note">Pode exigir etapa prática/presencial ou autorização complementar conforme atividade e norma aplicável.</p>` : ""}
         <div class="course-price"><span>Investimento</span><strong>${formatCurrency(course.price)}</strong></div>
         <div class="course-actions">
           <button class="button button-secondary" type="button" data-course-details="${course.id}">Ver Curso</button>
           <button class="button button-primary" type="button" data-course-buy="${course.id}">Comprar</button>
         </div>
       </div>
+    </article>
+  `;
+}
+
+function renderCourseFilters() {
+  const holder = document.getElementById("courseFilters");
+  if (!holder) return;
+
+  const categories = ["Todos", "Trabalho em altura", "Máquinas e equipamentos", "Segurança elétrica", "Espaços confinados", "Proteção individual", "Integração", "Gerenciamento de riscos", "Controle de energias", "Pacotes"];
+  holder.innerHTML = categories.map((category) => `
+    <button class="${category === activeCourseFilter ? "active" : ""}" type="button" data-course-filter="${escapeHtml(category)}">
+      ${escapeHtml(category)}
+    </button>
+  `).join("");
+}
+
+function filterCourses(list, query, category) {
+  const normalizedQuery = normalizeText(query || "");
+  return list.filter((course) => {
+    const matchesCategory = category === "Todos" || course.category === category;
+    const haystack = normalizeText(`${course.code} ${course.title} ${course.category}`);
+    return matchesCategory && (!normalizedQuery || haystack.includes(normalizedQuery));
+  });
+}
+
+function renderTrainingPackages() {
+  const homeFeatured = document.getElementById("homePackageGrid");
+  const homeCompact = document.getElementById("homePackageCompactGrid");
+  const companyGrid = document.getElementById("companyPackageGrid");
+  const discountList = document.querySelectorAll("[data-discount-tiers]");
+
+  if (homeFeatured) {
+    homeFeatured.innerHTML = trainingPackages
+      .filter((item) => item.featured)
+      .map((item) => packageCardTemplate(item, true))
+      .join("");
+  }
+
+  if (homeCompact) {
+    homeCompact.innerHTML = trainingPackages
+      .filter((item) => !item.featured)
+      .map((item) => packageCardTemplate(item, false))
+      .join("");
+  }
+
+  if (companyGrid) {
+    companyGrid.innerHTML = trainingPackages.map((item) => packageCardTemplate(item, item.featured)).join("");
+  }
+
+  discountList.forEach((element) => {
+    element.innerHTML = discountTiers.map((tier) => `
+      <article>
+        <strong>${escapeHtml(tier.label)}</strong>
+        <span>${escapeHtml(tier.note)}</span>
+      </article>
+    `).join("");
+  });
+}
+
+function packageCardTemplate(pkg, featured = false) {
+  const limit = featured ? 7 : 5;
+  const listItems = pkg.courses.slice(0, limit).map((course) => `<li>${escapeHtml(course)}</li>`).join("");
+  const remaining = pkg.courses.length > limit ? `<li>+${pkg.courses.length - limit} treinamento(s) incluso(s)</li>` : "";
+
+  return `
+    <article class="package-card ${featured ? "package-card-featured" : ""}">
+      <div class="package-card-top">
+        <span class="package-code">${escapeHtml(pkg.code)}</span>
+        <strong>${escapeHtml(pkg.badge)}</strong>
+      </div>
+      <h3>${escapeHtml(pkg.title)}</h3>
+      <p>${escapeHtml(pkg.description)}</p>
+      <div class="package-price">
+        <strong>${formatCurrency(pkg.price)}</strong>
+        <span>por colaborador</span>
+      </div>
+      <div class="package-hours">${formatHours(pkg.hours)} de carga total</div>
+      <ul class="package-course-list">${listItems}${remaining}</ul>
+      <label class="package-quantity">
+        <span>Colaboradores</span>
+        <input type="number" min="1" max="500" value="10" data-package-quantity="${escapeHtml(pkg.id)}">
+      </label>
+      <button class="button button-primary button-block" type="button" data-package-interest="${escapeHtml(pkg.id)}">Solicitar este pacote</button>
     </article>
   `;
 }
@@ -1253,20 +1457,39 @@ function bindInterface() {
   document.addEventListener("click", (event) => {
     const detailButton = event.target.closest("[data-course-details]");
     const buyButton = event.target.closest("[data-course-buy]");
+    const packageButton = event.target.closest("[data-package-interest]");
+    const filterButton = event.target.closest("[data-course-filter]");
+    const proposalButton = event.target.closest("[data-proposal-jump]");
     const removeButton = event.target.closest("[data-remove-cart]");
 
-    if (detailButton) openCourseModal(detailButton.dataset.courseDetails);
-    if (buyButton) addToCart(buyButton.dataset.courseBuy);
+    if (detailButton) {
+      openCourseModal(detailButton.dataset.courseDetails);
+      return;
+    }
+    if (buyButton) {
+      addToCart(buyButton.dataset.courseBuy);
+      return;
+    }
+    if (packageButton) {
+      const packageId = packageButton.dataset.packageInterest;
+      const quantityInput = packageButton.closest(".package-card")?.querySelector(`[data-package-quantity="${packageId}"]`);
+      const quantity = Math.max(1, Number(quantityInput?.value) || 1);
+      preparePackageProposal(packageId, quantity);
+      return;
+    }
+    if (filterButton) {
+      activeCourseFilter = filterButton.dataset.courseFilter;
+      renderCourses(courses);
+      return;
+    }
+    if (proposalButton) {
+      scrollToProposalForm();
+      return;
+    }
     if (removeButton) removeFromCart(removeButton.dataset.removeCart);
   });
 
-  document.getElementById("courseSearch").addEventListener("input", (event) => {
-    const query = normalizeText(event.target.value);
-    const filtered = courses.filter((course) => normalizeText(`${course.code} ${course.title} ${course.category}`).includes(query));
-    const catalog = document.getElementById("courseCatalog");
-    catalog.innerHTML = filtered.length ? filtered.map(courseCardTemplate).join("") : `<p>Nenhum curso encontrado para essa busca.</p>`;
-    document.getElementById("courseResultCount").textContent = `${filtered.length} ${filtered.length === 1 ? "curso disponível" : "cursos disponíveis"}`;
-  });
+  document.getElementById("courseSearch").addEventListener("input", () => renderCourses(courses));
 
   document.getElementById("menuToggle").addEventListener("click", toggleMobileMenu);
   document.getElementById("cartButton").addEventListener("click", openCart);
@@ -1749,6 +1972,28 @@ function addToCart(courseId, quantity = 1, corporate = false) {
   showToast(`${course.title} adicionado ao carrinho.`);
 }
 
+function getPackageById(packageId) {
+  return trainingPackages.find((item) => item.id === packageId);
+}
+
+function preparePackageProposal(packageId, quantity = 1) {
+  const pkg = getPackageById(packageId);
+  if (!pkg) return;
+
+  scrollToProposalForm();
+  setTimeout(() => {
+    const form = document.getElementById("proposalForm");
+    const employeesField = form?.elements?.namedItem("employees");
+    const messageField = form?.elements?.namedItem("message");
+    if (employeesField) employeesField.value = String(quantity);
+    if (messageField) {
+      messageField.value = `Tenho interesse no pacote ${pkg.code} - ${pkg.title} para ${quantity} colaborador${quantity > 1 ? "es" : ""}.`;
+    }
+  }, 140);
+
+  showToast("Pacote selecionado. Preencha os dados para solicitar a proposta.");
+}
+
 function removeFromCart(key) {
   cart = cart.filter((item) => item.key !== key);
   writeStorage("fortixsegCart", cart);
@@ -1845,6 +2090,15 @@ async function checkout() {
     button.textContent = originalText;
     button.disabled = cart.length === 0;
   }
+}
+
+function scrollToProposalForm() {
+  navigate("companies");
+  setTimeout(() => {
+    const form = document.getElementById("proposalForm");
+    form?.scrollIntoView({ behavior: "smooth", block: "center" });
+    form?.querySelector("input")?.focus({ preventScroll: true });
+  }, 120);
 }
 
 async function handlePaymentReturn() {
@@ -2074,6 +2328,7 @@ function updateCertificateView(certificate, activeCourse, profile) {
   if (codeBlock) codeBlock.textContent = code;
   setText("certificateDate", completedAt);
   setText("certificateGrade", `${certificate?.grade ?? lastQuizGrade}%`);
+  document.body.dataset.certificatePdfUrl = certificate?.pdfUrl || "";
 }
 
 async function validateCertificate(rawCode) {
@@ -2119,13 +2374,17 @@ function renderCertificateValidation(result, data) {
       <p><strong>Carga horária:</strong> ${escapeHtml(certificate.hours)}</p>
       <p><strong>Conclusão:</strong> ${escapeHtml(certificate.completedAt)}</p>
       <p><strong>Status:</strong> ${escapeHtml(certificate.status)}</p>
+      ${certificate.pdfUrl ? `<p><a class="button button-secondary" href="${escapeHtml(certificate.pdfUrl)}" target="_blank" rel="noopener">Abrir PDF do certificado</a></p>` : ""}
     </div>
   `;
 }
 
 function printCertificate() {
-  // TODO: gerar PDF real no backend futuramente
-  // TODO: gerar certificado real em PDF
+  const pdfUrl = document.body.dataset.certificatePdfUrl;
+  if (pdfUrl) {
+    window.open(pdfUrl, "_blank", "noopener");
+    return;
+  }
   window.print();
 }
 
