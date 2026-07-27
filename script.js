@@ -1219,16 +1219,11 @@ function handlePortalSubmit(event) {
   }
   if (form.id === "studentProfileForm") {
     event.preventDefault();
-    writeStorage("fortixsegStudentProfile", Object.fromEntries(new FormData(form).entries()));
-    showToast("Dados do aluno atualizados.");
+    void submitStudentProfileForm(form);
   }
   if (form.id === "studentSupportForm") {
     event.preventDefault();
-    const tickets = readStorage("fortixsegSupportTickets", []);
-    tickets.push({ ...Object.fromEntries(new FormData(form).entries()), createdAt: new Date().toISOString() });
-    writeStorage("fortixsegSupportTickets", tickets);
-    form.reset();
-    showToast("Solicitação de suporte registrada.");
+    void submitStudentSupportForm(form);
   }
   if (form.id === "companyPortalBulkForm") {
     event.preventDefault();
@@ -1237,18 +1232,15 @@ function handlePortalSubmit(event) {
   }
   if (form.id === "companySettingsForm") {
     event.preventDefault();
-    writeStorage("fortixsegCompanySettings", Object.fromEntries(new FormData(form).entries()));
-    showToast("Configurações da empresa salvas.");
+    void submitCompanySettingsForm(form);
   }
   if (form.id === "affiliateSettingsForm") {
     event.preventDefault();
-    writeStorage("fortixsegAffiliateSettings", Object.fromEntries(new FormData(form).entries()));
-    showToast("Dados do afiliado salvos.");
+    void submitAffiliateSettingsForm(form);
   }
   if (form.id === "adminSettingsForm") {
     event.preventDefault();
-    writeStorage("fortixsegAdminSettings", Object.fromEntries(new FormData(form).entries()));
-    showToast("Configurações administrativas salvas.");
+    void submitAdminSettingsForm(form);
   }
 }
 
@@ -2564,13 +2556,11 @@ function bindForms() {
   document.getElementById("registerForm").addEventListener("submit", handleRegister);
   document.getElementById("proposalForm").addEventListener("submit", (event) => {
     event.preventDefault();
-    event.target.reset();
-    showToast("Solicitação enviada com sucesso. Nossa equipe entrará em contato.");
+    void submitProposalForm(event.target);
   });
   document.getElementById("contactForm").addEventListener("submit", (event) => {
     event.preventDefault();
-    event.target.reset();
-    showToast("Mensagem enviada com sucesso. Retornaremos em breve.");
+    void submitContactForm(event.target);
   });
   document.getElementById("validationForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -2717,17 +2707,31 @@ function renderQuiz() {
   `;
 }
 
-function gradeQuiz(event) {
+async function gradeQuiz(event) {
   event.preventDefault();
   const formData = new FormData(event.target);
+  const answers = quizQuestions.map((_, index) => Number(formData.get(`question-${index}`)));
+
+  try {
+    const data = await apiRequest("/api/student/assessment", {
+      method: "POST",
+      body: JSON.stringify({ courseId: "nr35", answers })
+    });
+    applyQuizOutcome(data.grade, data.approved);
+    return;
+  } catch {
+    apiOnline = false;
+  }
+
   let correct = 0;
-
   quizQuestions.forEach((question, index) => {
-    if (Number(formData.get(`question-${index}`)) === question.answer) correct += 1;
+    if (answers[index] === question.answer) correct += 1;
   });
-
   const grade = Math.round((correct / quizQuestions.length) * 100);
-  const approved = grade >= 70;
+  applyQuizOutcome(grade, grade >= 70);
+}
+
+function applyQuizOutcome(grade, approved) {
   lastQuizGrade = grade;
   writeStorage("fortixsegQuizGrade", grade);
 
@@ -2749,6 +2753,102 @@ function gradeQuiz(event) {
   const certificateButton = result.querySelector("[data-show-certificate]");
   if (certificateButton) certificateButton.addEventListener("click", () => navigate("certificate-view"));
   result.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function submitProposalForm(form) {
+  const payload = Object.fromEntries(new FormData(form).entries());
+  try {
+    await apiRequest("/api/proposals", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    form.reset();
+    showToast("Solicitação enviada com sucesso. Nossa equipe entrará em contato.");
+  } catch (error) {
+    showToast(error.message || "Não foi possível enviar a solicitação de proposta.");
+  }
+}
+
+async function submitContactForm(form) {
+  const payload = Object.fromEntries(new FormData(form).entries());
+  try {
+    await apiRequest("/api/contact", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    form.reset();
+    showToast("Mensagem enviada com sucesso. Retornaremos em breve.");
+  } catch (error) {
+    showToast(error.message || "Não foi possível enviar sua mensagem.");
+  }
+}
+
+async function submitStudentProfileForm(form) {
+  const payload = Object.fromEntries(new FormData(form).entries());
+  try {
+    await apiRequest("/api/student/profile", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    writeStorage("fortixsegStudentProfile", payload);
+  }
+  showToast("Dados do aluno atualizados.");
+}
+
+async function submitStudentSupportForm(form) {
+  const payload = Object.fromEntries(new FormData(form).entries());
+  try {
+    await apiRequest("/api/student/support", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    const tickets = readStorage("fortixsegSupportTickets", []);
+    tickets.push({ ...payload, createdAt: new Date().toISOString() });
+    writeStorage("fortixsegSupportTickets", tickets);
+  }
+  form.reset();
+  showToast("Solicitação de suporte registrada.");
+}
+
+async function submitCompanySettingsForm(form) {
+  const payload = Object.fromEntries(new FormData(form).entries());
+  try {
+    await apiRequest("/api/company/settings", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    writeStorage("fortixsegCompanySettings", payload);
+  }
+  showToast("Configurações da empresa salvas.");
+}
+
+async function submitAffiliateSettingsForm(form) {
+  const payload = Object.fromEntries(new FormData(form).entries());
+  try {
+    await apiRequest("/api/affiliate/settings", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    writeStorage("fortixsegAffiliateSettings", payload);
+  }
+  showToast("Dados do afiliado salvos.");
+}
+
+async function submitAdminSettingsForm(form) {
+  const payload = Object.fromEntries(new FormData(form).entries());
+  try {
+    await apiRequest("/api/admin/settings", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    writeStorage("fortixsegAdminSettings", payload);
+  }
+  showToast("Configurações administrativas salvas.");
 }
 
 function updateStudentState() {

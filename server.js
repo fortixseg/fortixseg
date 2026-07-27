@@ -5,6 +5,7 @@ import { basename, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)));
+const MODULE_FILE = fileURLToPath(import.meta.url);
 const ENV = typeof process === "undefined" ? {} : process.env;
 loadEnv(resolve(ROOT_DIR, ".env"));
 
@@ -14,9 +15,11 @@ const PUBLIC_BASE_URL = normalizePublicUrl(ENV.PUBLIC_BASE_URL);
 const REQUEST_TIMEOUT_MS = 15_000;
 const DATA_DIR = resolve(ROOT_DIR, "data");
 const COURSE_DATA_FILE = resolve(DATA_DIR, "courses.json");
+const APP_DATA_FILE = resolve(DATA_DIR, "app-data.json");
 const COURSE_UPLOAD_DIR = resolve(ROOT_DIR, "assets", "uploads", "courses");
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const SESSION_SECRET = ENV.FORTIXSEG_SESSION_SECRET || ENV.AUTH_TOKEN_SECRET || randomUUID();
+const IS_DIRECT_RUN = Boolean(process.argv[1]) && resolve(process.argv[1]) === MODULE_FILE;
 
 const DEFAULT_COURSE_CATALOG = {
   nr35: {
@@ -51,16 +54,15 @@ const CHECKOUT_DISCOUNT_TIERS = [
   { min: 51, max: 100, discount: 0.20 }
 ];
 
+const QUIZ_ANSWER_KEY = [1, 2, 1, 2, 0];
+
 let courseCatalog = loadCourseCatalog();
+let appState = loadAppData();
 
 const DEMO_LOGINS = Object.freeze(buildDemoLogins());
 const registeredUsers = new Map();
 
-let companyEmployees = [
-  { name: "Carlos Lima", course: "NR 35", progress: "75%", status: "Em andamento", certificate: false },
-  { name: "Ana Souza", course: "Uso Correto de EPIs", progress: "100%", status: "Concluído", certificate: true },
-  { name: "Marcos Silva", course: "NR 12", progress: "40%", status: "Em andamento", certificate: false }
-];
+let companyEmployees = loadInitialCompanyEmployees();
 
 const ASSISTANT_INSTRUCTIONS = `
 Você é o atendente virtual oficial da FortixSeg, empresa de treinamentos online em Segurança do Trabalho.
@@ -126,7 +128,7 @@ function buildDemoLogins() {
   return logins;
 }
 
-const server = createServer(async (request, response) => {
+export async function handleRequest(request, response) {
   const requestId = randomUUID();
   response.setHeader("X-Request-Id", requestId);
   response.setHeader("X-Content-Type-Options", "nosniff");
@@ -192,6 +194,14 @@ const server = createServer(async (request, response) => {
       return await handleDemoLogin(request, response);
     }
 
+    if (request.method === "POST" && url.pathname === "/api/proposals") {
+      return await handleProposal(request, response);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/contact") {
+      return await handleContact(request, response);
+    }
+
     if (request.method === "GET" && url.pathname === "/api/student/dashboard") {
       const session = requireRole(request, response, ["student", "admin"]);
       if (!session) return;
@@ -202,6 +212,24 @@ const server = createServer(async (request, response) => {
       const session = requireRole(request, response, ["student", "admin"]);
       if (!session) return;
       return sendJson(response, 200, buildStudentLibrary());
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/student/profile") {
+      const session = requireRole(request, response, ["student", "admin"]);
+      if (!session) return;
+      return await handleStudentProfile(request, response, session);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/student/support") {
+      const session = requireRole(request, response, ["student", "admin"]);
+      if (!session) return;
+      return await handleStudentSupport(request, response, session);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/student/assessment") {
+      const session = requireRole(request, response, ["student", "admin"]);
+      if (!session) return;
+      return await handleStudentAssessment(request, response, session);
     }
 
     if (request.method === "GET" && url.pathname === "/api/company/dashboard") {
@@ -216,16 +244,34 @@ const server = createServer(async (request, response) => {
       return await handleCompanyEmployeeAdd(request, response);
     }
 
+    if (request.method === "POST" && url.pathname === "/api/company/settings") {
+      const session = requireRole(request, response, ["company", "admin"]);
+      if (!session) return;
+      return await handleCompanySettings(request, response, session);
+    }
+
     if (request.method === "GET" && url.pathname === "/api/affiliate/dashboard") {
       const session = requireRole(request, response, ["affiliate", "admin"]);
       if (!session) return;
       return sendJson(response, 200, buildAffiliateDashboard(session));
     }
 
+    if (request.method === "POST" && url.pathname === "/api/affiliate/settings") {
+      const session = requireRole(request, response, ["affiliate", "admin"]);
+      if (!session) return;
+      return await handleAffiliateSettings(request, response, session);
+    }
+
     if (request.method === "GET" && url.pathname === "/api/admin/dashboard") {
       const session = requireRole(request, response, ["admin"]);
       if (!session) return;
       return sendJson(response, 200, buildAdminDashboard());
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/admin/settings") {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return await handleAdminSettings(request, response, session);
     }
 
     if (request.method === "GET" && url.pathname === "/api/certificates/validate") {
@@ -262,11 +308,15 @@ const server = createServer(async (request, response) => {
       requestId
     });
   }
-});
+}
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`FortixSeg disponível em http://127.0.0.1:${PORT}`);
-});
+const server = createServer(handleRequest);
+
+if (IS_DIRECT_RUN) {
+  server.listen(PORT, "127.0.0.1", () => {
+    console.log(`FortixSeg disponível em http://127.0.0.1:${PORT}`);
+  });
+}
 
 function loadCourseCatalog() {
   let source = DEFAULT_COURSE_CATALOG;
@@ -285,6 +335,59 @@ function loadCourseCatalog() {
 function saveCourseCatalog() {
   mkdirSync(DATA_DIR, { recursive: true });
   writeFileSync(COURSE_DATA_FILE, JSON.stringify(courseCatalog, null, 2), "utf8");
+}
+
+function loadAppData() {
+  let source = {};
+  if (existsSync(APP_DATA_FILE)) {
+    try {
+      const parsed = JSON.parse(readFileSync(APP_DATA_FILE, "utf8"));
+      if (parsed && typeof parsed === "object") source = parsed;
+    } catch (error) {
+      console.error(`Não foi possível ler o estado da aplicação: ${error.message}`);
+    }
+  }
+
+  return {
+    ...source,
+    proposals: Array.isArray(source.proposals) ? source.proposals : [],
+    contactMessages: Array.isArray(source.contactMessages) ? source.contactMessages : [],
+    supportTickets: Array.isArray(source.supportTickets) ? source.supportTickets : [],
+    assessmentResults: Array.isArray(source.assessmentResults) ? source.assessmentResults : [],
+    studentProfiles: source.studentProfiles && typeof source.studentProfiles === "object" ? source.studentProfiles : {},
+    companySettings: source.companySettings && typeof source.companySettings === "object" ? source.companySettings : {},
+    affiliateSettings: source.affiliateSettings && typeof source.affiliateSettings === "object" ? source.affiliateSettings : {},
+    adminSettings: source.adminSettings && typeof source.adminSettings === "object" ? source.adminSettings : {},
+    companyEmployees: source.companyEmployees && typeof source.companyEmployees === "object" ? source.companyEmployees : {},
+    certificates: Array.isArray(source.certificates) ? source.certificates : []
+  };
+}
+
+function saveAppData() {
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(APP_DATA_FILE, JSON.stringify(appState, null, 2), "utf8");
+}
+
+function loadInitialCompanyEmployees() {
+  const existingGroups = Object.values(appState.companyEmployees || {}).find((value) => Array.isArray(value) && value.length);
+  if (existingGroups) return existingGroups.map(normalizeEmployeeRecord);
+  return [
+    { name: "Carlos Lima", course: "NR 35", progress: "75%", status: "Em andamento", certificate: false },
+    { name: "Ana Souza", course: "Uso Correto de EPIs", progress: "100%", status: "Concluído", certificate: true },
+    { name: "Marcos Silva", course: "NR 12", progress: "40%", status: "Em andamento", certificate: false }
+  ];
+}
+
+function normalizeEmployeeRecord(employee) {
+  return {
+    name: cleanText(employee?.name, 120),
+    cpf: cleanText(employee?.cpf, 20),
+    email: cleanText(employee?.email, 160),
+    course: cleanText(employee?.course, 80),
+    progress: cleanText(employee?.progress || "0%", 20),
+    status: cleanText(employee?.status || "Não iniciado", 40),
+    certificate: Boolean(employee?.certificate)
+  };
 }
 
 function normalizeCourse(input, fallbackId = "") {
@@ -502,6 +605,54 @@ async function handleRegister(request, response) {
   });
 }
 
+async function handleProposal(request, response) {
+  const body = await readJsonBody(request, 120_000);
+  const proposal = {
+    id: `proposal-${randomUUID()}`,
+    company: cleanText(body.company, 160),
+    cnpj: cleanText(body.cnpj, 24),
+    responsible: cleanText(body.responsible, 160),
+    email: cleanText(body.email, 160).toLowerCase(),
+    phone: cleanText(body.phone, 40),
+    employees: Math.round(clampNumber(body.employees, 1, 100000, 0)),
+    message: cleanText(body.message, 3000),
+    createdAt: new Date().toISOString(),
+    source: "site"
+  };
+
+  if (!proposal.company || !proposal.responsible || !proposal.email || !proposal.phone || !proposal.employees) {
+    return sendJson(response, 400, { error: "Preencha empresa, responsável, e-mail, telefone e quantidade de colaboradores." });
+  }
+
+  appState.proposals.unshift(proposal);
+  appState.proposals = appState.proposals.slice(0, 500);
+  saveAppData();
+  return sendJson(response, 201, { success: true, proposalId: proposal.id });
+}
+
+async function handleContact(request, response) {
+  const body = await readJsonBody(request, 120_000);
+  const message = {
+    id: `contact-${randomUUID()}`,
+    name: cleanText(body.name, 160),
+    email: cleanText(body.email, 160).toLowerCase(),
+    phone: cleanText(body.phone, 40),
+    subject: cleanText(body.subject, 180),
+    message: cleanText(body.message, 3000),
+    createdAt: new Date().toISOString(),
+    source: "site"
+  };
+
+  if (!message.name || !message.email || !message.message) {
+    return sendJson(response, 400, { error: "Preencha nome, e-mail e mensagem." });
+  }
+
+  appState.contactMessages.unshift(message);
+  appState.contactMessages = appState.contactMessages.slice(0, 1000);
+  saveAppData();
+  return sendJson(response, 201, { success: true, contactId: message.id });
+}
+
 function createSessionToken(email, user) {
   const payload = Buffer.from(JSON.stringify({
     email,
@@ -542,6 +693,10 @@ function getRequestSession(request) {
   return match ? parseSessionToken(match[1]) : null;
 }
 
+function getStateUserKey(session) {
+  return slugify(session?.email || session?.role || "anonymous");
+}
+
 function requireRole(request, response, roles) {
   const session = getRequestSession(request);
   if (!session) {
@@ -553,6 +708,143 @@ function requireRole(request, response, roles) {
     return null;
   }
   return session;
+}
+
+async function handleStudentProfile(request, response, session) {
+  const body = await readJsonBody(request, 80_000);
+  const key = getStateUserKey(session);
+  const profile = {
+    name: cleanText(body.name, 160),
+    cpf: cleanText(body.cpf, 24),
+    phone: cleanText(body.phone, 40),
+    email: cleanText(body.email, 160).toLowerCase(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!profile.name || !profile.email) {
+    return sendJson(response, 400, { error: "Nome e e-mail são obrigatórios." });
+  }
+
+  appState.studentProfiles[key] = profile;
+  saveAppData();
+  return sendJson(response, 200, { success: true, profile });
+}
+
+async function handleStudentSupport(request, response, session) {
+  const body = await readJsonBody(request, 80_000);
+  const ticket = {
+    id: `ticket-${randomUUID()}`,
+    userEmail: session.email,
+    userName: session.name || "Aluno",
+    subject: cleanText(body.subject, 180),
+    message: cleanText(body.message, 3000),
+    status: "open",
+    createdAt: new Date().toISOString()
+  };
+
+  if (!ticket.subject || !ticket.message) {
+    return sendJson(response, 400, { error: "Assunto e mensagem são obrigatórios." });
+  }
+
+  appState.supportTickets.unshift(ticket);
+  appState.supportTickets = appState.supportTickets.slice(0, 1000);
+  saveAppData();
+  return sendJson(response, 201, { success: true, ticket });
+}
+
+async function handleStudentAssessment(request, response, session) {
+  const body = await readJsonBody(request, 80_000);
+  const answers = Array.isArray(body.answers) ? body.answers : [];
+  const correct = QUIZ_ANSWER_KEY.reduce((total, answer, index) => total + (Number(answers[index]) === answer ? 1 : 0), 0);
+  const grade = Math.round((correct / QUIZ_ANSWER_KEY.length) * 100);
+  const approved = grade >= 70;
+  const courseId = slugify(body.courseId || "nr35") || "nr35";
+  const assessment = {
+    id: `assessment-${randomUUID()}`,
+    userEmail: session.email,
+    courseId,
+    answers: answers.map((value) => Number(value)),
+    grade,
+    approved,
+    createdAt: new Date().toISOString()
+  };
+
+  appState.assessmentResults.unshift(assessment);
+  appState.assessmentResults = appState.assessmentResults.slice(0, 2000);
+
+  let certificate = null;
+  if (approved) {
+    certificate = ensureCertificateForUser(session, courseId, grade);
+  }
+
+  saveAppData();
+  return sendJson(response, 200, {
+    success: true,
+    grade,
+    approved,
+    certificate,
+    certificateUnlocked: approved
+  });
+}
+
+async function handleCompanySettings(request, response, session) {
+  const body = await readJsonBody(request, 80_000);
+  const key = getStateUserKey(session);
+  const settings = {
+    company: cleanText(body.company, 160),
+    email: cleanText(body.email, 160).toLowerCase(),
+    expiryAlert: cleanText(body.expiryAlert, 40),
+    weekly: cleanText(body.weekly, 20),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!settings.company || !settings.email) {
+    return sendJson(response, 400, { error: "Razão social e e-mail são obrigatórios." });
+  }
+
+  appState.companySettings[key] = settings;
+  saveAppData();
+  return sendJson(response, 200, { success: true, settings });
+}
+
+async function handleAffiliateSettings(request, response, session) {
+  const body = await readJsonBody(request, 80_000);
+  const key = getStateUserKey(session);
+  const settings = {
+    name: cleanText(body.name, 160),
+    email: cleanText(body.email, 160).toLowerCase(),
+    phone: cleanText(body.phone, 40),
+    pix: cleanText(body.pix, 160),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!settings.name || !settings.email) {
+    return sendJson(response, 400, { error: "Nome e e-mail são obrigatórios." });
+  }
+
+  appState.affiliateSettings[key] = settings;
+  saveAppData();
+  return sendJson(response, 200, { success: true, settings });
+}
+
+async function handleAdminSettings(request, response, session) {
+  const body = await readJsonBody(request, 80_000);
+  const key = getStateUserKey(session);
+  const settings = {
+    brand: cleanText(body.brand, 120),
+    supportEmail: cleanText(body.supportEmail, 160).toLowerCase(),
+    minimumGrade: Math.round(clampNumber(body.minimumGrade, 0, 100, 70)),
+    maintenance: cleanText(body.maintenance, 20),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!settings.brand || !settings.supportEmail) {
+    return sendJson(response, 400, { error: "Nome da plataforma e e-mail de suporte são obrigatórios." });
+  }
+
+  appState.adminSettings[key] = settings;
+  saveAppData();
+  return sendJson(response, 200, { success: true, settings });
 }
 
 async function handleCompanyEmployeeAdd(request, response) {
@@ -575,6 +867,8 @@ async function handleCompanyEmployeeAdd(request, response) {
 
   // TODO: salvar colaborador no PostgreSQL vinculado à empresa autenticada.
   companyEmployees = [employee, ...companyEmployees].slice(0, 30);
+  appState.companyEmployees.default = companyEmployees;
+  saveAppData();
   return sendJson(response, 201, buildCompanyDashboard());
 }
 
@@ -698,8 +992,59 @@ function buildAdminDashboard() {
   };
 }
 
+function ensureCertificateForUser(session, courseId, grade) {
+  const normalizedCourseId = slugify(courseId || "nr35") || "nr35";
+  const existing = appState.certificates.find((item) => item.userEmail === session.email && item.courseId === normalizedCourseId);
+  if (existing) {
+    existing.grade = Math.max(Number(existing.grade) || 0, grade);
+    existing.updatedAt = new Date().toISOString();
+    return existing;
+  }
+
+  const course = courseCatalog[normalizedCourseId] || DEFAULT_COURSE_CATALOG[normalizedCourseId] || DEFAULT_COURSE_CATALOG.nr35;
+  const certificate = {
+    id: `certificate-${randomUUID()}`,
+    code: buildCertificateCode(course?.code || "FS"),
+    userEmail: session.email,
+    student: session.name || "Aluno",
+    courseId: normalizedCourseId,
+    course: course?.title || "Curso FortixSeg",
+    hours: `${course?.hours || 0} horas`,
+    grade,
+    completedAt: new Intl.DateTimeFormat("pt-BR").format(new Date()),
+    issuedAt: new Date().toISOString(),
+    status: "Válido"
+  };
+
+  appState.certificates.unshift(certificate);
+  appState.certificates = appState.certificates.slice(0, 5000);
+  return certificate;
+}
+
+function buildCertificateCode(courseCode) {
+  const normalized = String(courseCode || "FS").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "").toUpperCase() || "FS";
+  const year = new Date().getFullYear();
+  const sequence = String(appState.certificates.length + 1).padStart(6, "0");
+  return `FS-${normalized}-${year}-${sequence}`;
+}
+
 function validateDemoCertificate(rawCode) {
   const code = cleanText(rawCode, 80).toUpperCase();
+  const stored = appState.certificates.find((item) => String(item.code || "").toUpperCase() === code);
+  if (stored) {
+    return {
+      valid: true,
+      certificate: {
+        code: stored.code,
+        student: stored.student || "Aluno",
+        course: stored.course || "Curso FortixSeg",
+        hours: stored.hours || "Carga horária não informada",
+        completedAt: stored.completedAt || new Intl.DateTimeFormat("pt-BR").format(new Date(stored.issuedAt || Date.now())),
+        status: stored.status || "Válido"
+      }
+    };
+  }
+
   if (code !== "FS-NR35-2026-000123") {
     return { valid: false, message: "Certificado não encontrado." };
   }
