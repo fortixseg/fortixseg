@@ -1447,12 +1447,12 @@ svg {
 }
 
 .package-card-featured {
-  color: #ffffff;
-  background:
-    linear-gradient(145deg, rgba(47, 163, 31, 0.18), transparent 38%),
-    linear-gradient(135deg, #06100b 0%, #111b16 100%);
-  border-color: rgba(121, 209, 59, 0.26);
-  box-shadow: 0 22px 54px rgba(6, 16, 11, 0.22);
+  color: inherit;
+  background: #ffffff;
+  border-color: rgba(47, 163, 31, 0.24);
+  box-shadow:
+    0 12px 32px rgba(16, 24, 20, 0.07),
+    0 0 0 1px rgba(121, 209, 59, 0.12);
 }
 
 .package-card-top {
@@ -1470,7 +1470,7 @@ svg {
 }
 
 .package-card-featured .package-card-top strong {
-  color: var(--green-light);
+  color: var(--green-dark);
 }
 
 .package-code {
@@ -1500,7 +1500,7 @@ svg {
 .package-card-featured .package-hours,
 .package-card-featured .package-course-list,
 .package-card-featured .package-quantity span {
-  color: rgba(255, 255, 255, 0.72);
+  color: inherit;
 }
 
 .package-price {
@@ -1516,7 +1516,7 @@ svg {
 }
 
 .package-card-featured .package-price strong {
-  color: var(--green-light);
+  color: var(--green-dark);
 }
 
 .package-price span {
@@ -1535,7 +1535,7 @@ svg {
 }
 
 .package-card-featured .package-hours {
-  background: rgba(255, 255, 255, 0.08);
+  background: #eef5eb;
 }
 
 .package-course-list {
@@ -1559,7 +1559,7 @@ svg {
 }
 
 .package-card-featured .package-quantity {
-  color: #ffffff;
+  color: var(--text-dark);
 }
 
 .package-quantity input {
