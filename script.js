@@ -2,7 +2,7 @@ const APP_CONFIG = {
   brandName: "FortixSeg",
   subtitle: "Treinamentos em Segurança do Trabalho",
   contactEmail: "fortixseg@gmail.com",
-  certificateCode: "FS-NR35-2026-000123"
+  certificateCode: ""
 };
 
 const courses = [
@@ -309,7 +309,7 @@ const quizQuestions = [
     answer: 1
   },
   {
-    question: "Qual a nota mínima de aprovação nesta demonstração?",
+    question: "Qual a nota mínima de aprovação do curso?",
     options: ["50%", "60%", "70%", "100%"],
     answer: 2
   },
@@ -320,11 +320,7 @@ const quizQuestions = [
   }
 ];
 
-const defaultEmployees = [
-  { name: "Carlos Lima", course: "NR 35", progress: "75%", status: "Em andamento", certificate: false },
-  { name: "Ana Souza", course: "Uso Correto de EPIs", progress: "100%", status: "Concluído", certificate: true },
-  { name: "Marcos Silva", course: "NR 12", progress: "40%", status: "Em andamento", certificate: false }
-];
+const defaultEmployees = [];
 
 const companyAnalytics = {
   "30": {
@@ -350,18 +346,11 @@ const companyAnalytics = {
   }
 };
 
-const demoLogins = {
-  "aluno@teste.com": { password: "123456", role: "student" },
-  "empresa@teste.com": { password: "123456", role: "company" },
-  "afiliado@teste.com": { password: "123456", role: "affiliate" },
-  "admin@teste.com": { password: "123456", role: "admin" }
-};
-
 let cart = readStorage("fortixsegCart", []);
 let employees = readStorage("fortixsegEmployees", defaultEmployees);
-let certificateUnlocked = readStorage("fortixsegCertificateUnlocked", true);
-let studentProgress = Number(readStorage("fortixsegStudentProgress", 75));
-let lastQuizGrade = Number(readStorage("fortixsegQuizGrade", 80));
+let certificateUnlocked = readStorage("fortixsegCertificateUnlocked", false);
+let studentProgress = Number(readStorage("fortixsegStudentProgress", 0));
+let lastQuizGrade = Number(readStorage("fortixsegQuizGrade", 0));
 let toastTimer;
 let apiOnline = false;
 let portalInitialized = false;
@@ -542,7 +531,7 @@ async function hydratePortalData(pageName) {
   } catch {
     apiOnline = false;
     const studentStatus = document.getElementById("studentApiStatus");
-    if (studentStatus) studentStatus.textContent = "Modo local";
+    if (studentStatus) studentStatus.textContent = "API indisponível";
   }
 }
 
@@ -938,6 +927,12 @@ function portalHeading(kicker, title, description, action = "") {
 }
 
 function studentPortalTemplate(key, title) {
+  const studentProfile = portalData.student?.profile || {};
+  const studentLibrary = Array.isArray(portalData.student?.library) ? portalData.student.library : [];
+  const primaryResource = studentLibrary.find((resource) => resource.type === "pdf") || studentLibrary[0];
+  const resourceUrl = primaryResource?.url || "assets/apostila-nr35-demonstrativa.pdf";
+  const resourceTitle = primaryResource?.title || "Apostila NR 35";
+
   if (key === "courses") return `
     ${portalHeading("Formação em andamento", title, "Acompanhe progresso, aulas e materiais de cada treinamento.")}
     <div class="portal-card-grid">
@@ -953,14 +948,16 @@ function studentPortalTemplate(key, title) {
     ${portalHeading("Central de conteúdo", title, "Apostilas em PDF e materiais complementares organizados por módulo.")}
     <div class="learning-library">
       <aside class="resource-list" aria-label="Materiais do curso">
-        <button class="active" type="button" data-portal-resource="pdf" data-resource-title="Apostila NR 35"><span>PDF</span><strong>Apostila demonstrativa NR 35</strong><small>Material principal do treinamento</small></button>
+        ${studentLibrary.length ? studentLibrary.map((resource, index) => `
+          <button class="${index === 0 ? "active" : ""}" type="button" data-portal-resource="${escapeHtml(resource.type || "pdf")}" data-resource-title="${escapeHtml(resource.title)}" data-resource-url="${escapeHtml(resource.url || resourceUrl)}"><span>${escapeHtml((resource.type || "pdf").toUpperCase())}</span><strong>${escapeHtml(resource.title)}</strong><small>${escapeHtml(resource.courseTitle || "Material principal do treinamento")}</small></button>
+        `).join("") : `<button class="active" type="button" data-portal-resource="pdf" data-resource-title="${escapeHtml(resourceTitle)}" data-resource-url="${escapeHtml(resourceUrl)}"><span>PDF</span><strong>${escapeHtml(resourceTitle)}</strong><small>Material principal do treinamento</small></button>`}
         <button type="button" data-portal-resource="pdf" data-resource-title="Conteúdo programático"><span>PDF</span><strong>Conteúdo programático</strong><small>Estrutura do curso e tópicos</small></button>
         <button type="button" data-portal-resource="pdf" data-resource-title="Material complementar"><span>PDF</span><strong>Material complementar</strong><small>Consulta e revisão antes da avaliação</small></button>
       </aside>
       <section class="media-viewer" id="studentMediaViewer">
-        <div class="media-viewer-header"><span>Material PDF</span><h3>Apostila NR 35</h3></div>
-        <iframe class="pdf-viewer" src="assets/apostila-nr35-demonstrativa.pdf#toolbar=1" title="Apostila demonstrativa NR 35"></iframe>
-        <a class="button button-secondary media-download" href="assets/apostila-nr35-demonstrativa.pdf" target="_blank" rel="noopener">Abrir PDF em nova guia</a>
+        <div class="media-viewer-header"><span>Material PDF</span><h3>${escapeHtml(resourceTitle)}</h3></div>
+        <iframe class="pdf-viewer" src="${escapeHtml(resourceUrl)}#toolbar=1" title="${escapeHtml(resourceTitle)}"></iframe>
+        <a class="button button-secondary media-download" href="${escapeHtml(resourceUrl)}" target="_blank" rel="noopener">Abrir PDF em nova guia</a>
       </section>
     </div>`;
 
@@ -978,7 +975,7 @@ function studentPortalTemplate(key, title) {
 
   if (key === "profile") return `
     ${portalHeading("Conta", title, "Mantenha seus dados de contato atualizados.")}
-    <form class="portal-form" id="studentProfileForm"><div class="form-grid"><label class="field full"><span>Nome completo</span><input name="name" value="João da Silva" required></label><label class="field"><span>CPF</span><input name="cpf" value="000.000.000-00" required></label><label class="field"><span>Telefone</span><input name="phone" value="(11) 99999-0000" required></label><label class="field full"><span>E-mail</span><input name="email" type="email" value="aluno@teste.com" required></label></div><button class="button button-primary" type="submit">Salvar alterações</button></form>`;
+    <form class="portal-form" id="studentProfileForm"><div class="form-grid"><label class="field full"><span>Nome completo</span><input name="name" value="${escapeHtml(studentProfile.name || currentSession?.user?.name || "")}" required></label><label class="field"><span>CPF</span><input name="cpf" value="${escapeHtml(currentSession?.user?.document || "")}" required></label><label class="field"><span>Telefone</span><input name="phone" value="${escapeHtml(currentSession?.user?.phone || "")}" required></label><label class="field full"><span>E-mail</span><input name="email" type="email" value="${escapeHtml(studentProfile.email || currentSession?.user?.email || "")}" required></label></div><button class="button button-primary" type="submit">Salvar alterações</button></form>`;
 
   return `
     ${portalHeading("Atendimento", title, "Envie sua dúvida para a equipe de suporte FortixSeg.")}
@@ -986,6 +983,13 @@ function studentPortalTemplate(key, title) {
 }
 
 function companyPortalTemplate(key, title) {
+  const companyData = portalData.company || {};
+  const companyName = companyData.company?.name || currentSession?.user?.companyName || currentSession?.user?.name || "";
+  const companyEmail = currentSession?.user?.email || "";
+  const companyEmployees = Array.isArray(companyData.employees) ? companyData.employees : employees;
+  const completedEmployees = companyEmployees.filter((item) => item.status === "Concluído");
+  const pendingEmployees = companyEmployees.filter((item) => item.status !== "Concluído");
+
   if (key === "employees") return `
     ${portalHeading("Gestão de pessoas", title, "Cadastre, filtre e acompanhe os colaboradores vinculados.", '<button class="button button-primary" type="button" data-portal-action="add-employee">Adicionar colaborador</button>')}
     <div class="portal-toolbar"><label class="search-field"><input id="companyEmployeeSearch" type="search" placeholder="Buscar colaborador ou curso"></label><span id="companyEmployeeCount">${employees.length} colaboradores</span></div>
@@ -997,56 +1001,63 @@ function companyPortalTemplate(key, title) {
 
   if (key === "progress") return `
     ${portalHeading("Acompanhamento", title, "Monitore matrículas e identifique quem precisa de apoio.")}
-    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Aulas</th><th>Progresso</th><th>Último acesso</th></tr></thead><tbody><tr><td>Carlos Lima</td><td>NR 35</td><td>5 de 7</td><td><span class="table-status progress">75%</span></td><td>Hoje, 09:42</td></tr><tr><td>Marcos Silva</td><td>NR 12</td><td>3 de 8</td><td><span class="table-status progress">40%</span></td><td>03/07/2026</td></tr><tr><td>Ana Souza</td><td>Uso Correto de EPIs</td><td>5 de 5</td><td><span class="table-status complete">100%</span></td><td>02/07/2026</td></tr></tbody></table></div></div>`;
+    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Aulas</th><th>Progresso</th><th>Status</th></tr></thead><tbody>${companyEmployees.length ? companyEmployees.map((employee) => `<tr><td>${escapeHtml(employee.name)}</td><td>${escapeHtml(employee.course || "-")}</td><td>${escapeHtml(employee.progress === "100%" ? "Curso concluído" : "Em execução")}</td><td><span class="table-status ${employee.status === "Concluído" ? "complete" : employee.status === "Em andamento" ? "progress" : "pending"}">${escapeHtml(employee.progress || "0%")}</span></td><td>${escapeHtml(employee.status || "Não iniciado")}</td></tr>`).join("") : `<tr><td colspan="5">Nenhum colaborador cadastrado até o momento.</td></tr>`}</tbody></table></div></div>`;
 
   if (key === "certificates") return `
     ${portalHeading("Documentos da equipe", title, "Consulte certificados emitidos e códigos de validação.")}
-    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Emissão</th><th>Código</th><th>Ação</th></tr></thead><tbody><tr><td>Ana Souza</td><td>Uso Correto de EPIs</td><td>02/07/2026</td><td>FS-EPI-2026-000122</td><td><button class="certificate-link" type="button" data-portal-action="certificate">Visualizar</button></td></tr><tr><td>Fernanda Reis</td><td>NR 35</td><td>28/06/2026</td><td>FS-NR35-2026-000121</td><td><button class="certificate-link" type="button" data-portal-action="certificate">Visualizar</button></td></tr></tbody></table></div></div>`;
+    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Situação</th><th>Código</th><th>Ação</th></tr></thead><tbody>${completedEmployees.length ? completedEmployees.map((employee) => `<tr><td>${escapeHtml(employee.name)}</td><td>${escapeHtml(employee.course || "-")}</td><td><span class="table-status complete">Emitido</span></td><td>${escapeHtml(employee.certificateCode || "Disponível no painel do aluno")}</td><td><button class="certificate-link" type="button" data-portal-action="certificate">Visualizar</button></td></tr>`).join("") : `<tr><td colspan="5">Nenhum certificado emitido para esta empresa ainda.</td></tr>`}</tbody></table></div></div>`;
 
   if (key === "reports") return `
     ${portalHeading("Indicadores", title, "Gere arquivos para conferência interna e auditorias.")}
-    <div class="portal-card-grid compact"><article class="portal-data-card"><span>Relatório operacional</span><h3>Colaboradores e progresso</h3><p>Exportação CSV com matrícula, curso e situação.</p><button class="button button-primary" type="button" data-portal-action="export-company-report">Exportar CSV</button></article><article class="portal-data-card"><span>Resumo executivo</span><h3>Conformidade da equipe</h3><p>78% dentro do ciclo esperado - 18 vencimentos próximos.</p><button class="button button-secondary" type="button" data-portal-action="print-report">Imprimir resumo</button></article></div>`;
+    <div class="portal-card-grid compact"><article class="portal-data-card"><span>Relatório operacional</span><h3>Colaboradores e progresso</h3><p>Exportação CSV com matrícula, curso e situação.</p><button class="button button-primary" type="button" data-portal-action="export-company-report">Exportar CSV</button></article><article class="portal-data-card"><span>Resumo executivo</span><h3>Conformidade da equipe</h3><p>${escapeHtml(String(companyData.metrics?.complianceRate ?? 0))}% dentro do ciclo esperado.</p><button class="button button-secondary" type="button" data-portal-action="print-report">Imprimir resumo</button></article></div>`;
 
   if (key === "expirations") return `
     ${portalHeading("Reciclagens", title, "Antecipe vencimentos e organize novas turmas.")}
-    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Vencimento</th><th>Prazo</th><th>Ação</th></tr></thead><tbody><tr><td>Rafael Gomes</td><td>NR 35</td><td>18/07/2026</td><td><span class="table-status pending">13 dias</span></td><td><button class="certificate-link" type="button" data-portal-action="renew-course" data-course-id="nr35">Reciclar</button></td></tr><tr><td>Luciana Prado</td><td>NR 10</td><td>02/08/2026</td><td><span class="table-status progress">28 dias</span></td><td><button class="certificate-link" type="button" data-portal-action="renew-course" data-course-id="nr10">Reciclar</button></td></tr></tbody></table></div></div>`;
+    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Curso</th><th>Situação</th><th>Prazo</th><th>Ação</th></tr></thead><tbody>${pendingEmployees.length ? pendingEmployees.map((employee) => `<tr><td>${escapeHtml(employee.name)}</td><td>${escapeHtml(employee.course || "-")}</td><td><span class="table-status pending">${escapeHtml(employee.status || "Pendente")}</span></td><td>A definir</td><td><button class="certificate-link" type="button" data-portal-action="renew-course" data-course-id="nr35">Reciclar</button></td></tr>`).join("") : `<tr><td colspan="5">Nenhum vencimento ou reciclagem pendente no momento.</td></tr>`}</tbody></table></div></div>`;
 
   return `
     ${portalHeading("Conta corporativa", title, "Configure alertas e preferências operacionais.")}
-    <form class="portal-form" id="companySettingsForm"><div class="form-grid"><label class="field full"><span>Razão social</span><input name="company" value="Amcor" required></label><label class="field"><span>E-mail responsável</span><input name="email" type="email" value="empresa@teste.com" required></label><label class="field"><span>Alerta de vencimento</span><select name="expiryAlert"><option>60 dias antes</option><option>30 dias antes</option><option>15 dias antes</option></select></label><label class="field full"><span>Receber resumo semanal</span><select name="weekly"><option>Sim</option><option>Não</option></select></label></div><button class="button button-primary" type="submit">Salvar configurações</button></form>`;
+    <form class="portal-form" id="companySettingsForm"><div class="form-grid"><label class="field full"><span>Razão social</span><input name="company" value="${escapeHtml(companyName)}" required></label><label class="field"><span>E-mail responsável</span><input name="email" type="email" value="${escapeHtml(companyEmail)}" required></label><label class="field"><span>Alerta de vencimento</span><select name="expiryAlert"><option>60 dias antes</option><option>30 dias antes</option><option>15 dias antes</option></select></label><label class="field full"><span>Receber resumo semanal</span><select name="weekly"><option>Sim</option><option>Não</option></select></label></div><button class="button button-primary" type="submit">Salvar configurações</button></form>`;
 }
 
 function affiliatePortalTemplate(key, title) {
+  const affiliateData = portalData.affiliate || {};
+  const affiliateProfile = affiliateData.profile || {};
+  const affiliateCoupon = affiliateData.coupon || "Seu cupom será gerado após o primeiro acesso";
+  const affiliateLink = affiliateData.referralLink || `${window.location.origin}/`;
+  const affiliateMetrics = affiliateData.metrics || {};
+  const affiliateReferrals = Array.isArray(affiliateData.referrals) ? affiliateData.referrals : [];
+
   if (key === "link") return `
     ${portalHeading("Rastreamento", title, "Use seu link e cupom para divulgar os treinamentos e acompanhar vendas atribuídas.")}
     <div class="portal-card-grid compact">
-      <article class="portal-data-card"><span>Link principal</span><h3>fortixseg.com.br/?ref=fortix10</h3><p>Compartilhe em WhatsApp, Instagram, LinkedIn ou proposta comercial.</p><button class="button button-secondary" type="button" data-copy-text="fortixseg.com.br/?ref=fortix10">Copiar link</button></article>
-      <article class="portal-data-card"><span>Cupom</span><h3>FORTIX10</h3><p>Cupom demonstrativo para rastrear origem da venda.</p><button class="button button-secondary" type="button" data-copy-text="FORTIX10">Copiar cupom</button></article>
+      <article class="portal-data-card"><span>Link principal</span><h3>${escapeHtml(affiliateLink)}</h3><p>Compartilhe em WhatsApp, Instagram, LinkedIn ou proposta comercial.</p><button class="button button-secondary" type="button" data-copy-text="${escapeHtml(affiliateLink)}">Copiar link</button></article>
+      <article class="portal-data-card"><span>Cupom</span><h3>${escapeHtml(affiliateCoupon)}</h3><p>Código exclusivo para rastrear origem da venda.</p><button class="button button-secondary" type="button" data-copy-text="${escapeHtml(affiliateCoupon)}">Copiar cupom</button></article>
     </div>`;
 
   if (key === "referrals") return `
     ${portalHeading("Funil comercial", title, "Veja indicações, produtos de interesse e situação de cada venda.")}
-    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Lead</th><th>Produto</th><th>Valor</th><th>Status</th><th>Comissão</th></tr></thead><tbody><tr><td>Empresa Horizonte</td><td>Pacote Chão de Fábrica</td><td>R$ 3.499,00</td><td><span class="table-status complete">Aprovado</span></td><td>R$ 349,90</td></tr><tr><td>Bruno Martins</td><td>NR 35</td><td>R$ 149,90</td><td><span class="table-status complete">Aprovado</span></td><td>R$ 14,99</td></tr><tr><td>Grupo Alpha</td><td>Administrativo Seguro</td><td>R$ 2.499,00</td><td><span class="table-status pending">Em análise</span></td><td>R$ 249,90</td></tr></tbody></table></div></div>`;
+    <div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Lead</th><th>Produto</th><th>Valor</th><th>Status</th><th>Comissão</th></tr></thead><tbody>${affiliateReferrals.length ? affiliateReferrals.map((referral) => `<tr><td>${escapeHtml(referral.name)}</td><td>${escapeHtml(referral.product)}</td><td>${formatCurrency(referral.value)}</td><td><span class="table-status ${referral.status === "Aprovado" ? "complete" : "pending"}">${escapeHtml(referral.status)}</span></td><td>${formatCurrency(referral.commission)}</td></tr>`).join("") : `<tr><td colspan="5">Nenhuma indicação registrada até o momento.</td></tr>`}</tbody></table></div></div>`;
 
   if (key === "commissions") return `
     ${portalHeading("Financeiro do afiliado", title, "Acompanhe valores aprovados, em análise e previsão de pagamento.")}
-    <div class="portal-card-grid compact"><article class="portal-data-card"><span>Aprovado</span><h3>R$ 1.248,70</h3><p>Comissões liberadas para o próximo ciclo.</p><strong class="status-copy">Próximo pagamento: 05/08/2026</strong></article><article class="portal-data-card"><span>Em análise</span><h3>R$ 249,90</h3><p>Aguardando confirmação do pedido corporativo.</p><strong class="status-copy">Validação pendente</strong></article></div>`;
+    <div class="portal-card-grid compact"><article class="portal-data-card"><span>Aprovado</span><h3>${formatCurrency(affiliateMetrics.commission ?? 0)}</h3><p>Comissões liberadas após confirmação do pagamento.</p><strong class="status-copy">Próximo pagamento: ${escapeHtml(affiliateData.nextPayout || "A definir")}</strong></article><article class="portal-data-card"><span>Leads ativos</span><h3>${formatNumber(affiliateMetrics.leads ?? 0)}</h3><p>Indicações em acompanhamento comercial.</p><strong class="status-copy">${formatNumber(affiliateMetrics.sales ?? 0)} vendas aprovadas</strong></article></div>`;
 
   if (key === "materials") return `
-    ${portalHeading("Divulgação", title, "Materiais demonstrativos para apoiar venda consultiva dos treinamentos.")}
+    ${portalHeading("Divulgação", title, "Materiais de apoio para apresentar treinamentos, pacotes e diferenciais da plataforma.")}
     <div class="portal-card-grid compact"><article class="portal-data-card"><span>PDF comercial</span><h3>Apresentação FortixSeg</h3><p>Use para explicar pacotes, área do aluno e certificado com QR Code.</p><button class="button button-secondary" type="button" data-nav="courses">Ver catálogo</button></article><article class="portal-data-card"><span>Argumento de venda</span><h3>Pacotes para empresas</h3><p>Integração, chão de fábrica, manutenção, liderança e RH/SESMT.</p><button class="button button-secondary" type="button" data-nav="companies">Ver empresas</button></article></div>`;
 
   return `
     ${portalHeading("Conta do afiliado", title, "Atualize seus dados de contato e recebimento de comissão.")}
-    <form class="portal-form" id="affiliateSettingsForm"><div class="form-grid"><label class="field full"><span>Nome do afiliado</span><input name="name" value="Afiliado FortixSeg" required></label><label class="field"><span>E-mail</span><input name="email" type="email" value="afiliado@teste.com" required></label><label class="field"><span>Telefone</span><input name="phone" value="(11) 99999-0000" required></label><label class="field full"><span>Chave Pix</span><input name="pix" placeholder="Informe a chave Pix para repasse"></label></div><button class="button button-primary" type="submit">Salvar dados</button></form>`;
+    <form class="portal-form" id="affiliateSettingsForm"><div class="form-grid"><label class="field full"><span>Nome do afiliado</span><input name="name" value="${escapeHtml(affiliateProfile.name || currentSession?.user?.name || "")}" required></label><label class="field"><span>E-mail</span><input name="email" type="email" value="${escapeHtml(affiliateProfile.email || currentSession?.user?.email || "")}" required></label><label class="field"><span>Telefone</span><input name="phone" value="${escapeHtml(currentSession?.user?.phone || "")}" required></label><label class="field full"><span>Chave Pix</span><input name="pix" placeholder="Informe a chave Pix para repasse"></label></div><button class="button button-primary" type="submit">Salvar dados</button></form>`;
 }
 
 function adminPortalTemplate(key, title) {
   if (key === "courses") return adminCourseManagerTemplate(title);
-  if (key === "students") return `${portalHeading("Usuários", title, "Acompanhe cadastros, cursos e situação acadêmica.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Aluno</th><th>Curso</th><th>Status</th><th>Último acesso</th></tr></thead><tbody><tr><td>Mariana Costa</td><td>NR 35</td><td><span class="table-status progress">Em andamento</span></td><td>Hoje</td></tr><tr><td>Paulo Mendes</td><td>NR 10</td><td><span class="table-status complete">Concluído</span></td><td>03/07/2026</td></tr></tbody></table></div></div>`;
-  if (key === "companies") return `${portalHeading("Contas B2B", title, "Visualize empresas, colaboradores e consumo de licenças.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Amcor</span><h3>128 colaboradores</h3><p>42 vagas disponíveis - 78% de conformidade</p><strong class="status-copy">Ativa</strong></article><article class="portal-data-card"><span>Marelli</span><h3>76 colaboradores</h3><p>18 vagas disponíveis - 84% de conformidade</p><strong class="status-copy">Ativa</strong></article><article class="portal-data-card"><span>Braskem</span><h3>64 colaboradores</h3><p>21 vagas disponíveis - 81% de conformidade</p><strong class="status-copy">Ativa</strong></article><article class="portal-data-card"><span>AkzoNobel</span><h3>52 colaboradores</h3><p>14 vagas disponíveis - 86% de conformidade</p><strong class="status-copy">Ativa</strong></article></div>`;
-  if (key === "certificates") return `${portalHeading("Rastreabilidade", title, "Consulte documentos emitidos e validações públicas.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Total emitido</span><h3>150.000 certificados</h3><p>Códigos únicos registrados na demonstração.</p><button class="button button-secondary" type="button" data-nav="certificates">Abrir validador</button></article><article class="portal-data-card"><span>Hoje</span><h3>184 emissões</h3><p>12 aguardando processamento.</p><strong class="status-copy">Operação normal</strong></article></div>`;
-  if (key === "payments") return `${portalHeading("Financeiro", title, "Acompanhe transações e o estado da integração.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Pedido</th><th>Valor</th><th>Status</th></tr></thead><tbody><tr><td>Amcor</td><td>NR 35 - 30 vagas</td><td>R$ 4.497,00</td><td><span class="table-status complete">Aprovado</span></td></tr><tr><td>Marelli</td><td>NR 12 - 20 vagas</td><td>R$ 3.598,00</td><td><span class="table-status complete">Aprovado</span></td></tr><tr><td>CMK</td><td>NR 10 - 10 vagas</td><td>R$ 2.499,00</td><td><span class="table-status pending">Pendente</span></td></tr></tbody></table></div></div>`;
+  if (key === "students") return `${portalHeading("Usuários", title, "Acompanhe cadastros, cursos e situação acadêmica.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Aluno</th><th>Curso</th><th>Status</th><th>Última atualização</th></tr></thead><tbody>${(portalData.admin?.recentStudents || []).length ? (portalData.admin.recentStudents || []).map((student) => `<tr><td>${escapeHtml(student.name)}</td><td>${escapeHtml(student.course)}</td><td><span class="table-status ${student.status === "Concluído" ? "complete" : "progress"}">${escapeHtml(student.status)}</span></td><td>${escapeHtml(student.date)}</td></tr>`).join("") : `<tr><td colspan="4">Nenhuma movimentação acadêmica registrada ainda.</td></tr>`}</tbody></table></div></div>`;
+  if (key === "companies") return `${portalHeading("Contas B2B", title, "Visualize empresas, colaboradores e consumo de licenças.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Empresas ativas</span><h3>${formatNumber(portalData.admin?.metrics?.companies ?? 0)}</h3><p>Contas corporativas cadastradas na plataforma.</p><strong class="status-copy">Operação ativa</strong></article><article class="portal-data-card"><span>Alunos ativos</span><h3>${formatNumber(portalData.admin?.metrics?.students ?? 0)}</h3><p>Usuários com acesso liberado no ambiente.</p><strong class="status-copy">Base sincronizada</strong></article></div>`;
+  if (key === "certificates") return `${portalHeading("Rastreabilidade", title, "Consulte documentos emitidos e validações públicas.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Total emitido</span><h3>${formatNumber(portalData.admin?.metrics?.certificates ?? 0)} certificados</h3><p>Códigos únicos registrados na plataforma.</p><button class="button button-secondary" type="button" data-nav="certificates">Abrir validador</button></article><article class="portal-data-card"><span>Catálogo</span><h3>${formatNumber(portalData.admin?.metrics?.courses ?? 0)} cursos</h3><p>Treinamentos publicados e prontos para matrícula.</p><strong class="status-copy">Operação normal</strong></article></div>`;
+  if (key === "payments") return `${portalHeading("Financeiro", title, "Acompanhe transações e o estado da integração.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Pedido</th><th>Valor</th><th>Status</th></tr></thead><tbody>${(portalData.admin?.recentPayments || []).length ? (portalData.admin.recentPayments || []).map((payment) => `<tr><td>${escapeHtml(payment.client)}</td><td>${escapeHtml(payment.course)}</td><td>${formatCurrency(payment.value)}</td><td><span class="table-status ${payment.status === "Aprovado" || payment.status === "Pago" ? "complete" : "pending"}">${escapeHtml(payment.status)}</span></td></tr>`).join("") : `<tr><td colspan="4">Nenhum pagamento registrado até o momento.</td></tr>`}</tbody></table></div></div>`;
   if (key === "reports") return `${portalHeading("Dados", title, "Exporte uma visão consolidada da operação.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Operação</span><h3>Resumo da plataforma</h3><p>Alunos, empresas, certificados e pagamentos.</p><button class="button button-primary" type="button" data-portal-action="export-admin-report">Exportar CSV</button></article><article class="portal-data-card"><span>Integrações</span><h3>Saúde da API</h3><p>Servidor online; OpenAI e Mercado Pago dependem das credenciais.</p><button class="button button-secondary" type="button" data-portal-action="refresh-admin">Atualizar status</button></article></div>`;
   return `${portalHeading("Sistema", title, "Preferências visuais e operacionais da administração.")}<form class="portal-form" id="adminSettingsForm"><div class="form-grid"><label class="field full"><span>Nome da plataforma</span><input name="brand" value="FortixSeg" required></label><label class="field"><span>E-mail de suporte</span><input name="supportEmail" type="email" value="fortixseg@gmail.com" required></label><label class="field"><span>Nota mínima</span><input name="minimumGrade" type="number" min="0" max="100" value="70" required></label><label class="field full"><span>Modo de manutenção</span><select name="maintenance"><option>Desativado</option><option>Ativado</option></select></label></div><button class="button button-primary" type="submit">Salvar configurações</button></form>`;
 }
@@ -1082,7 +1093,7 @@ function adminCourseManagerTemplate(title) {
           </div>
 
           <div class="admin-resource-manager">
-            <div><span>Biblioteca do curso</span><h4>Apostilas em PDF</h4><p>Envie somente arquivos PDF. Nesta demonstração, cada arquivo pode ter até 12 MB.</p></div>
+            <div><span>Biblioteca do curso</span><h4>Apostilas em PDF</h4><p>Envie somente arquivos PDF. Cada arquivo pode ter até 12 MB.</p></div>
             <label class="admin-upload-field"><input id="adminCourseFiles" type="file" accept="application/pdf" multiple><span>Selecionar PDFs</span></label>
             <div class="admin-file-selection" id="adminCourseFileSelection" aria-live="polite"></div>
             <div class="admin-resource-list" id="adminCourseResourceList"><p>Nenhum material adicionado.</p></div>
@@ -1226,11 +1237,12 @@ function showStudentResource(button) {
   const viewer = document.getElementById("studentMediaViewer");
   if (!viewer) return;
   const title = button.dataset.resourceTitle || "Material do curso";
+  const url = button.dataset.resourceUrl || "assets/apostila-nr35-demonstrativa.pdf";
 
   viewer.innerHTML = `
     <div class="media-viewer-header"><span>Material PDF</span><h3>${escapeHtml(title)}</h3></div>
-    <iframe class="pdf-viewer" src="assets/apostila-nr35-demonstrativa.pdf#toolbar=1" title="Apostila demonstrativa NR 35"></iframe>
-    <a class="button button-secondary media-download" href="assets/apostila-nr35-demonstrativa.pdf" target="_blank" rel="noopener">Abrir PDF em nova guia</a>
+    <iframe class="pdf-viewer" src="${escapeHtml(url)}#toolbar=1" title="${escapeHtml(title)}"></iframe>
+    <a class="button button-secondary media-download" href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir PDF em nova guia</a>
   `;
 }
 
@@ -1434,7 +1446,7 @@ async function saveAdminCourse(form) {
     return;
   }
   if (files.some((file) => file.size > 12_000_000)) {
-    showToast("Cada arquivo deve ter no máximo 12 MB nesta demonstração.");
+    showToast("Cada arquivo deve ter no máximo 12 MB.");
     return;
   }
 
@@ -2045,7 +2057,7 @@ function getAssistantResponse(rawQuestion) {
 
   if (includesAny(question, ["certificado", "qr code", "validar", "validade", "codigo"])) {
     return {
-      text: `O certificado digital é liberado após conclusão das aulas e aprovação na avaliação. Ele possui código único e QR Code para consulta pública. Código demonstrativo válido: ${APP_CONFIG.certificateCode}.`,
+      text: "O certificado digital é liberado após conclusão das aulas e aprovação na avaliação. Ele possui código único e QR Code para consulta pública na página de validação.",
       actions: [{ label: "Validar certificado", type: "certificates" }]
     };
   }
@@ -2089,7 +2101,7 @@ function getAssistantResponse(rawQuestion) {
 
   if (includesAny(question, ["aluno", "candidato", "meus cursos", "aulas", "meus certificados", "area do aluno", "área do aluno"])) {
     return {
-      text: "A área do aluno possui painel, cursos matriculados, aulas, avaliações, certificados, dados e suporte. O certificado aparece após conclusão e aprovação. Login demo: aluno@teste.com / 123456.",
+      text: "A área do aluno possui painel, cursos matriculados, aulas, avaliações, certificados, dados e suporte. O certificado aparece após conclusão e aprovação.",
       actions: [{ label: "Entrar", type: "login" }]
     };
   }
@@ -2103,7 +2115,7 @@ function getAssistantResponse(rawQuestion) {
 
   if (includesAny(question, ["avaliacao", "prova", "nota", "aprovacao", "tentativa", "reprovado"])) {
     return {
-      text: "A avaliação final verifica o aprendizado do curso. A nota mínima demonstrativa é 70%, com até 3 tentativas. Se a nota for menor, você pode revisar o conteúdo e tentar novamente.",
+      text: "A avaliação final verifica o aprendizado do curso. A nota mínima é 70%, com até 3 tentativas. Se a nota for menor, você pode revisar o conteúdo e tentar novamente.",
       actions: [{ label: "Como funciona", type: "how" }]
     };
   }
@@ -2222,15 +2234,12 @@ function bindModals() {
 
   document.getElementById("loginTab").addEventListener("click", () => switchAuthPanel("login"));
   document.getElementById("registerTab").addEventListener("click", () => switchAuthPanel("register"));
-  document.getElementById("forgotPassword").addEventListener("click", () => showToast("Recuperação demonstrativa. Em breve, um link seria enviado por e-mail."));
+  document.getElementById("forgotPassword").addEventListener("click", () => showToast("Solicite a redefinição de senha ao suporte até o fluxo automático ser liberado."));
 
   document.querySelectorAll("[data-account-type]").forEach((button) => {
     button.addEventListener("click", () => switchAccountType(button.dataset.accountType));
   });
 
-  document.querySelectorAll("[data-demo-login]").forEach((button) => {
-    button.addEventListener("click", () => fillDemoLogin(button.dataset.demoLogin));
-  });
 }
 
 function openModal(id) {
@@ -2296,18 +2305,6 @@ function switchAccountType(type) {
   document.querySelectorAll("[data-required-admin]").forEach((input) => {
     input.required = normalizedType === "admin";
   });
-}
-
-function fillDemoLogin(role) {
-  const emails = {
-    student: "aluno@teste.com",
-    company: "empresa@teste.com",
-    affiliate: "afiliado@teste.com",
-    admin: "admin@teste.com"
-  };
-  if (!emails[role]) return;
-  document.getElementById("loginEmail").value = emails[role];
-  document.getElementById("loginPassword").value = "123456";
 }
 
 function openCourseModal(courseId) {
@@ -2598,38 +2595,23 @@ async function handleLogin(event) {
   event.preventDefault();
   const email = document.getElementById("loginEmail").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
-  let login = demoLogins[email];
   localStorage.removeItem("fortixsegApiToken");
 
   try {
-    const session = await apiRequest("/api/auth/demo", {
+    const session = await apiRequest("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password })
     });
-    login = { role: session.user.role, password };
     localStorage.setItem("fortixsegApiToken", session.token);
-  } catch {
+    localStorage.setItem("fortixsegCurrentUser", JSON.stringify({ email, role: session.user.role, apiOnline: true }));
+    closeAllModals();
+    event.target.reset();
+    navigate(getHomePageForRole(session.user.role));
+    showToast("Login realizado com sucesso.");
+  } catch (error) {
     apiOnline = false;
+    showToast(error.message || "E-mail ou senha inválidos.");
   }
-
-  // TODO: conectar login ao Supabase Auth
-  // TODO: proteger rota administrativa com autenticação real
-  if (!login || login.password !== password) {
-    showToast("E-mail ou senha inválidos.");
-    return;
-  }
-
-  if (login.role === "admin" && !localStorage.getItem("fortixsegApiToken")) {
-    showToast("O acesso administrativo precisa do servidor online.");
-    return;
-  }
-
-  localStorage.setItem("fortixsegCurrentUser", JSON.stringify({ email, role: login.role, apiOnline }));
-  closeAllModals();
-  event.target.reset();
-
-  navigate(getHomePageForRole(login.role));
-  showToast("Login realizado com sucesso.");
 }
 
 function getHomePageForRole(role) {
@@ -2663,16 +2645,6 @@ async function handleRegister(event) {
       method: "POST",
       body: JSON.stringify(payload)
     });
-
-    const registrations = readStorage("fortixsegRegistrations", []);
-    registrations.push({
-      type: accountType,
-      data: { ...payload, password: "demo-hidden", confirmPassword: "demo-hidden" },
-      createdAt: new Date().toISOString()
-    });
-
-    // TODO: substituir cadastro demonstrativo por Supabase Auth e banco de dados.
-    writeStorage("fortixsegRegistrations", registrations);
     localStorage.setItem("fortixsegApiToken", session.token);
     localStorage.setItem("fortixsegCurrentUser", JSON.stringify({
       email: session.user.email,
@@ -2684,10 +2656,10 @@ async function handleRegister(event) {
     switchAccountType("candidate");
     closeAllModals();
     navigate(getHomePageForRole(session.user.role));
-    showToast("Cadastro de teste criado. Você já está logado.");
+    showToast("Conta criada com sucesso. Você já está logado.");
   } catch (error) {
     apiOnline = false;
-    showToast(error.message || "Não foi possível criar o cadastro de teste.");
+    showToast(error.message || "Não foi possível criar a conta.");
   }
 }
 
@@ -2894,18 +2866,7 @@ async function validateCertificate(rawCode) {
   } catch {
     apiOnline = false;
   }
-
-  // TODO: validar certificado no backend
-  // TODO: gerar QR Code real
-  // TODO: armazenar certificados em storage seguro
-  if (code === APP_CONFIG.certificateCode) {
-    renderCertificateValidation(result, {
-      valid: true,
-      certificate: { student: "João da Silva", course: "NR 35 - Trabalho em Altura", hours: "8 horas", completedAt: "20/05/2026", status: "Válido" }
-    });
-  } else {
-    renderCertificateValidation(result, { valid: false, message: "Certificado não encontrado." });
-  }
+  renderCertificateValidation(result, { valid: false, message: "Não foi possível validar o certificado agora." });
 }
 
 function renderCertificateValidation(result, data) {

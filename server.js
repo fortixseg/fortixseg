@@ -31,7 +31,7 @@ const DEFAULT_COURSE_CATALOG = {
     category: "Trabalho em altura", audience: "Profissionais que executam atividades acima de 2 metros com risco de queda.",
     objective: "Apresentar conceitos, responsabilidades e medidas de prevenção para atividades em altura.",
     syllabus: ["Conceitos de trabalho em altura", "Análise de risco", "Equipamentos de proteção", "Responsabilidades", "Condições impeditivas", "Procedimentos de emergência", "Avaliação final"],
-    resources: [{ id: "nr35-pdf-demo", type: "pdf", name: "Apostila demonstrativa NR 35", url: "/assets/apostila-nr35-demonstrativa.pdf", mimeType: "application/pdf", size: 0 }]
+    resources: [{ id: "nr35-pdf-base", type: "pdf", name: "Apostila NR 35", url: "/assets/apostila-nr35-demonstrativa.pdf", mimeType: "application/pdf", size: 0 }]
   },
   nr12: { id: "nr12", code: "NR 12", title: "NR 12 - Segurança no Trabalho em Máquinas e Equipamentos", hours: 8, price: 179.90 },
   nr10: { id: "nr10", code: "NR 10", title: "NR 10 - Segurança em Instalações e Serviços em Eletricidade", hours: 40, price: 249.90 },
@@ -82,7 +82,7 @@ const ASSISTANT_INSTRUCTIONS = `
 Você é o atendente virtual oficial da FortixSeg, empresa de treinamentos online em Segurança do Trabalho.
 Responda sempre em português do Brasil, com clareza, cordialidade e no máximo 120 palavras.
 Use somente as informações fornecidas neste contexto. Não invente clientes, reconhecimento oficial, garantias legais ou regras regulatórias.
-Os cursos são 100% online. O certificado digital é liberado após conclusão e aprovação com nota mínima de 70%. A demonstração oferece 3 tentativas.
+Os cursos são 100% online. O certificado digital é liberado após conclusão e aprovação com nota mínima de 70%. Cada curso define sua política de tentativas.
 Cursos e pacotes: há catálogo individual para chão de fábrica, administrativo, manutenção, liderança, RH/SESMT, DDS e NRs. Pacotes empresariais: Integração Essencial (R$ 199,90 por colaborador), Chão de Fábrica (R$ 349,90), Administrativo Seguro (R$ 249,90), Liderança em Segurança (R$ 449,90), Manutenção Segura (R$ 399,90) e RH e Gestão SST (R$ 299,90).
 Descontos empresariais: 1 a 5 colaboradores preço normal; 6 a 20 com 10%; 21 a 50 com 15%; 51 a 100 com 20%; acima de 100 sob proposta.
 Para empresas, há compra em lote, dashboard com colaboradores ativos, cursos em andamento, certificados emitidos, vencimentos próximos, gráficos de conformidade, situação da equipe, matrículas por curso, relatórios e controle de vencimentos.
@@ -175,8 +175,8 @@ export async function handleRequest(request, response) {
       return await handleRegister(request, response);
     }
 
-    if (request.method === "POST" && url.pathname === "/api/auth/demo") {
-      return await handleDemoLogin(request, response);
+    if (request.method === "POST" && (url.pathname === "/api/auth/login" || url.pathname === "/api/auth/demo")) {
+      return await handleLogin(request, response);
     }
 
     if (request.method === "POST" && url.pathname === "/api/proposals") {
@@ -451,33 +451,8 @@ function normalizeUserRecord(user) {
 function ensureSeedUsers() {
   const seeds = [
     {
-      email: String(ENV.FORTIXSEG_STUDENT_EMAIL || "aluno@teste.com").toLowerCase(),
-      password: String(ENV.FORTIXSEG_STUDENT_PASSWORD || "123456"),
-      role: "student",
-      name: "João da Silva",
-      document: "000.000.000-00",
-      phone: "(11) 99999-0000"
-    },
-    {
-      email: String(ENV.FORTIXSEG_COMPANY_EMAIL || "empresa@teste.com").toLowerCase(),
-      password: String(ENV.FORTIXSEG_COMPANY_PASSWORD || "123456"),
-      role: "company",
-      name: "Empresa Exemplo Ltda.",
-      companyName: "Empresa Exemplo Ltda.",
-      responsibleName: "Empresa Exemplo Ltda.",
-      document: "00.000.000/0001-00",
-      phone: "(11) 98888-0000"
-    },
-    {
-      email: String(ENV.FORTIXSEG_AFFILIATE_EMAIL || "afiliado@teste.com").toLowerCase(),
-      password: String(ENV.FORTIXSEG_AFFILIATE_PASSWORD || "123456"),
-      role: "affiliate",
-      name: "Afiliado FortixSeg",
-      phone: "(11) 97777-0000"
-    },
-    {
-      email: String(ENV.FORTIXSEG_ADMIN_EMAIL || "admin@teste.com").toLowerCase(),
-      password: String(ENV.FORTIXSEG_ADMIN_PASSWORD || "123456"),
+      email: String(ENV.FORTIXSEG_ADMIN_EMAIL || "").toLowerCase(),
+      password: String(ENV.FORTIXSEG_ADMIN_PASSWORD || ""),
       role: "admin",
       name: "Administrador FortixSeg"
     }
@@ -511,11 +486,7 @@ function ensureSeedUsers() {
 function loadInitialCompanyEmployees() {
   const existingGroups = Object.values(appState.companyEmployees || {}).find((value) => Array.isArray(value) && value.length);
   if (existingGroups) return existingGroups.map(normalizeEmployeeRecord);
-  return [
-    { name: "Carlos Lima", course: "NR 35", progress: "75%", status: "Em andamento", certificate: false },
-    { name: "Ana Souza", course: "Uso Correto de EPIs", progress: "100%", status: "Concluído", certificate: true },
-    { name: "Marcos Silva", course: "NR 12", progress: "40%", status: "Em andamento", certificate: false }
-  ];
+  return [];
 }
 
 function normalizeEmployeeRecord(employee) {
@@ -718,7 +689,7 @@ function clampNumber(value, minimum, maximum, fallback) {
   return Number.isFinite(number) ? Math.min(maximum, Math.max(minimum, number)) : fallback;
 }
 
-async function handleDemoLogin(request, response) {
+async function handleLogin(request, response) {
   const body = await readJsonBody(request);
   const email = cleanText(body.email, 160).toLowerCase();
   const password = String(body.password ?? "");
@@ -781,7 +752,7 @@ async function handleRegister(request, response) {
   }
 
   if (findUserByEmail(email)) {
-    return sendJson(response, 409, { error: "Já existe uma conta de teste com esse e-mail." });
+    return sendJson(response, 409, { error: "Já existe uma conta com esse e-mail." });
   }
 
   const registrationContact = extractRegistrationContact(body, accountType);
@@ -1231,7 +1202,7 @@ async function buildStudentLibrary(session) {
   }
   return {
     source: isDatabaseEnabled() ? "api-database" : "api-local",
-    courseId: enrollments[0]?.courseId || "nr35",
+    courseId: enrollments[0]?.courseId || "",
     resources
   };
 }
@@ -1271,28 +1242,36 @@ function buildCompanyDashboard(session) {
 }
 
 function buildAffiliateDashboard(session = {}) {
-  const coupon = "FORTIX10";
+  const user = findSessionUser(session);
+  const key = getStateUserKey(session);
+  const settings = appState.affiliateSettings[key] || {};
+  const coupon = `FTX${String((user?.id || session.email || "0000").replace(/[^a-z0-9]/gi, "")).slice(-6).toUpperCase() || "0000"}`;
+  const orders = appState.orders.filter((order) => cleanText(order.affiliateCode, 60) === coupon);
+  const approvedOrders = orders.filter((order) => order.status === "approved");
+  const commission = approvedOrders.reduce((total, order) => total + ((Number(order.totalAmount) || 0) * 0.1), 0);
   return {
-    source: "api-demo",
+    source: isDatabaseEnabled() ? "api-database" : "api-local",
     profile: {
-      name: session.name || "Afiliado FortixSeg",
-      email: session.email || "afiliado@teste.com",
-      plan: "Afiliado demonstrativo"
+      name: settings.name || user?.name || session.name || "Afiliado",
+      email: settings.email || user?.email || session.email || "",
+      plan: "Afiliado"
     },
     coupon,
-    referralLink: `${PUBLIC_BASE_URL || "http://127.0.0.1:3000"}/?ref=${coupon.toLowerCase()}`,
-    nextPayout: "05/08/2026",
+    referralLink: `${PUBLIC_BASE_URL || "http://127.0.0.1:3001"}/?ref=${coupon.toLowerCase()}`,
+    nextPayout: approvedOrders.length ? "A definir" : "",
     metrics: {
-      clicks: 428,
-      leads: 62,
-      sales: 18,
-      commission: 1248.70
+      clicks: 0,
+      leads: orders.length,
+      sales: approvedOrders.length,
+      commission: Number(commission.toFixed(2))
     },
-    referrals: [
-      { name: "Empresa Horizonte", product: "Pacote Chão de Fábrica", value: 3499.00, status: "Aprovado", commission: 349.90 },
-      { name: "Bruno Martins", product: "NR 35", value: 149.90, status: "Aprovado", commission: 14.99 },
-      { name: "Grupo Alpha", product: "Administrativo Seguro", value: 2499.00, status: "Em análise", commission: 249.90 }
-    ]
+    referrals: orders.map((order) => ({
+      name: findUserById(order.userId)?.name || order.customerName || "Lead",
+      product: order.items?.map((item) => item.title).join(", ") || "Pedido",
+      value: Number(order.totalAmount) || 0,
+      status: order.status === "approved" ? "Aprovado" : "Pendente",
+      commission: Number(((Number(order.totalAmount) || 0) * 0.1).toFixed(2))
+    }))
   };
 }
 
@@ -1380,22 +1359,7 @@ function validateDemoCertificate(rawCode) {
       certificate: buildCertificateView(stored)
     };
   }
-
-  if (code !== "FS-NR35-2026-000123") {
-    return { valid: false, message: "Certificado não encontrado." };
-  }
-
-  return {
-    valid: true,
-    certificate: {
-      code,
-      student: "João da Silva",
-      course: "NR 35 - Trabalho em Altura",
-      hours: "8 horas",
-      completedAt: "20/05/2026",
-      status: "Válido"
-    }
-  };
+  return { valid: false, message: "Certificado não encontrado." };
 }
 
 function createUserRecord(input) {

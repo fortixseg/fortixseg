@@ -1,183 +1,94 @@
 # FortixSeg
 
-Plataforma MVP de treinamentos online em Seguranca do Trabalho.
+Plataforma de treinamentos online em Seguranca do Trabalho com site institucional, autenticacao, painel por perfil, checkout e validacao publica de certificados.
 
-Este projeto esta pronto para teste publico controlado, mas ainda nao deve ser tratado como producao final. Ele ja possui site, login de teste, area do aluno, area da empresa, area administrativa, catalogo de cursos, carrinho, checkout preparado para Mercado Pago e cadastro de curso com material em PDF.
+## Producao
 
-## Estado atual
+- Site institucional com catalogo, pacotes corporativos, FAQ, contato e paginas internas.
+- Cadastro e login para aluno, empresa, afiliado e administrador.
+- Painel do aluno com cursos, biblioteca, avaliacao, progresso e certificado.
+- Painel da empresa com colaboradores, relatorios, certificados e compras em lote.
+- Painel do afiliado com link, cupom, indicacoes e comissoes.
+- Painel admin com gestao de cursos, PDFs e configuracoes operacionais.
+- API HTTP pronta para deploy em Vercel ou Node tradicional.
+- Persistencia local por arquivo e suporte a Postgres/Supabase quando configurado.
 
-Pronto para testar:
+## Execucao local
 
-- Home, cursos, pacotes, empresas, certificado, contato e FAQ.
-- Login de aluno, empresa, afiliado e admin.
-- Login administrativo com senha configurada no servidor.
-- Cadastro de teste para aluno, empresa, afiliado e admin.
-- Area do aluno com curso, PDF, avaliacao e certificado demonstrativo.
-- Area da empresa com colaboradores, relatorios e compra em lote demonstrativa.
-- Area do afiliado com link, cupom, indicacoes, comissoes e dados bancarios demonstrativos.
-- Admin com cadastro, edicao, exclusao e publicacao de cursos.
-- Upload de material somente em PDF.
-- Catalogo de cursos gravado em `data/courses.json`.
-- Checkout preparado para Mercado Pago via servidor.
+Precisa de Node.js 18 ou superior.
 
-Ainda demonstrativo, nao final:
+1. Crie o arquivo `.env`.
+2. Preencha as variaveis obrigatorias.
+3. Rode `npm install`.
+4. Rode `npm start`.
+5. Abra `http://127.0.0.1:3001`.
 
-- Cadastro fica em memoria enquanto o servidor estiver ligado.
-- Login ainda nao usa banco real.
-- Certificado e QR Code ainda sao demonstrativos.
-- Pagamento aprovado ainda nao libera matricula automaticamente.
-- Nao ha storage privado definitivo para arquivos.
-- Nao ha logs finais de acesso, aula e avaliacao.
-
-## Como rodar para teste
-
-Precisa de Node.js 18 ou mais recente.
-
-1. Preencha o arquivo `.env` com as variaveis do projeto.
-2. Rode o servidor com `npm start`.
-3. Abra `http://127.0.0.1:3001` no servidor local.
-
-Se for subir em VPS, use o IP ou dominio publico no Nginx apontando para a porta do Node.
-
-## Configuracao obrigatoria no `.env`
+## Variaveis de ambiente
 
 ```env
 PORT=3001
-PUBLIC_BASE_URL=https://seudominio.com.br
+PUBLIC_BASE_URL=https://fortixseg.com.br
+
+FORTIXSEG_SESSION_SECRET=troque-por-um-segredo-grande
+FORTIXSEG_ADMIN_EMAIL=
+FORTIXSEG_ADMIN_PASSWORD=
+FORTIXSEG_ADMIN_REGISTRATION_CODE=
+
+DATABASE_URL=
+DIRECT_URL=
 
 MERCADO_PAGO_ACCESS_TOKEN=
 MERCADO_PAGO_WEBHOOK_SECRET=
-MERCADO_PAGO_USE_SANDBOX=true
-
-FORTIXSEG_SESSION_SECRET=troque-por-um-segredo-grande
-FORTIXSEG_STUDENT_EMAIL=aluno@teste.com
-FORTIXSEG_STUDENT_PASSWORD=123456
-FORTIXSEG_COMPANY_EMAIL=empresa@teste.com
-FORTIXSEG_COMPANY_PASSWORD=123456
-FORTIXSEG_AFFILIATE_EMAIL=afiliado@teste.com
-FORTIXSEG_AFFILIATE_PASSWORD=123456
-FORTIXSEG_ADMIN_EMAIL=admin@teste.com
-FORTIXSEG_ADMIN_PASSWORD=123456
-FORTIXSEG_ADMIN_REGISTRATION_CODE=FORTIX-ADMIN-2026
+MERCADO_PAGO_USE_SANDBOX=false
 
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
 ```
 
-Importante: nunca envie `.env` para GitHub, ZIP publico, hospedagem estatica ou chat. Ele contem chaves e senhas.
+Observacoes:
 
-## Logins de teste
+- `FORTIXSEG_ADMIN_EMAIL` e `FORTIXSEG_ADMIN_PASSWORD` criam a conta administrativa inicial.
+- `DATABASE_URL` e `DIRECT_URL` ativam a camada Postgres/Supabase.
+- Se `DATABASE_URL` nao estiver preenchida, a aplicacao usa persistencia local em arquivo.
+- `PUBLIC_BASE_URL` deve ser a URL publica final do projeto.
 
-Aluno:
+## Rotas principais
 
-```text
-aluno@teste.com
-123456
-```
-
-Empresa:
-
-```text
-empresa@teste.com
-123456
-```
-
-Afiliado:
-
-```text
-afiliado@teste.com
-123456
-```
-
-Admin:
-
-```text
-admin@teste.com
-123456
-```
-
-Antes de abrir para cliente real, troque `FORTIXSEG_ADMIN_PASSWORD` e `FORTIXSEG_ADMIN_REGISTRATION_CODE` no `.env`.
-
-## Cadastro de teste
-
-O cadastro de aluno, empresa e afiliado funciona para teste: ao criar a conta, o usuario ja entra na area correta.
-
-O cadastro de admin tambem funciona, mas exige o codigo definido em:
-
-```text
-FORTIXSEG_ADMIN_REGISTRATION_CODE
-```
-
-Codigo demonstrativo padrao:
-
-```text
-FORTIX-ADMIN-2026
-```
-
-Nesta fase, o cadastro fica em memoria no servidor. Se o servidor reiniciar, os cadastros criados no teste sao perdidos. Em producao, isso deve ir para Supabase Auth/PostgreSQL.
-
-## Cursos e materiais
-
-O catalogo editavel fica em:
-
-```text
-data/courses.json
-```
-
-Pelo admin, e possivel cadastrar:
-
-- codigo do curso;
-- nome;
-- categoria;
-- carga horaria;
-- preco;
-- status publicado ou rascunho;
-- quantidade de aulas;
-- nota minima;
-- tentativas;
-- publico-alvo;
-- objetivo;
-- conteudo programatico;
-- materiais em PDF.
-
-Por enquanto, o treinamento aceita somente PDF. Outros formatos de aula devem entrar em uma fase futura com storage protegido e controle de acesso.
-
-PDFs enviados pelo admin ficam em:
-
-```text
-assets/uploads/courses/
-```
-
-Limite demonstrativo por arquivo:
-
-```text
-12 MB
-```
-
-Para uso real em escala, o recomendado e mover PDFs, apostilas e certificados para uma nuvem/storage privado, como Cloudflare R2, S3, Supabase Storage ou servidor dedicado com backup.
-
-## APIs principais
-
-Rotas publicas:
+Publicas:
 
 - `GET /api/health`
 - `GET /api/courses`
-- `GET /api/certificates/validate?code=FS-NR35-2026-000123`
+- `GET /api/certificates/validate?code=...`
+- `POST /api/contact`
+- `POST /api/proposals`
 - `POST /api/checkout/preference`
 - `POST /api/checkout-preference`
 
-Rotas de autenticacao:
+Autenticacao:
 
-- `POST /api/auth/demo`
+- `POST /api/auth/login`
 - `POST /api/auth/register`
 
-Rotas protegidas por perfil:
+Aluno:
 
 - `GET /api/student/dashboard`
 - `GET /api/student/library`
+- `GET /api/student/certificates/current`
+- `GET /api/student/certificates/current.pdf`
+
+Empresa:
+
 - `GET /api/company/dashboard`
 - `POST /api/company/employees`
+- `POST /api/company/settings`
+
+Afiliado:
+
 - `GET /api/affiliate/dashboard`
+- `POST /api/affiliate/settings`
+
+Admin:
+
 - `GET /api/admin/dashboard`
 - `GET /api/admin/courses`
 - `POST /api/admin/courses`
@@ -185,74 +96,25 @@ Rotas protegidas por perfil:
 - `DELETE /api/admin/courses/:id`
 - `POST /api/admin/courses/:id/resources`
 - `DELETE /api/admin/courses/:id/resources/:resourceId`
+- `POST /api/admin/settings`
 
-As rotas protegidas precisam receber o token criado no login.
+## Arquivos importantes
 
-## Mercado Pago
+- `server.js`: servidor HTTP e APIs.
+- `script.js`: frontend, dashboards e integracao com a API.
+- `index.html`: estrutura da interface.
+- `data/courses.json`: catalogo persistido.
+- `data/app-data.json`: dados operacionais persistidos.
 
-O checkout deve ser criado no servidor, nunca no navegador.
+## Deploy
 
-Para testar:
+Para deploy em producao:
 
-1. Coloque o token de teste em `MERCADO_PAGO_ACCESS_TOKEN`.
-2. Deixe `MERCADO_PAGO_USE_SANDBOX=true`.
-3. Configure `PUBLIC_BASE_URL` com a URL publica HTTPS do site.
-4. Teste comprando um curso pelo carrinho.
+1. Configure todas as variaveis no Vercel.
+2. Aponte `PUBLIC_BASE_URL` para `https://fortixseg.com.br`.
+3. Cadastre `DATABASE_URL` e `DIRECT_URL` do Supabase se quiser banco gerenciado.
+4. Configure Mercado Pago e OpenAI somente quando as integracoes forem entrar em operacao.
 
-O botao de checkout chama:
+## Observacao
 
-```text
-/api/checkout/preference
-```
-
-Tambem existe compatibilidade com:
-
-```text
-/api/checkout-preference
-```
-
-Antes de vender de verdade, ainda falta salvar o pedido, receber webhook, confirmar pagamento aprovado no servidor e liberar a matricula somente depois disso.
-
-## Onde alterar marca e textos
-
-No inicio de `script.js`, edite `APP_CONFIG`.
-
-## Onde alterar pacotes
-
-No `script.js`, edite:
-
-- `trainingPackages`
-- `discountTiers`
-- textos das secoes publicas
-
-## Onde alterar catalogo inicial
-
-Com o servidor ligado, prefira alterar pelo admin. As mudancas sao gravadas em `data/courses.json`.
-
-A lista grande de fallback do front fica em `courseCatalogRows`, dentro de `script.js`.
-
-## Publicacao em VPS
-
-Fluxo recomendado:
-
-```text
-Node.js
-PM2
-Nginx
-SSL com Certbot
-Dominio apontado para o IP do VPS
-```
-
-O Nginx recebe o acesso publico e repassa para o Node. O SSL deixa o site em HTTPS.
-
-## Proximas etapas para producao
-
-- Supabase Auth ou outro login real.
-- PostgreSQL para usuarios, empresas, matriculas, pagamentos, certificados e progresso.
-- Storage privado para PDFs e certificados.
-- Geracao real de certificado em PDF.
-- QR Code unico por certificado.
-- Webhook Mercado Pago liberando matricula apos pagamento aprovado.
-- Logs de acesso, progresso, avaliacao e conclusao.
-- Backup automatico.
-- Politica de privacidade, termos de uso e LGPD.
+Os dados locais em `data/*.json` nao devem ser tratados como base oficial de producao quando o projeto estiver operando com banco gerenciado.
