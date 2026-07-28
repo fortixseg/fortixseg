@@ -5778,13 +5778,17 @@ body.portal-mode {
   width: 44px;
   height: 44px;
   position: fixed;
-  z-index: 1300;
-  top: 18px;
+  z-index: 1600;
+  top: calc(env(safe-area-inset-top, 0px) + 18px);
   left: 18px;
   display: grid;
   place-content: center;
   gap: 5px;
   padding: 0;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
   color: #ffffff;
   background: #09140f;
   border: 1px solid rgba(47, 163, 31, 0.45);
@@ -5801,6 +5805,7 @@ body.portal-mode {
   width: 18px;
   height: 2px;
   display: block;
+  pointer-events: none;
   background: #79d13b;
   border-radius: 2px;
   transition: transform 180ms ease, opacity 180ms ease;
@@ -6246,8 +6251,10 @@ body.portal-mode {
   }
 
   .portal-menu-toggle {
-    top: 14px;
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
     left: 14px;
+    width: 48px;
+    height: 48px;
   }
 
   .portal-nav-open .portal-menu-toggle {
