@@ -93,6 +93,8 @@ svg {
 }
 
 .header-inner {
+  position: relative;
+  z-index: 2;
   min-height: 70px;
   display: flex;
   align-items: center;
@@ -100,6 +102,8 @@ svg {
 }
 
 .brand {
+  position: relative;
+  z-index: 2;
   min-width: 152px;
   display: inline-flex;
   align-items: center;
@@ -168,6 +172,8 @@ svg {
 }
 
 .main-nav {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   align-items: center;
@@ -195,6 +201,8 @@ svg {
 }
 
 .header-actions {
+  position: relative;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -273,6 +281,9 @@ svg {
   display: inline-grid;
   place-items: center;
   position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  touch-action: manipulation;
   color: var(--white);
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -4990,6 +5001,11 @@ th {
 }
 
 @media (max-width: 900px) {
+  .site-header {
+    position: sticky;
+    overflow: visible;
+  }
+
   .header-inner {
     min-height: 70px;
   }
@@ -4997,6 +5013,7 @@ th {
   .main-nav {
     display: none;
     position: absolute;
+    z-index: 4;
     left: 0;
     right: 0;
     top: 70px;
@@ -5021,19 +5038,22 @@ th {
 
   .menu-toggle {
     display: inline-grid;
+    position: relative;
+    z-index: 5;
   }
 
   .mobile-auth {
     display: none;
     position: absolute;
+    z-index: 4;
     left: 0;
     right: 0;
-    top: 386px;
-    z-index: 2;
+    top: 100%;
     grid-template-columns: 1fr 1fr;
     gap: 9px;
     padding: 14px 24px 20px;
     background: #07100c;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .mobile-auth.open {
@@ -5190,6 +5210,7 @@ th {
 
   .header-actions {
     margin-left: auto;
+    flex-shrink: 0;
   }
 
   .hero {
