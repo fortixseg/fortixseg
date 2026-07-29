@@ -4187,6 +4187,7 @@ th {
 .modal-backdrop {
   position: absolute;
   inset: 0;
+  pointer-events: auto;
   background: rgba(2, 6, 4, 0.76);
   backdrop-filter: blur(5px);
 }
@@ -4441,6 +4442,7 @@ th {
   z-index: 89;
   visibility: hidden;
   opacity: 0;
+  pointer-events: none;
   background: rgba(2, 6, 4, 0.6);
   transition: opacity 180ms ease, visibility 180ms ease;
 }
@@ -4448,6 +4450,7 @@ th {
 .drawer-backdrop.open {
   visibility: visible;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .cart-drawer {
