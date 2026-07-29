@@ -5045,8 +5045,12 @@ th {
     z-index: 5;
   }
 
+  .auth-shortcut {
+    color: var(--green-light);
+  }
+
   .mobile-auth {
-    display: none;
+    display: none !important;
     position: absolute;
     z-index: 4;
     left: 0;

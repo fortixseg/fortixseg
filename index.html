@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=18">
+  <link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body>
   <header class="site-header" id="siteHeader">
@@ -29,7 +29,7 @@
       </nav>
 
       <div class="header-actions">
-        <button class="icon-button cart-button" id="cartButton" type="button" aria-label="Abrir carrinho">
+        <button class="icon-button cart-button" id="cartButton" type="button" aria-label="Abrir carrinho" onclick="window.fortixsegOpenCart && window.fortixsegOpenCart()">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M3 4h2l2.4 10.1a2 2 0 0 0 2 1.5h7.8a2 2 0 0 0 1.9-1.4L21 8H7"/>
             <circle cx="10" cy="20" r="1.2"/>
@@ -39,8 +39,11 @@
         </button>
         <button class="button button-ghost desktop-auth" type="button" data-auth="login">Entrar</button>
         <button class="button button-primary desktop-auth" type="button" data-auth="register">Cadastrar</button>
-        <button class="icon-button menu-toggle" id="menuToggle" type="button" aria-label="Abrir menu" aria-expanded="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <button class="icon-button menu-toggle auth-shortcut" id="menuToggle" type="button" aria-label="Entrar ou cadastrar" aria-expanded="false" onclick="window.fortixsegOpenAuth && window.fortixsegOpenAuth('login')">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.2"></circle>
+            <path d="M5 19c1.6-3.1 4.2-4.7 7-4.7s5.4 1.6 7 4.7"></path>
+          </svg>
         </button>
       </div>
     </div>
@@ -1057,6 +1060,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="script.js?v=12"></script>
+  <script src="script.js?v=13"></script>
 </body>
 </html>

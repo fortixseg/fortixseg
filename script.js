@@ -1821,7 +1821,7 @@ function bindInterface() {
 
   document.getElementById("courseSearch").addEventListener("input", () => renderCourses(courses));
 
-  bindPress(document.getElementById("menuToggle"), toggleMobileMenu);
+  bindPress(document.getElementById("menuToggle"), () => openAuth("login"));
   bindPress(document.getElementById("cartButton"), openCart);
   bindPress(document.getElementById("closeCartButton"), closeCart);
   bindPress(document.getElementById("drawerBackdrop"), closeCart);
@@ -2282,6 +2282,8 @@ function openAuth(mode) {
   openModal("authModal");
 }
 
+window.fortixsegOpenAuth = (mode = "login") => openAuth(mode);
+
 function switchAuthPanel(mode) {
   const loginMode = mode === "login";
   document.getElementById("loginPanel").classList.toggle("active", loginMode);
@@ -2510,6 +2512,8 @@ function openCart() {
   document.getElementById("drawerBackdrop").classList.add("open");
   document.body.classList.add("no-scroll");
 }
+
+window.fortixsegOpenCart = () => openCart();
 
 function closeCart() {
   document.getElementById("cartDrawer").classList.remove("open");
