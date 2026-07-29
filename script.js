@@ -1761,6 +1761,23 @@ function renderCourseSelects() {
   document.getElementById("employeeCourse").innerHTML = options;
 }
 
+function bindPress(target, handler) {
+  if (!target) return;
+
+  let lastPointerTime = 0;
+  const onPress = (event) => {
+    if (event.type === "click" && Date.now() - lastPointerTime < 450) return;
+    if (event.type === "pointerup") {
+      lastPointerTime = Date.now();
+      event.preventDefault();
+    }
+    handler(event);
+  };
+
+  target.addEventListener("pointerup", onPress);
+  target.addEventListener("click", onPress);
+}
+
 function bindInterface() {
   document.addEventListener("click", (event) => {
     const detailButton = event.target.closest("[data-course-details]");
@@ -1804,20 +1821,20 @@ function bindInterface() {
 
   document.getElementById("courseSearch").addEventListener("input", () => renderCourses(courses));
 
-  document.getElementById("menuToggle").addEventListener("click", toggleMobileMenu);
-  document.getElementById("cartButton").addEventListener("click", openCart);
-  document.getElementById("closeCartButton").addEventListener("click", closeCart);
-  document.getElementById("drawerBackdrop").addEventListener("click", closeCart);
-  document.getElementById("checkoutButton").addEventListener("click", checkout);
-  document.getElementById("continueCourseButton").addEventListener("click", () => navigate("lesson"));
-  document.getElementById("completeLessonButton").addEventListener("click", completeLesson);
-  document.getElementById("openQuizButton").addEventListener("click", () => {
+  bindPress(document.getElementById("menuToggle"), toggleMobileMenu);
+  bindPress(document.getElementById("cartButton"), openCart);
+  bindPress(document.getElementById("closeCartButton"), closeCart);
+  bindPress(document.getElementById("drawerBackdrop"), closeCart);
+  bindPress(document.getElementById("checkoutButton"), checkout);
+  bindPress(document.getElementById("continueCourseButton"), () => navigate("lesson"));
+  bindPress(document.getElementById("completeLessonButton"), completeLesson);
+  bindPress(document.getElementById("openQuizButton"), () => {
     document.getElementById("quizPanel").classList.remove("hidden");
     document.getElementById("quizPanel").scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  document.getElementById("addEmployeeButton").addEventListener("click", () => openModal("employeeModal"));
-  document.getElementById("printCertificateButton").addEventListener("click", printCertificate);
-  document.getElementById("validateCertificateButton").addEventListener("click", () => {
+  bindPress(document.getElementById("addEmployeeButton"), () => openModal("employeeModal"));
+  bindPress(document.getElementById("printCertificateButton"), printCertificate);
+  bindPress(document.getElementById("validateCertificateButton"), () => {
     navigate("certificates");
     document.getElementById("certificateCode").value = APP_CONFIG.certificateCode;
     validateCertificate(APP_CONFIG.certificateCode);
@@ -2225,7 +2242,7 @@ function scrollAssistantToBottom() {
 
 function bindModals() {
   document.querySelectorAll("[data-auth]").forEach((button) => {
-    button.addEventListener("click", () => openAuth(button.dataset.auth));
+    bindPress(button, () => openAuth(button.dataset.auth));
   });
 
   document.querySelectorAll("[data-close-modal]").forEach((element) => {
