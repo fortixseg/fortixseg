@@ -9,3 +9,7 @@ Nova pasta
 Nova pasta.zip
 .vercel
 .env*
+!.env.example
+assets/uploads/
+data/app-data.json
+data/interactive-courses.json

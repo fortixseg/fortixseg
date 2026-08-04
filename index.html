@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=19">
+  <link rel="stylesheet" href="styles.css?v=23">
 </head>
 <body>
   <header class="site-header" id="siteHeader">
@@ -805,6 +805,7 @@
           <nav>
             <button class="active" type="button">Dashboard</button>
             <button type="button">Cursos</button>
+            <button type="button">Gerador de Treinamentos</button>
             <button type="button">Alunos</button>
             <button type="button">Empresas</button>
             <button type="button">Certificados</button>
@@ -827,6 +828,33 @@
             <article><span>OpenAI</span><strong id="apiOpenAiStatus">Pendente</strong><small>Atendente inteligente</small></article>
             <article><span>Mercado Pago</span><strong id="apiMercadoPagoStatus">Pendente</strong><small>Checkout Pro</small></article>
             <article><span>Banco de dados</span><strong id="apiDatabaseStatus">Demo local</strong><small>Futuro PostgreSQL</small></article>
+          </section>
+          <section class="admin-action-grid" aria-label="Ferramentas administrativas">
+            <button class="admin-action-card primary" type="button" data-portal-action="admin-new-course">
+              <span>Novo curso</span>
+              <strong>Cadastrar treinamento e PDF</strong>
+              <small>Crie curso, preço, carga horária, conteúdo programático e apostila.</small>
+            </button>
+            <button class="admin-action-card primary" type="button" data-portal="admin" data-portal-target="generator" data-portal-title="Gerador de treinamentos">
+              <span>Gerador de Treinamentos</span>
+              <strong>Subir PDF e gerar rascunho</strong>
+              <small>Identifica o tema, cria módulos, aulas, checklists e prova editável.</small>
+            </button>
+            <button class="admin-action-card" type="button" data-portal="admin" data-portal-target="courses" data-portal-title="Gestão de cursos">
+              <span>Catálogo</span>
+              <strong>Editar cursos</strong>
+              <small>Publicar, colocar como rascunho, ajustar valores e materiais.</small>
+            </button>
+            <button class="admin-action-card" type="button" data-portal="admin" data-portal-target="students" data-portal-title="Gestão de usuários">
+              <span>Acessos</span>
+              <strong>Cadastrar usuários</strong>
+              <small>Aluno, empresa, afiliado ou administrador.</small>
+            </button>
+            <button class="admin-action-card" type="button" data-portal="admin" data-portal-target="payments" data-portal-title="Pagamentos">
+              <span>Financeiro</span>
+              <strong>Ver pagamentos</strong>
+              <small>Status do Mercado Pago e histórico de pedidos.</small>
+            </button>
           </section>
           <div class="admin-grid">
             <section class="dashboard-section">
@@ -1060,6 +1088,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="script.js?v=13"></script>
+  <script src="script.js?v=23"></script>
 </body>
 </html>

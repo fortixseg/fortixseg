@@ -2917,6 +2917,63 @@ svg {
   color: #a36c00;
 }
 
+.admin-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0 22px;
+}
+
+.admin-action-card {
+  min-width: 0;
+  min-height: 132px;
+  padding: 18px;
+  color: #101a14;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #dce5de;
+  border-radius: 7px;
+  box-shadow: 0 12px 28px rgba(13, 26, 18, 0.06);
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.admin-action-card:hover {
+  transform: translateY(-2px);
+  border-color: #2fa31f;
+  box-shadow: 0 18px 34px rgba(13, 26, 18, 0.1);
+}
+
+.admin-action-card.primary {
+  color: #ffffff;
+  background: linear-gradient(145deg, #146d18, #24a51f);
+  border-color: #24a51f;
+}
+
+.admin-action-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-action-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.admin-action-card small {
+  display: block;
+  color: inherit;
+  opacity: 0.78;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .portal-view {
   min-width: 0;
   display: none;
@@ -3203,8 +3260,17 @@ svg {
   gap: 18px;
 }
 
+.admin-user-manager {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.8fr) minmax(520px, 1.2fr);
+  align-items: start;
+  gap: 18px;
+}
+
 .admin-course-list-panel,
-.admin-course-editor {
+.admin-course-editor,
+.admin-user-form-panel,
+.admin-user-list-panel {
   min-width: 0;
   background: var(--white);
   border: 1px solid var(--border-light);
@@ -3212,7 +3278,9 @@ svg {
   box-shadow: 0 10px 30px rgba(13, 26, 18, 0.05);
 }
 
-.admin-course-list-panel {
+.admin-course-list-panel,
+.admin-user-form-panel,
+.admin-user-list-panel {
   padding: 18px;
 }
 
@@ -3238,7 +3306,13 @@ svg {
   gap: 10px;
 }
 
-.admin-course-item {
+.admin-user-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-course-item,
+.admin-user-card {
   min-width: 0;
   display: flex;
   align-items: center;
@@ -3250,26 +3324,50 @@ svg {
   border-radius: 7px;
 }
 
-.admin-course-item:hover {
+.admin-course-item:hover,
+.admin-user-card:hover {
   border-color: #a8b7ac;
 }
 
-.admin-course-item-main {
+.admin-course-item-main,
+.admin-user-card > div:first-child {
   min-width: 0;
 }
 
-.admin-course-item h4 {
+.admin-course-item h4,
+.admin-user-card h4 {
   margin: 7px 0 4px;
   color: #111827;
   font-size: 14px;
   line-height: 1.35;
 }
 
-.admin-course-item p {
+.admin-course-item p,
+.admin-user-card p,
+.admin-user-card small {
   margin: 0;
   color: var(--text-muted);
   font-size: 10px;
   line-height: 1.5;
+}
+
+.admin-user-card > div:last-child {
+  flex: 0 0 auto;
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  text-align: right;
+}
+
+.admin-user-card > div:last-child strong {
+  color: #17652b;
+  font-size: 13px;
+}
+
+.admin-user-card .button {
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 10px;
 }
 
 .admin-course-item-side {
@@ -4976,7 +5074,8 @@ th {
   }
 
   .portal-insights,
-  .api-status-grid {
+  .api-status-grid,
+  .admin-action-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -4994,7 +5093,8 @@ th {
     grid-template-columns: 1fr;
   }
 
-  .admin-course-manager {
+  .admin-course-manager,
+  .admin-user-manager {
     grid-template-columns: 1fr;
   }
 
@@ -5455,7 +5555,8 @@ th {
   }
 
   .portal-insights,
-  .api-status-grid {
+  .api-status-grid,
+  .admin-action-grid {
     grid-template-columns: 1fr;
   }
 
@@ -5854,6 +5955,35 @@ body.portal-mode {
 
 .portal-nav-open .portal-menu-toggle span:last-child {
   transform: translateY(-7px) rotate(-45deg);
+}
+
+@media (min-width: 1100px) {
+  .portal-mode .app-page {
+    --portal-sidebar-width: 292px;
+  }
+
+  .portal-mode .app-shell {
+    grid-template-columns: var(--portal-sidebar-width) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .portal-mode .app-sidebar {
+    width: auto;
+    position: sticky;
+    min-height: 100vh;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .portal-mode .app-main {
+    max-width: none;
+    margin: 0;
+  }
+
+  .portal-menu-toggle,
+  .portal-sidebar-backdrop {
+    display: none !important;
+  }
 }
 
 .portal-mode .app-brand {
@@ -6480,6 +6610,533 @@ body.portal-mode {
   .review-breakdown,
   .google-review-card {
     padding: 20px;
+  }
+}
+
+.package-card h3,
+.course-card h3,
+.portal-course-card h3,
+.admin-action-card strong,
+.admin-interactive-course-card h4,
+.interactive-lesson-card h3 {
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.18;
+}
+
+.admin-generator-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.95fr) minmax(360px, 1.05fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.admin-generator-panel,
+.admin-generated-list-panel,
+.interactive-review-panel,
+.admin-interactive-preview-panel,
+.interactive-module-card,
+.interactive-review-side,
+.student-interactive-heading,
+.interactive-student-shell,
+.interactive-lesson-card,
+.interactive-pdf-support,
+.interactive-assessment {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(145deg, rgba(9, 18, 15, 0.96), rgba(4, 8, 7, 0.98));
+  border-radius: 8px;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
+}
+
+.admin-generator-panel,
+.admin-generated-list-panel,
+.interactive-review-panel,
+.admin-interactive-preview-panel {
+  padding: 22px;
+}
+
+.generator-upload {
+  margin-top: 12px;
+  min-height: 116px;
+  justify-content: center;
+}
+
+.generator-helper {
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.5;
+}
+
+.generator-upload small {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.generator-template-note {
+  display: grid;
+  gap: 4px;
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid rgba(101, 214, 49, 0.25);
+  border-radius: 8px;
+  background: rgba(50, 143, 27, 0.12);
+}
+
+.generator-template-note strong,
+.student-interactive-heading span,
+.interactive-review-header span,
+.interactive-lesson-top span,
+.interactive-pdf-support span,
+.practice-card span,
+.attention-card span {
+  color: var(--green-light);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-interactive-course-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-interactive-course-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.admin-interactive-course-card h4,
+.student-interactive-heading h3,
+.interactive-lesson-top h3 {
+  margin: 8px 0;
+}
+
+.admin-interactive-actions,
+.interactive-review-actions,
+.interactive-lesson-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.interactive-review-panel {
+  margin-top: 24px;
+}
+
+.admin-interactive-preview-panel {
+  margin-top: 24px;
+}
+
+.admin-preview-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.admin-preview-top span,
+.preview-mode-banner strong {
+  color: var(--green-light);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-preview-top h3 {
+  margin: 6px 0 8px;
+  color: #fff;
+  font-size: 26px;
+}
+
+.admin-preview-top p,
+.preview-mode-banner span {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.preview-mode-banner {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid rgba(101, 214, 49, 0.28);
+  border-radius: 8px;
+  background: rgba(77, 191, 30, 0.12);
+}
+
+.interactive-review-header,
+.interactive-lesson-top {
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.interactive-review-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+}
+
+.interactive-module-review {
+  display: grid;
+  gap: 12px;
+}
+
+.interactive-module-card {
+  padding: 14px;
+}
+
+.interactive-module-card header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.interactive-module-card header span,
+.interactive-lesson-row span {
+  color: var(--green-light);
+  font-weight: 800;
+}
+
+.interactive-lesson-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  color: #fff;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.interactive-review-side {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.interactive-review-side article {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.interactive-review-side strong {
+  color: #fff;
+}
+
+.interactive-json-details {
+  margin-top: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.interactive-json-details summary {
+  padding: 15px 16px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.interactive-json-details .field {
+  padding: 0 16px 16px;
+}
+
+.interactive-json-details textarea {
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.student-interactive-courses {
+  margin-bottom: 24px;
+}
+
+.student-interactive-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.interactive-student-shell {
+  display: grid;
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+  gap: 18px;
+  padding: 22px;
+  align-items: start;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.interactive-student-sidebar,
+.interactive-student-content,
+.interactive-pdf-support {
+  min-width: 0;
+}
+
+.interactive-student-content {
+  display: grid;
+  gap: 18px;
+}
+
+.interactive-student-shell p,
+.interactive-student-shell small,
+.interactive-student-shell label,
+.interactive-student-shell textarea,
+.interactive-student-shell details,
+.interactive-student-shell summary {
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.58;
+}
+
+.interactive-student-sidebar h3 {
+  margin: 14px 0 10px;
+  color: #fff;
+  font-size: 19px;
+  line-height: 1.22;
+}
+
+.interactive-module-nav {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.interactive-module-nav article {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.interactive-module-nav strong span {
+  display: block;
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.interactive-module-nav button {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 9px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.interactive-module-nav button.active {
+  border-color: rgba(101, 214, 49, 0.6);
+  background: rgba(77, 191, 30, 0.12);
+  color: #fff;
+}
+
+.interactive-module-nav button.complete span {
+  color: var(--green-light);
+}
+
+.interactive-module-nav button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.button:disabled,
+.button[disabled] {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.interactive-lesson-card,
+.interactive-assessment,
+.interactive-pdf-support {
+  padding: 18px;
+}
+
+.interactive-lesson-card strong,
+.interactive-checklist > strong,
+.interactive-quick-question > strong,
+.interactive-assessment h3,
+.interactive-pdf-support strong {
+  color: #fff;
+}
+
+.lesson-objective,
+.lesson-pdf-text,
+.interactive-checklist,
+.interactive-quick-question {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.lesson-pdf-text p {
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 8px;
+  white-space: pre-line;
+}
+
+.interactive-tip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.practice-card,
+.attention-card {
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.practice-card {
+  border: 1px solid rgba(77, 191, 30, 0.35);
+  background: rgba(57, 146, 29, 0.14);
+}
+
+.attention-card {
+  border: 1px solid rgba(226, 170, 49, 0.35);
+  background: rgba(180, 118, 22, 0.12);
+}
+
+.interactive-checklist,
+.interactive-quick-question fieldset,
+.interactive-assessment fieldset {
+  display: grid;
+  gap: 10px;
+}
+
+.interactive-checklist label,
+.interactive-quick-question label,
+.interactive-assessment label {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.interactive-quick-question details {
+  margin-top: 12px;
+}
+
+.interactive-assessment {
+  margin-top: 18px;
+}
+
+.interactive-assessment fieldset {
+  margin: 0 0 16px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+}
+
+.interactive-assessment legend {
+  padding: 0 8px;
+  color: #fff;
+  font-weight: 800;
+}
+
+.interactive-assessment.locked {
+  opacity: 0.78;
+}
+
+.interactive-pdf-support {
+  display: grid;
+  gap: 14px;
+}
+
+.interactive-support-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.interactive-pdf-actions {
+  flex: 0 0 auto;
+}
+
+.interactive-pdf-support .pdf-viewer {
+  width: 100%;
+  min-height: 620px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.interactive-pdf-support textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+@media (max-width: 1180px) {
+  .admin-generator-layout,
+  .interactive-review-grid,
+  .interactive-student-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .interactive-student-sidebar {
+    position: static;
+  }
+
+  .interactive-pdf-support .pdf-viewer {
+    min-height: 520px;
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-interactive-course-card,
+  .interactive-review-header,
+  .admin-preview-top,
+  .interactive-support-header,
+  .student-interactive-heading,
+  .interactive-lesson-top {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .interactive-tip-grid {
+    grid-template-columns: 1fr;
   }
 }
 

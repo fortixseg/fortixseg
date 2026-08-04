@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSyn
 import { basename, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildCertificatePdf } from "./lib/certificates.js";
+import { generateInteractiveCourseFromPdf, summarizeCourse } from "./lib/interactive-generator.js";
 import { isDatabaseEnabled, loadDatabaseState, saveDatabaseState } from "./lib/persistence.js";
 import { createBlobReadUrl, deleteBlobResource, isBlobStorageEnabled, uploadBlobResource } from "./lib/storage.js";
 
@@ -19,7 +20,9 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const DATA_DIR = resolve(ROOT_DIR, "data");
 const COURSE_DATA_FILE = resolve(DATA_DIR, "courses.json");
 const APP_DATA_FILE = resolve(DATA_DIR, "app-data.json");
+const INTERACTIVE_COURSE_DATA_FILE = resolve(DATA_DIR, "interactive-courses.json");
 const COURSE_UPLOAD_DIR = resolve(ROOT_DIR, "assets", "uploads", "courses");
+const INTERACTIVE_UPLOAD_DIR = resolve(ROOT_DIR, "assets", "uploads", "interactive");
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const SESSION_SECRET = ENV.FORTIXSEG_SESSION_SECRET || ENV.AUTH_TOKEN_SECRET || randomUUID();
 const IS_DIRECT_RUN = Boolean(process.argv[1]) && resolve(process.argv[1]) === MODULE_FILE;
@@ -70,6 +73,7 @@ const PACKAGE_RELEASE_MAP = {
 const QUIZ_ANSWER_KEY = [1, 2, 1, 2, 0];
 
 let courseCatalog = loadCourseCatalog();
+let interactiveCourses = loadInteractiveCourses();
 let appState = loadAppData();
 let companyEmployees = loadInitialCompanyEmployees();
 let runtimeStateIssue = "";
@@ -141,6 +145,35 @@ export async function handleRequest(request, response) {
       return sendJson(response, 200, { courses: await serializeCourseList(Object.values(courseCatalog), { includeDrafts: true }) });
     }
 
+    if (request.method === "GET" && url.pathname === "/api/admin/interactive-courses") {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return sendJson(response, 200, { courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/admin/interactive-courses/generate") {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return await handleInteractiveCourseGenerate(request, response);
+    }
+
+    const adminInteractiveMatch = url.pathname.match(/^\/api\/admin\/interactive-courses\/([^/]+)(?:\/(publish|unpublish))?$/);
+    if (adminInteractiveMatch && request.method === "GET" && !adminInteractiveMatch[2]) {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return handleInteractiveCourseGet(response, decodeURIComponent(adminInteractiveMatch[1]));
+    }
+    if (adminInteractiveMatch && request.method === "PUT" && !adminInteractiveMatch[2]) {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return await handleInteractiveCourseUpdate(request, response, decodeURIComponent(adminInteractiveMatch[1]));
+    }
+    if (adminInteractiveMatch && request.method === "POST" && adminInteractiveMatch[2]) {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return handleInteractiveCoursePublish(response, decodeURIComponent(adminInteractiveMatch[1]), adminInteractiveMatch[2] === "publish");
+    }
+
     if (request.method === "POST" && url.pathname === "/api/admin/courses") {
       const session = requireRole(request, response, ["admin"]);
       if (!session) return;
@@ -197,6 +230,26 @@ export async function handleRequest(request, response) {
       const session = requireRole(request, response, ["student", "admin"]);
       if (!session) return;
       return sendJson(response, 200, await buildStudentLibrary(session));
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/student/interactive-courses") {
+      const session = requireRole(request, response, ["student", "admin"]);
+      if (!session) return;
+      return sendJson(response, 200, buildStudentInteractiveCourses(session));
+    }
+
+    const studentInteractiveLessonMatch = url.pathname.match(/^\/api\/student\/interactive-courses\/([^/]+)\/lessons\/([^/]+)\/complete$/);
+    if (studentInteractiveLessonMatch && request.method === "POST") {
+      const session = requireRole(request, response, ["student", "admin"]);
+      if (!session) return;
+      return await handleStudentInteractiveLessonComplete(response, session, decodeURIComponent(studentInteractiveLessonMatch[1]), decodeURIComponent(studentInteractiveLessonMatch[2]));
+    }
+
+    const studentInteractiveAssessmentMatch = url.pathname.match(/^\/api\/student\/interactive-courses\/([^/]+)\/assessment$/);
+    if (studentInteractiveAssessmentMatch && request.method === "POST") {
+      const session = requireRole(request, response, ["student", "admin"]);
+      if (!session) return;
+      return await handleStudentInteractiveAssessment(request, response, session, decodeURIComponent(studentInteractiveAssessmentMatch[1]));
     }
 
     if (request.method === "GET" && url.pathname === "/api/student/certificates/current") {
@@ -265,6 +318,25 @@ export async function handleRequest(request, response) {
       return sendJson(response, 200, buildAdminDashboard(session));
     }
 
+    if (request.method === "GET" && url.pathname === "/api/admin/users") {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return sendJson(response, 200, handleAdminUsersList());
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/admin/users") {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return await handleAdminUserCreate(request, response);
+    }
+
+    const adminUserMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/);
+    if (adminUserMatch && request.method === "PATCH") {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return await handleAdminUserStatus(request, response, session, decodeURIComponent(adminUserMatch[1]));
+    }
+
     if (request.method === "POST" && url.pathname === "/api/admin/settings") {
       const session = requireRole(request, response, ["admin"]);
       if (!session) return;
@@ -319,7 +391,7 @@ function loadCourseCatalog() {
   let source = DEFAULT_COURSE_CATALOG;
   if (existsSync(COURSE_DATA_FILE)) {
     try {
-      const stored = JSON.parse(readFileSync(COURSE_DATA_FILE, "utf8"));
+      const stored = JSON.parse(readTextFile(COURSE_DATA_FILE));
       if (stored && typeof stored === "object") source = stored;
     } catch (error) {
       console.error(`Não foi possível ler o catálogo persistido: ${error.message}`);
@@ -334,11 +406,27 @@ function saveCourseCatalog() {
   writeFileSync(COURSE_DATA_FILE, JSON.stringify(courseCatalog, null, 2), "utf8");
 }
 
+function loadInteractiveCourses() {
+  if (!existsSync(INTERACTIVE_COURSE_DATA_FILE)) return [];
+  try {
+    const parsed = JSON.parse(readTextFile(INTERACTIVE_COURSE_DATA_FILE));
+    return Array.isArray(parsed) ? parsed.map(normalizeInteractiveCourse).filter(Boolean) : [];
+  } catch (error) {
+    console.error(`Nao foi possivel ler cursos interativos: ${error.message}`);
+    return [];
+  }
+}
+
+function saveInteractiveCourses() {
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(INTERACTIVE_COURSE_DATA_FILE, JSON.stringify(interactiveCourses.map(normalizeInteractiveCourse).filter(Boolean), null, 2), "utf8");
+}
+
 function loadAppData() {
   let source = {};
   if (existsSync(APP_DATA_FILE)) {
     try {
-      const parsed = JSON.parse(readFileSync(APP_DATA_FILE, "utf8"));
+      const parsed = JSON.parse(readTextFile(APP_DATA_FILE));
       if (parsed && typeof parsed === "object") source = parsed;
     } catch (error) {
       console.error(`Não foi possível ler o estado da aplicação: ${error.message}`);
@@ -360,13 +448,18 @@ function loadAppData() {
     affiliateSettings: source.affiliateSettings && typeof source.affiliateSettings === "object" ? source.affiliateSettings : {},
     adminSettings: source.adminSettings && typeof source.adminSettings === "object" ? source.adminSettings : {},
     companyEmployees: source.companyEmployees && typeof source.companyEmployees === "object" ? source.companyEmployees : {},
-    certificates: Array.isArray(source.certificates) ? source.certificates : []
+    certificates: Array.isArray(source.certificates) ? source.certificates : [],
+    interactiveProgress: source.interactiveProgress && typeof source.interactiveProgress === "object" ? source.interactiveProgress : {}
   };
 }
 
 function saveAppData() {
   mkdirSync(DATA_DIR, { recursive: true });
   writeFileSync(APP_DATA_FILE, JSON.stringify(appState, null, 2), "utf8");
+}
+
+function readTextFile(filePath) {
+  return readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
 }
 
 async function initializeRuntimeState() {
@@ -414,7 +507,8 @@ function loadAppDataFromSource(source = {}) {
     affiliateSettings: source.affiliateSettings && typeof source.affiliateSettings === "object" ? source.affiliateSettings : {},
     adminSettings: source.adminSettings && typeof source.adminSettings === "object" ? source.adminSettings : {},
     companyEmployees: source.companyEmployees && typeof source.companyEmployees === "object" ? source.companyEmployees : {},
-    certificates: Array.isArray(source.certificates) ? source.certificates : []
+    certificates: Array.isArray(source.certificates) ? source.certificates : [],
+    interactiveProgress: source.interactiveProgress && typeof source.interactiveProgress === "object" ? source.interactiveProgress : {}
   };
 }
 
@@ -450,6 +544,32 @@ function normalizeUserRecord(user) {
 
 function ensureSeedUsers() {
   const seeds = [
+    {
+      email: String(ENV.FORTIXSEG_STUDENT_EMAIL || "aluno@teste.com").toLowerCase(),
+      password: String(ENV.FORTIXSEG_STUDENT_PASSWORD || "123456"),
+      role: "student",
+      name: "Joao da Silva",
+      phone: "(11) 99999-0001",
+      document: "00000000000"
+    },
+    {
+      email: String(ENV.FORTIXSEG_COMPANY_EMAIL || "empresa@teste.com").toLowerCase(),
+      password: String(ENV.FORTIXSEG_COMPANY_PASSWORD || "123456"),
+      role: "company",
+      name: "Empresa Exemplo Ltda.",
+      companyName: "Empresa Exemplo Ltda.",
+      responsibleName: "Responsavel da Empresa",
+      phone: "(11) 99999-0002",
+      document: "00000000000100"
+    },
+    {
+      email: String(ENV.FORTIXSEG_AFFILIATE_EMAIL || "afiliado@teste.com").toLowerCase(),
+      password: String(ENV.FORTIXSEG_AFFILIATE_PASSWORD || "123456"),
+      role: "affiliate",
+      name: "Afiliado FortixSeg",
+      phone: "(11) 99999-0003",
+      document: "00000000000"
+    },
     {
       email: String(ENV.FORTIXSEG_ADMIN_EMAIL || "").toLowerCase(),
       password: String(ENV.FORTIXSEG_ADMIN_PASSWORD || ""),
@@ -537,6 +657,83 @@ function normalizeResource(resource) {
     mimeType: cleanText(resource.mimeType || "application/octet-stream", 100),
     size: Number(resource.size) || 0,
     createdAt: resource.createdAt || new Date().toISOString()
+  };
+}
+
+function normalizeInteractiveCourse(course) {
+  if (!course?.id || !course?.title) return null;
+  const modules = Array.isArray(course.modules) ? course.modules.map((module, moduleIndex) => ({
+    id: cleanText(module.id || `module-${moduleIndex + 1}`, 80),
+    title: cleanText(module.title || `Modulo ${moduleIndex + 1}`, 180),
+    topics: Array.isArray(module.topics) ? module.topics.map((topic) => cleanText(topic, 180)).filter(Boolean) : [],
+    lessons: Array.isArray(module.lessons) ? module.lessons.map((lesson, lessonIndex) => normalizeInteractiveLesson(lesson, lessonIndex)).filter(Boolean) : []
+  })) : [];
+  const normalized = {
+    ...course,
+    id: slugify(course.id),
+    title: cleanText(course.title, 180),
+    code: cleanText(course.code || "SST", 30),
+    category: cleanText(course.category || "Seguranca do Trabalho", 80),
+    status: course.status === "published" ? "published" : "draft",
+    source: "pdf-template",
+    detectedTemplate: cleanText(course.detectedTemplate || "sst-generico", 40),
+    detectedLabel: cleanText(course.detectedLabel || "SST Generico", 120),
+    confidence: Number(course.confidence) || 0,
+    hours: clampNumber(course.hours, 1, 500, 4),
+    minimumGrade: Math.round(clampNumber(course.minimumGrade, 0, 100, 70)),
+    attempts: Math.round(clampNumber(course.attempts, 1, 10, 3)),
+    responsible: cleanText(course.responsible || "Responsavel tecnico a definir", 160),
+    generatedAt: course.generatedAt || new Date().toISOString(),
+    updatedAt: course.updatedAt || new Date().toISOString(),
+    pdf: {
+      id: cleanText(course.pdf?.id || `pdf-${randomUUID()}`, 100),
+      name: cleanText(course.pdf?.name || "material.pdf", 180),
+      url: cleanText(course.pdf?.url, 500),
+      pathname: cleanText(course.pdf?.pathname, 500),
+      mimeType: "application/pdf",
+      size: Number(course.pdf?.size) || 0,
+      pages: Number(course.pdf?.pages) || 0
+    },
+    review: course.review && typeof course.review === "object" ? course.review : { required: true, status: "pending", notes: [] },
+    modules,
+    finalAssessment: {
+      minimumGrade: Math.round(clampNumber(course.finalAssessment?.minimumGrade ?? course.minimumGrade, 0, 100, 70)),
+      attempts: Math.round(clampNumber(course.finalAssessment?.attempts ?? course.attempts, 1, 10, 3)),
+      questions: Array.isArray(course.finalAssessment?.questions) ? course.finalAssessment.questions.map(normalizeInteractiveQuestion).filter(Boolean) : []
+    }
+  };
+  normalized.stats = summarizeCourse(normalized);
+  return normalized;
+}
+
+function normalizeInteractiveLesson(lesson, lessonIndex = 0) {
+  if (!lesson) return null;
+  return {
+    id: cleanText(lesson.id || `lesson-${randomUUID()}`, 100),
+    title: cleanText(lesson.title || `Aula ${lessonIndex + 1}`, 180),
+    sourcePage: Number(lesson.sourcePage) || lessonIndex + 1,
+    pageImageUrl: cleanText(lesson.pageImageUrl, 500),
+    pagePreviewType: cleanText(lesson.pagePreviewType || "pdf-page", 40),
+    extractedText: cleanText(lesson.extractedText, 8000),
+    summary: cleanText(lesson.summary, 800),
+    attentionCard: cleanText(lesson.attentionCard, 800),
+    practiceCard: cleanText(lesson.practiceCard, 800),
+    checklist: Array.isArray(lesson.checklist) ? lesson.checklist.map((item) => cleanText(item, 180)).filter(Boolean).slice(0, 12) : [],
+    quickQuestion: normalizeInteractiveQuestion(lesson.quickQuestion),
+    completedButtonLabel: cleanText(lesson.completedButtonLabel || "Concluir aula", 80)
+  };
+}
+
+function normalizeInteractiveQuestion(question) {
+  if (!question?.prompt) return null;
+  const alternatives = Array.isArray(question.alternatives) ? question.alternatives.map((item) => cleanText(item, 240)).filter(Boolean).slice(0, 6) : [];
+  if (alternatives.length < 2) return null;
+  return {
+    id: cleanText(question.id || `q-${randomUUID()}`, 100),
+    prompt: cleanText(question.prompt, 500),
+    alternatives,
+    correctIndex: Math.min(alternatives.length - 1, Math.max(0, Number(question.correctIndex) || 0)),
+    explanation: cleanText(question.explanation || "Resposta conferida conforme o conteudo do treinamento.", 600)
   };
 }
 
@@ -678,6 +875,123 @@ async function handleAdminCourseResourceDelete(response, courseId, resourceId) {
   }
   await persistRuntimeState();
   return sendJson(response, 200, { deleted: true, course: await serializeCourse(course) });
+}
+
+async function handleInteractiveCourseGenerate(request, response) {
+  const body = await readJsonBody(request, 30_000_000);
+  const match = String(body.data || "").match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return sendJson(response, 400, { error: "Envie um PDF valido para gerar o treinamento." });
+
+  const mimeType = match[1].toLowerCase();
+  if (mimeType !== "application/pdf") return sendJson(response, 415, { error: "Por enquanto, o gerador aceita somente PDF." });
+
+  const bytes = Buffer.from(match[2], "base64");
+  if (!bytes.length || bytes.length > 20_000_000) return sendJson(response, 413, { error: "O PDF deve ter no maximo 20 MB no MVP." });
+  if (bytes.subarray(0, 4).toString("utf8") !== "%PDF") return sendJson(response, 400, { error: "O arquivo enviado nao parece ser um PDF valido." });
+
+  const baseName = slugify(basename(cleanText(body.name, 180), extname(cleanText(body.name, 180)))) || "treinamento";
+  const draftKey = `${Date.now()}-${baseName}`;
+  const uploadDir = resolve(INTERACTIVE_UPLOAD_DIR, draftKey);
+  if (!uploadDir.startsWith(`${INTERACTIVE_UPLOAD_DIR}${sep}`)) return sendJson(response, 403, { error: "Destino de upload invalido." });
+  mkdirSync(uploadDir, { recursive: true });
+
+  const fileName = `${baseName}.pdf`;
+  const filePath = resolve(uploadDir, fileName);
+  writeFileSync(filePath, bytes);
+  const storedUrl = `/assets/uploads/interactive/${draftKey}/${fileName}`;
+
+  let generated;
+  try {
+    generated = await generateInteractiveCourseFromPdf({
+      bytes,
+      originalName: body.name || fileName,
+      storedUrl,
+      storedPathname: filePath,
+      options: {
+        title: body.title,
+        code: body.code,
+        category: body.category,
+        hours: body.hours,
+        minimumGrade: body.minimumGrade,
+        attempts: body.attempts,
+        responsible: body.responsible
+      }
+    });
+  } catch (error) {
+    return sendJson(response, 422, { error: "Nao foi possivel extrair o texto do PDF.", details: cleanText(error.message, 240) });
+  }
+
+  const existingIds = new Set(interactiveCourses.map((course) => course.id));
+  while (existingIds.has(generated.id)) generated.id = `${generated.id}-${String(randomUUID()).slice(0, 6)}`;
+  const course = normalizeInteractiveCourse(generated);
+  interactiveCourses.unshift(course);
+  saveInteractiveCourses();
+  return sendJson(response, 201, { course, courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
+}
+
+function handleInteractiveCourseGet(response, courseId) {
+  const course = findInteractiveCourse(courseId);
+  if (!course) return sendJson(response, 404, { error: "Treinamento interativo nao encontrado." });
+  return sendJson(response, 200, { course });
+}
+
+async function handleInteractiveCourseUpdate(request, response, courseId) {
+  const safeCourseId = slugify(courseId);
+  const index = interactiveCourses.findIndex((course) => course.id === safeCourseId);
+  if (index < 0) return sendJson(response, 404, { error: "Treinamento interativo nao encontrado." });
+  const body = await readJsonBody(request, 1_500_000);
+  const nextCourse = normalizeInteractiveCourse({
+    ...interactiveCourses[index],
+    ...body.course,
+    id: interactiveCourses[index].id,
+    status: body.course?.status === "published" ? "published" : interactiveCourses[index].status,
+    updatedAt: new Date().toISOString()
+  });
+  interactiveCourses[index] = nextCourse;
+  saveInteractiveCourses();
+  return sendJson(response, 200, { course: nextCourse, courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
+}
+
+function handleInteractiveCoursePublish(response, courseId, publish) {
+  const course = findInteractiveCourse(courseId);
+  if (!course) return sendJson(response, 404, { error: "Treinamento interativo nao encontrado." });
+  course.status = publish ? "published" : "draft";
+  course.review = {
+    ...(course.review || {}),
+    status: publish ? "approved" : "pending",
+    publishedAt: publish ? new Date().toISOString() : ""
+  };
+  course.updatedAt = new Date().toISOString();
+  course.stats = summarizeCourse(course);
+  saveInteractiveCourses();
+  return sendJson(response, 200, { course, courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
+}
+
+function serializeInteractiveCourseSummary(course) {
+  return {
+    id: course.id,
+    title: course.title,
+    code: course.code,
+    category: course.category,
+    status: course.status,
+    detectedTemplate: course.detectedTemplate,
+    detectedLabel: course.detectedLabel,
+    confidence: course.confidence,
+    hours: course.hours,
+    minimumGrade: course.minimumGrade,
+    attempts: course.attempts,
+    responsible: course.responsible,
+    generatedAt: course.generatedAt,
+    updatedAt: course.updatedAt,
+    pdf: course.pdf,
+    stats: course.stats || summarizeCourse(course),
+    review: course.review || {}
+  };
+}
+
+function findInteractiveCourse(courseId) {
+  const id = slugify(courseId);
+  return interactiveCourses.find((course) => course.id === id) || null;
 }
 
 function slugify(value) {
@@ -928,6 +1242,10 @@ function requireRole(request, response, roles) {
     sendJson(response, 401, { error: "Sessão inválida. Faça login novamente." });
     return null;
   }
+  if (user.status !== "active") {
+    sendJson(response, 403, { error: "Usuário desativado. Fale com o administrador." });
+    return null;
+  }
   return session;
 }
 
@@ -1086,6 +1404,106 @@ async function handleAdminSettings(request, response, session) {
   return sendJson(response, 200, { success: true, settings });
 }
 
+function handleAdminUsersList() {
+  const users = [...appState.users]
+    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
+    .map(serializeAdminUser);
+
+  return {
+    users,
+    metrics: {
+      total: users.length,
+      students: users.filter((user) => user.role === "student").length,
+      companies: users.filter((user) => user.role === "company").length,
+      affiliates: users.filter((user) => user.role === "affiliate").length,
+      admins: users.filter((user) => user.role === "admin").length
+    }
+  };
+}
+
+async function handleAdminUserCreate(request, response) {
+  const body = await readJsonBody(request, 80_000);
+  const role = ["student", "company", "affiliate", "admin"].includes(body.role) ? body.role : "student";
+  const email = cleanText(body.email, 160).toLowerCase();
+  const password = String(body.password || "");
+  const name = cleanText(body.name || body.companyName || body.responsibleName, 160);
+
+  if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return sendJson(response, 400, { error: "Informe nome e e-mail válido." });
+  }
+  if (password.length < 6) {
+    return sendJson(response, 400, { error: "A senha precisa ter no mínimo 6 caracteres." });
+  }
+  if (findUserByEmail(email)) {
+    return sendJson(response, 409, { error: "Já existe uma conta com esse e-mail." });
+  }
+
+  const user = createUserRecord({
+    role,
+    email,
+    password,
+    name,
+    companyName: role === "company" ? cleanText(body.companyName || name, 160) : "",
+    responsibleName: role === "company" ? cleanText(body.responsibleName || name, 160) : "",
+    phone: cleanText(body.phone, 40),
+    document: cleanText(body.document, 24)
+  });
+  appState.users.unshift(user);
+  appState.registrations.unshift({
+    id: `registration-${randomUUID()}`,
+    role,
+    email,
+    name,
+    createdAt: new Date().toISOString(),
+    source: "admin"
+  });
+
+  const courseId = slugify(body.courseId);
+  if (role === "student" && courseId && courseCatalog[courseId]) {
+    ensureEnrollmentForUser(user.id, courseId);
+  }
+
+  await persistRuntimeState();
+  return sendJson(response, 201, { user: serializeAdminUser(user), users: handleAdminUsersList().users });
+}
+
+async function handleAdminUserStatus(request, response, session, userId) {
+  const body = await readJsonBody(request, 20_000);
+  const user = findUserById(userId);
+  if (!user) return sendJson(response, 404, { error: "Usuário não encontrado." });
+
+  const status = body.status === "inactive" ? "inactive" : "active";
+  if (user.id === session.userId && status === "inactive") {
+    return sendJson(response, 400, { error: "Você não pode desativar o próprio usuário administrativo." });
+  }
+
+  user.status = status;
+  user.updatedAt = new Date().toISOString();
+  await persistRuntimeState();
+  return sendJson(response, 200, { user: serializeAdminUser(user), users: handleAdminUsersList().users });
+}
+
+function serializeAdminUser(user) {
+  return {
+    id: user.id,
+    role: user.role,
+    roleLabel: {
+      student: "Aluno",
+      company: "Empresa",
+      affiliate: "Afiliado",
+      admin: "Admin"
+    }[user.role] || user.role,
+    name: user.name,
+    email: user.email,
+    companyName: user.companyName || "",
+    phone: user.phone || "",
+    document: user.document || "",
+    status: user.status || "active",
+    createdAt: user.createdAt || "",
+    lastLoginAt: user.lastLoginAt || ""
+  };
+}
+
 async function handleCompanyEmployeeAdd(request, response, session) {
   const body = await readJsonBody(request);
   const course = courseCatalog[cleanText(body.courseId, 40)] || courseCatalog.nr35 || Object.values(courseCatalog)[0];
@@ -1205,6 +1623,143 @@ async function buildStudentLibrary(session) {
     courseId: enrollments[0]?.courseId || "",
     resources
   };
+}
+
+function buildStudentInteractiveCourses(session) {
+  const user = findSessionUser(session);
+  const userKey = getStateUserKey(session);
+  const published = interactiveCourses.filter((course) => course.status === "published");
+  return {
+    courses: published.map((course) => serializeInteractiveCourseForStudent(course, getInteractiveProgress(userKey, course.id))),
+    certificates: getUserCertificates(user?.id, session.email).map(buildCertificateView)
+  };
+}
+
+function serializeInteractiveCourseForStudent(course, progress) {
+  const lessons = course.modules.flatMap((module) => module.lessons.map((lesson) => ({ ...lesson, moduleId: module.id, moduleTitle: module.title })));
+  const completed = new Set(progress.completedLessons || []);
+  const firstPending = lessons.find((lesson) => !completed.has(lesson.id));
+  return {
+    ...course,
+    modules: course.modules.map((module) => ({
+      ...module,
+      lessons: module.lessons.map((lesson) => ({
+        ...lesson,
+        completed: completed.has(lesson.id),
+        locked: isLessonLocked(lessons, completed, lesson.id)
+      }))
+    })),
+    progress: {
+      completedLessons: completed.size,
+      totalLessons: lessons.length,
+      percent: lessons.length ? Math.round((completed.size / lessons.length) * 100) : 0,
+      currentLessonId: firstPending?.id || lessons[0]?.id || "",
+      assessmentUnlocked: lessons.length > 0 && completed.size >= lessons.length,
+      bestGrade: Number(progress.bestGrade) || 0,
+      passed: Boolean(progress.passed),
+      certificateId: progress.certificateId || ""
+    }
+  };
+}
+
+function isLessonLocked(lessons, completed, lessonId) {
+  const index = lessons.findIndex((lesson) => lesson.id === lessonId);
+  if (index <= 0) return false;
+  return !completed.has(lessons[index - 1].id);
+}
+
+async function handleStudentInteractiveLessonComplete(response, session, courseId, lessonId) {
+  const course = findInteractiveCourse(courseId);
+  if (!course || course.status !== "published") return sendJson(response, 404, { error: "Curso interativo nao encontrado ou nao publicado." });
+  const lessons = course.modules.flatMap((module) => module.lessons);
+  if (!lessons.some((lesson) => lesson.id === lessonId)) return sendJson(response, 404, { error: "Aula nao encontrada." });
+  const userKey = getStateUserKey(session);
+  const progress = getInteractiveProgress(userKey, course.id);
+  if (!progress.completedLessons.includes(lessonId)) progress.completedLessons.push(lessonId);
+  progress.updatedAt = new Date().toISOString();
+  await persistRuntimeState();
+  return sendJson(response, 200, { course: serializeInteractiveCourseForStudent(course, progress) });
+}
+
+async function handleStudentInteractiveAssessment(request, response, session, courseId) {
+  const course = findInteractiveCourse(courseId);
+  if (!course || course.status !== "published") return sendJson(response, 404, { error: "Curso interativo nao encontrado ou nao publicado." });
+  const user = findSessionUser(session);
+  const userKey = getStateUserKey(session);
+  const progress = getInteractiveProgress(userKey, course.id);
+  const totalLessons = course.modules.flatMap((module) => module.lessons).length;
+  if (totalLessons && progress.completedLessons.length < totalLessons) {
+    return sendJson(response, 403, { error: "Conclua todas as aulas antes de fazer a avaliacao final." });
+  }
+
+  const body = await readJsonBody(request, 80_000);
+  const answers = Array.isArray(body.answers) ? body.answers.map((value) => Number(value)) : [];
+  const questions = course.finalAssessment?.questions || [];
+  if (!questions.length) return sendJson(response, 400, { error: "Este treinamento ainda nao possui prova final." });
+
+  const correct = questions.reduce((total, question, index) => total + (answers[index] === Number(question.correctIndex) ? 1 : 0), 0);
+  const grade = Math.round((correct / questions.length) * 100);
+  progress.attemptsUsed = Number(progress.attemptsUsed || 0) + 1;
+  progress.bestGrade = Math.max(Number(progress.bestGrade) || 0, grade);
+  progress.passed = progress.bestGrade >= Number(course.minimumGrade || course.finalAssessment.minimumGrade || 70);
+  progress.updatedAt = new Date().toISOString();
+
+  let certificate = null;
+  if (progress.passed) {
+    certificate = ensureInteractiveCertificateForUser(session, course, progress.bestGrade, user?.id);
+    progress.certificateId = certificate.id;
+  }
+  await persistRuntimeState();
+  return sendJson(response, 200, {
+    grade,
+    correct,
+    total: questions.length,
+    passed: progress.passed,
+    certificate: certificate ? buildCertificateView(certificate) : null,
+    course: serializeInteractiveCourseForStudent(course, progress)
+  });
+}
+
+function getInteractiveProgress(userKey, courseId) {
+  if (!appState.interactiveProgress[userKey]) appState.interactiveProgress[userKey] = {};
+  if (!appState.interactiveProgress[userKey][courseId]) {
+    appState.interactiveProgress[userKey][courseId] = {
+      completedLessons: [],
+      attemptsUsed: 0,
+      bestGrade: 0,
+      passed: false,
+      certificateId: "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  }
+  return appState.interactiveProgress[userKey][courseId];
+}
+
+function ensureInteractiveCertificateForUser(session, course, grade, userId = "") {
+  const existing = appState.certificates.find((item) => (item.userId === userId || item.userEmail === session.email) && item.courseId === course.id);
+  if (existing) {
+    existing.grade = Math.max(Number(existing.grade) || 0, grade);
+    existing.updatedAt = new Date().toISOString();
+    return existing;
+  }
+  const certificate = {
+    id: `certificate-${randomUUID()}`,
+    code: buildCertificateCode(course.code || "FS"),
+    userId,
+    userEmail: session.email,
+    studentName: session.name || "Aluno",
+    courseId: course.id,
+    courseTitle: course.title,
+    hours: `${course.hours || 0} horas`,
+    grade,
+    completedAt: formatDate(new Date().toISOString()),
+    issuedAt: new Date().toISOString(),
+    status: "Valido"
+  };
+  appState.certificates.unshift(certificate);
+  appState.certificates = appState.certificates.slice(0, 5000);
+  return certificate;
 }
 
 function buildCompanyDashboard(session) {

@@ -355,7 +355,13 @@ let toastTimer;
 let apiOnline = false;
 let portalInitialized = false;
 const portalData = { student: null, company: null, affiliate: null, admin: null };
+let currentSession = normalizeStoredSession(readStorage("fortixsegCurrentUser", null));
 let adminCourseCatalog = [];
+let adminUsers = [];
+let adminInteractiveCourses = [];
+let selectedInteractiveCourse = null;
+let studentInteractiveCourses = [];
+let activeInteractiveCourseId = "";
 let companyAnalyticsPeriod = "90";
 let activeCourseFilter = "Todos";
 
@@ -399,6 +405,19 @@ function readStorage(key, fallback) {
 
 function writeStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function normalizeStoredSession(value) {
+  if (!value) return null;
+  if (value.user) return value;
+  return {
+    user: {
+      email: value.email || "",
+      role: value.role || "student",
+      name: value.name || value.email || "Usuário"
+    },
+    token: localStorage.getItem("fortixsegApiToken") || ""
+  };
 }
 
 function upsertCourseCatalog(rows) {
@@ -482,6 +501,9 @@ function setBrand() {
 
 async function apiRequest(path, options = {}) {
   const { timeoutMs = 8000, ...requestOptions } = options;
+  if (window.location.protocol === "file:") {
+    throw new Error("Abra a plataforma pelo servidor local, exemplo: http://127.0.0.1:3001. Abrir o arquivo direto bloqueia login, admin e pagamento.");
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const token = localStorage.getItem("fortixsegApiToken");
@@ -498,13 +520,25 @@ async function apiRequest(path, options = {}) {
       signal: controller.signal
     });
     const text = await response.text();
-    const data = text ? JSON.parse(text) : {};
-    if (!response.ok) throw new Error(data.error || data.message || text || "A API não respondeu corretamente.");
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { error: text || "Resposta invalida da API." };
+    }
+    if (!response.ok) {
+      const apiError = new Error(data.error || data.message || text || "A API nao respondeu corretamente.");
+      apiError.status = response.status;
+      throw apiError;
+    }
     apiOnline = true;
     return data;
   } catch (error) {
-    if (error?.name === "SyntaxError") {
-      throw new Error("A API retornou uma resposta inválida.");
+    if (error?.name === "AbortError") {
+      throw new Error("A API demorou para responder. Confira se o servidor local esta rodando.");
+    }
+    if (/failed to fetch|networkerror|load failed/i.test(error?.message || "")) {
+      throw new Error("Nao consegui conectar ao servidor. Abra pelo endereco do npm start e confira se a API esta ativa.");
     }
     throw error;
   } finally {
@@ -515,11 +549,14 @@ async function apiRequest(path, options = {}) {
 async function hydratePortalData(pageName) {
   try {
     if (pageName === "student") {
-      const [dashboard, library] = await Promise.all([
+      const [dashboard, library, interactive] = await Promise.all([
         apiRequest("/api/student/dashboard"),
-        apiRequest("/api/student/library")
+        apiRequest("/api/student/library"),
+        apiRequest("/api/student/interactive-courses")
       ]);
       dashboard.library = library.resources || [];
+      dashboard.interactiveCourses = interactive.courses || [];
+      dashboard.interactiveCertificates = interactive.certificates || [];
       applyStudentDashboard(dashboard);
     } else if (pageName === "company-dashboard") {
       applyCompanyDashboard(await apiRequest("/api/company/dashboard"));
@@ -567,6 +604,7 @@ async function syncCourseCatalog() {
 
 function applyStudentDashboard(data) {
   portalData.student = data;
+  studentInteractiveCourses = Array.isArray(data.interactiveCourses) ? data.interactiveCourses : [];
   const metrics = data.metrics || {};
   const firstAction = data.nextActions?.[0];
   setText("studentEnrolledMetric", metrics.enrolledCourses ?? 2);
@@ -597,6 +635,9 @@ function applyStudentDashboard(data) {
     setText("certificateValidationCopy", "Validação digital ativa");
     writeStorage("fortixsegCertificateUnlocked", true);
   }
+
+  renderStudentInteractiveCourses();
+  if (activeInteractiveCourseId) renderStudentInteractiveLearning(activeInteractiveCourseId);
 }
 
 function applyCompanyDashboard(data) {
@@ -738,6 +779,7 @@ function initPortalWorkspaces() {
       views: [
         ["dashboard", "Dashboard", "Visão geral da plataforma"],
         ["courses", "Cursos", "Gestão de cursos"],
+        ["generator", "Gerador de Treinamentos", "Gerador de Treinamentos"],
         ["students", "Alunos", "Gestão de alunos"],
         ["companies", "Empresas", "Gestão de empresas"],
         ["certificates", "Certificados", "Certificados emitidos"],
@@ -748,11 +790,11 @@ function initPortalWorkspaces() {
     }
   };
 
-  Object.entries(configs).forEach(([portal, config]) => setupPortalWorkspace(portal, config));
   document.addEventListener("click", handlePortalClick);
   document.addEventListener("submit", handlePortalSubmit);
   document.addEventListener("input", handlePortalInput);
   document.addEventListener("keydown", handlePortalKeydown);
+  Object.entries(configs).forEach(([portal, config]) => setupPortalWorkspace(portal, config));
   renderCompanyEmployeeDirectory();
 }
 
@@ -773,13 +815,15 @@ function setupPortalWorkspace(portal, config) {
   });
 
   const buttons = [...page.querySelectorAll(".app-sidebar nav > button")];
-  config.views.forEach(([key, , title], index) => {
+  config.views.forEach(([key, label, title], index) => {
     const button = buttons[index];
     if (!button) return;
     button.removeAttribute("data-show-certificate");
+    if (label) button.textContent = label;
     button.dataset.portal = portal;
     button.dataset.portalTarget = key;
     button.dataset.portalTitle = title;
+    button.addEventListener("click", () => activatePortalView(button));
   });
 
   topbar.dataset.portalEyebrow = config.eyebrow;
@@ -935,6 +979,7 @@ function studentPortalTemplate(key, title) {
 
   if (key === "courses") return `
     ${portalHeading("Formação em andamento", title, "Acompanhe progresso, aulas e materiais de cada treinamento.")}
+    <div id="studentInteractiveCourses" class="student-interactive-courses"></div>
     <div class="portal-card-grid">
       ${courses.slice(0, 2).map((course, index) => `
         <article class="portal-course-card">
@@ -946,6 +991,7 @@ function studentPortalTemplate(key, title) {
 
   if (key === "lessons") return `
     ${portalHeading("Central de conteúdo", title, "Apostilas em PDF e materiais complementares organizados por módulo.")}
+    <section id="studentInteractiveLearning" class="student-interactive-learning hidden"></section>
     <div class="learning-library">
       <aside class="resource-list" aria-label="Materiais do curso">
         ${studentLibrary.length ? studentLibrary.map((resource, index) => `
@@ -1054,12 +1100,115 @@ function affiliatePortalTemplate(key, title) {
 
 function adminPortalTemplate(key, title) {
   if (key === "courses") return adminCourseManagerTemplate(title);
+  if (key === "generator") return adminPdfGeneratorTemplate(title);
+  if (key === "students") return adminUserManagerTemplate(title);
   if (key === "students") return `${portalHeading("Usuários", title, "Acompanhe cadastros, cursos e situação acadêmica.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Aluno</th><th>Curso</th><th>Status</th><th>Última atualização</th></tr></thead><tbody>${(portalData.admin?.recentStudents || []).length ? (portalData.admin.recentStudents || []).map((student) => `<tr><td>${escapeHtml(student.name)}</td><td>${escapeHtml(student.course)}</td><td><span class="table-status ${student.status === "Concluído" ? "complete" : "progress"}">${escapeHtml(student.status)}</span></td><td>${escapeHtml(student.date)}</td></tr>`).join("") : `<tr><td colspan="4">Nenhuma movimentação acadêmica registrada ainda.</td></tr>`}</tbody></table></div></div>`;
   if (key === "companies") return `${portalHeading("Contas B2B", title, "Visualize empresas, colaboradores e consumo de licenças.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Empresas ativas</span><h3>${formatNumber(portalData.admin?.metrics?.companies ?? 0)}</h3><p>Contas corporativas cadastradas na plataforma.</p><strong class="status-copy">Operação ativa</strong></article><article class="portal-data-card"><span>Alunos ativos</span><h3>${formatNumber(portalData.admin?.metrics?.students ?? 0)}</h3><p>Usuários com acesso liberado no ambiente.</p><strong class="status-copy">Base sincronizada</strong></article></div>`;
   if (key === "certificates") return `${portalHeading("Rastreabilidade", title, "Consulte documentos emitidos e validações públicas.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Total emitido</span><h3>${formatNumber(portalData.admin?.metrics?.certificates ?? 0)} certificados</h3><p>Códigos únicos registrados na plataforma.</p><button class="button button-secondary" type="button" data-nav="certificates">Abrir validador</button></article><article class="portal-data-card"><span>Catálogo</span><h3>${formatNumber(portalData.admin?.metrics?.courses ?? 0)} cursos</h3><p>Treinamentos publicados e prontos para matrícula.</p><strong class="status-copy">Operação normal</strong></article></div>`;
   if (key === "payments") return `${portalHeading("Financeiro", title, "Acompanhe transações e o estado da integração.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Pedido</th><th>Valor</th><th>Status</th></tr></thead><tbody>${(portalData.admin?.recentPayments || []).length ? (portalData.admin.recentPayments || []).map((payment) => `<tr><td>${escapeHtml(payment.client)}</td><td>${escapeHtml(payment.course)}</td><td>${formatCurrency(payment.value)}</td><td><span class="table-status ${payment.status === "Aprovado" || payment.status === "Pago" ? "complete" : "pending"}">${escapeHtml(payment.status)}</span></td></tr>`).join("") : `<tr><td colspan="4">Nenhum pagamento registrado até o momento.</td></tr>`}</tbody></table></div></div>`;
   if (key === "reports") return `${portalHeading("Dados", title, "Exporte uma visão consolidada da operação.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Operação</span><h3>Resumo da plataforma</h3><p>Alunos, empresas, certificados e pagamentos.</p><button class="button button-primary" type="button" data-portal-action="export-admin-report">Exportar CSV</button></article><article class="portal-data-card"><span>Integrações</span><h3>Saúde da API</h3><p>Servidor online; OpenAI e Mercado Pago dependem das credenciais.</p><button class="button button-secondary" type="button" data-portal-action="refresh-admin">Atualizar status</button></article></div>`;
   return `${portalHeading("Sistema", title, "Preferências visuais e operacionais da administração.")}<form class="portal-form" id="adminSettingsForm"><div class="form-grid"><label class="field full"><span>Nome da plataforma</span><input name="brand" value="FortixSeg" required></label><label class="field"><span>E-mail de suporte</span><input name="supportEmail" type="email" value="fortixseg@gmail.com" required></label><label class="field"><span>Nota mínima</span><input name="minimumGrade" type="number" min="0" max="100" value="70" required></label><label class="field full"><span>Modo de manutenção</span><select name="maintenance"><option>Desativado</option><option>Ativado</option></select></label></div><button class="button button-primary" type="submit">Salvar configurações</button></form>`;
+}
+
+function adminPdfGeneratorTemplate(title) {
+  return `
+    ${portalHeading("Gerador de Treinamentos", title, "Suba uma apostila em PDF, gere um treinamento interativo por regras e publique somente depois da revisão técnica.", '<button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar lista</button>')}
+    <div class="admin-generator-layout">
+      <section class="admin-generator-panel">
+        <div class="dashboard-heading"><div><span>Novo treinamento interativo</span><h2>Criar treinamento interativo</h2><p class="generator-helper">Envie a apostila em PDF e o sistema cria módulos, aulas, checklists e avaliação em rascunho para você revisar.</p></div></div>
+        <form class="portal-form compact-form" id="interactivePdfGeneratorForm">
+          <div class="form-grid">
+            <label class="field full"><span>Nome do treinamento</span><input name="title" maxlength="180" placeholder="Ex.: NR-35 - Trabalho em Altura"></label>
+            <label class="field"><span>Categoria</span><input name="category" maxlength="90" value="Segurança do Trabalho"></label>
+            <label class="field"><span>Carga horária</span><input name="hours" type="number" min="1" max="120" value="8"></label>
+            <label class="field"><span>Nota mínima (%)</span><input name="minimumGrade" type="number" min="0" max="100" value="70"></label>
+            <label class="field full"><span>Responsável técnico</span><input name="responsible" maxlength="180" placeholder="Nome e qualificação do responsável"></label>
+          </div>
+          <label class="admin-upload-field generator-upload">
+            <input id="interactivePdfFile" type="file" accept="application/pdf" required>
+            <span>Arraste ou selecione a apostila em PDF</span>
+            <small>PDF até 20 MB. O sistema usa templates e palavras-chave, sem OpenAI nesta fase.</small>
+          </label>
+          <div class="admin-file-selection" id="interactivePdfSelection" aria-live="polite"></div>
+          <div class="generator-template-note">
+            <strong>Templates ativos</strong>
+            <span>NR-35, NR-33, NR-10, EPI/NR-06, Integração e SST genérico.</span>
+          </div>
+          <button class="button button-primary" type="submit" id="interactiveGenerateButton">Gerar treinamento em rascunho</button>
+          <span id="interactiveGeneratorStatus" aria-live="polite"></span>
+        </form>
+      </section>
+
+      <section class="admin-generated-list-panel">
+        <div class="dashboard-heading"><div><span>Treinamentos gerados</span><h2>Rascunhos e publicados</h2></div></div>
+        <div id="adminInteractiveCourseList" class="admin-interactive-course-list">
+          <div class="portal-empty-state">Carregando treinamentos...</div>
+        </div>
+      </section>
+    </div>
+
+    <section class="interactive-review-panel hidden" id="interactiveCourseReviewPanel">
+      <div class="interactive-review-header">
+        <div>
+          <span id="interactiveReviewStatus">Rascunho</span>
+          <h3 id="interactiveReviewTitle">Revisão do treinamento gerado</h3>
+          <p id="interactiveReviewMeta">Revise módulos, aulas, checklists e prova antes de publicar.</p>
+        </div>
+        <div class="interactive-review-actions">
+          <button class="button button-secondary" type="button" data-portal-action="admin-preview-interactive">Pré-visualizar como aluno</button>
+          <button class="button button-primary" type="button" data-portal-action="admin-publish-interactive">Publicar treinamento</button>
+        </div>
+      </div>
+      <div class="interactive-review-grid">
+        <div class="interactive-module-review" id="interactiveModuleReview"></div>
+        <aside class="interactive-review-side" id="interactiveReviewSummary"></aside>
+      </div>
+      <form class="portal-form" id="interactiveCourseReviewForm">
+        <details class="interactive-json-details">
+          <summary>Editor avançado do treinamento</summary>
+          <label class="field full"><span>JSON do treinamento gerado</span><textarea id="interactiveCourseJsonEditor" name="courseJson" rows="16" spellcheck="false"></textarea><small>Use somente para ajustes finos de títulos, aulas, perguntas ou checklists. O JSON inválido não será salvo.</small></label>
+        </details>
+        <div class="admin-editor-actions">
+          <button class="button button-primary" type="submit">Salvar revisão</button>
+          <button class="button button-secondary" type="button" data-portal-action="admin-download-interactive-pdf">Baixar PDF original</button>
+          <span id="interactiveReviewSaveStatus" aria-live="polite"></span>
+        </div>
+      </form>
+    </section>
+    <section class="admin-interactive-preview-panel hidden" id="interactiveAdminPreviewPanel" aria-live="polite"></section>
+  `;
+}
+
+function adminUserManagerTemplate(title) {
+  return `
+    ${portalHeading("Usuários e acessos", title, "Cadastre aluno, empresa, afiliado ou administrador e acompanhe os acessos criados.")}
+    <div class="admin-user-manager">
+      <section class="admin-user-form-panel">
+        <div class="dashboard-heading"><div><span>Novo acesso</span><h2>Criar usuário</h2></div></div>
+        <form class="portal-form compact-form" id="adminUserForm">
+          <div class="form-grid">
+            <label class="field"><span>Tipo</span><select name="role" required><option value="student">Aluno</option><option value="company">Empresa</option><option value="affiliate">Afiliado</option><option value="admin">Administrador</option></select></label>
+            <label class="field"><span>Nome / responsável</span><input name="name" maxlength="160" required></label>
+            <label class="field"><span>E-mail</span><input name="email" type="email" maxlength="160" required></label>
+            <label class="field"><span>Senha inicial</span><input name="password" type="password" minlength="6" value="123456" required></label>
+            <label class="field"><span>Telefone</span><input name="phone" maxlength="40" placeholder="(00) 00000-0000"></label>
+            <label class="field"><span>CPF/CNPJ</span><input name="document" maxlength="24"></label>
+            <label class="field full"><span>Empresa vinculada</span><input name="companyName" maxlength="160" placeholder="Opcional para empresa ou aluno corporativo"></label>
+            <label class="field full"><span>Curso inicial do aluno</span><select name="courseId"><option value="">Não matricular agora</option>${courses.map((course) => `<option value="${escapeHtml(course.id)}">${escapeHtml(course.title)}</option>`).join("")}</select></label>
+          </div>
+          <button class="button button-primary" type="submit" id="adminUserSaveButton">Criar usuário</button>
+          <span id="adminUserSaveStatus" aria-live="polite"></span>
+        </form>
+      </section>
+      <section class="admin-user-list-panel">
+        <div class="portal-toolbar admin-course-toolbar">
+          <label class="search-field"><input id="adminUserSearch" type="search" placeholder="Buscar nome, e-mail, documento"></label>
+          <select id="adminUserRoleFilter" aria-label="Filtrar por tipo"><option value="all">Todos</option><option value="student">Alunos</option><option value="company">Empresas</option><option value="affiliate">Afiliados</option><option value="admin">Admins</option></select>
+        </div>
+        <div class="admin-user-list" id="adminUserList"><div class="portal-empty-state">Carregando usuários...</div></div>
+      </section>
+    </div>
+  `;
 }
 
 function adminCourseManagerTemplate(title) {
@@ -1120,7 +1269,9 @@ function activatePortalView(button) {
   page.querySelectorAll(".portal-view").forEach((view) => {
     view.classList.toggle("active", view.dataset.portalView === `${portal}:${key}`);
   });
-  page.querySelectorAll(".app-sidebar nav > button").forEach((item) => item.classList.toggle("active", item === button));
+  page.querySelectorAll(".app-sidebar nav > button").forEach((item) => {
+    item.classList.toggle("active", item.dataset.portal === portal && item.dataset.portalTarget === key);
+  });
 
   const topbar = page.querySelector(".app-topbar");
   const title = topbar?.querySelector("h1");
@@ -1130,6 +1281,8 @@ function activatePortalView(button) {
 
   if (portal === "company" && key === "employees") renderCompanyEmployeeDirectory();
   if (portal === "admin" && key === "courses") loadAdminCourseCatalog();
+  if (portal === "admin" && key === "generator") loadAdminInteractiveCourses();
+  if (portal === "admin" && key === "students") loadAdminUsers();
   closePortalNavigation(page);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1188,6 +1341,12 @@ function handlePortalClick(event) {
     return;
   }
 
+  const adminPreviewLessonButton = event.target.closest("[data-admin-preview-lesson]");
+  if (adminPreviewLessonButton) {
+    renderAdminInteractivePreview(selectedInteractiveCourse, adminPreviewLessonButton.dataset.adminPreviewLesson);
+    return;
+  }
+
   const actionButton = event.target.closest("[data-portal-action]");
   if (!actionButton) return;
   const action = actionButton.dataset.portalAction;
@@ -1210,11 +1369,27 @@ function handlePortalClick(event) {
     addToCart(actionButton.dataset.courseId || "nr35", 1, true);
     openCart();
   }
-  if (action === "admin-new-course") openAdminCourseEditor();
+  if (action === "admin-new-course") {
+    const page = actionButton.closest(".app-page") || document.getElementById("page-admin");
+    const coursesButton = page?.querySelector('[data-portal="admin"][data-portal-target="courses"]');
+    if (coursesButton) activatePortalView(coursesButton);
+    setTimeout(() => openAdminCourseEditor(), 40);
+  }
   if (action === "admin-edit-course") openAdminCourseEditor(actionButton.dataset.courseId);
   if (action === "admin-cancel-course") closeAdminCourseEditor();
   if (action === "admin-delete-course") deleteAdminCourse();
   if (action === "admin-delete-resource") deleteAdminCourseResource(actionButton.dataset.courseId, actionButton.dataset.resourceId);
+  if (action === "admin-toggle-user") toggleAdminUser(actionButton.dataset.userId, actionButton.dataset.userStatus);
+  if (action === "admin-refresh-interactive") loadAdminInteractiveCourses();
+  if (action === "admin-edit-interactive") loadInteractiveCourseForReview(actionButton.dataset.courseId);
+  if (action === "admin-preview-interactive") previewInteractiveCourseAsStudent(actionButton.dataset.lessonId || "");
+  if (action === "admin-close-interactive-preview") closeAdminInteractivePreview();
+  if (action === "admin-publish-interactive") publishInteractiveCourse(selectedInteractiveCourse?.id || actionButton.dataset.courseId, true);
+  if (action === "admin-unpublish-interactive") publishInteractiveCourse(actionButton.dataset.courseId, false);
+  if (action === "admin-download-interactive-pdf") downloadSelectedInteractivePdf();
+  if (action === "student-open-interactive-course") openStudentInteractiveCourse(actionButton.dataset.courseId, actionButton.dataset.lessonId);
+  if (action === "student-complete-interactive-lesson") completeInteractiveLesson(actionButton.dataset.courseId, actionButton.dataset.lessonId);
+  if (action === "student-submit-interactive-assessment") submitInteractiveAssessment(actionButton.dataset.courseId);
   if (action === "refresh-admin") {
     hydratePortalData("admin");
     showToast("Status das integrações atualizado.");
@@ -1246,11 +1421,407 @@ function showStudentResource(button) {
   `;
 }
 
+function renderStudentInteractiveCourses() {
+  const container = document.getElementById("studentInteractiveCourses");
+  if (!container) return;
+  studentInteractiveCourses = studentInteractiveCourses.map(ensureStudentInteractiveShape);
+  container.innerHTML = `
+    <div class="student-interactive-heading">
+      <div><span>Treinamentos interativos</span><h3>Aulas publicadas para você</h3></div>
+      <small>${studentInteractiveCourses.length} treinamento${studentInteractiveCourses.length === 1 ? "" : "s"} disponível${studentInteractiveCourses.length === 1 ? "" : "is"}</small>
+    </div>
+    ${studentInteractiveCourses.length ? `
+      <div class="portal-card-grid interactive-course-grid">
+        ${studentInteractiveCourses.map((course) => {
+          const progress = course.progress || {};
+          return `
+            <article class="portal-course-card interactive-student-card">
+              <div class="portal-course-cover" style="--course-bg:linear-gradient(145deg, #14391d, #07100d)"><span>${escapeHtml(course.code || "SST")}</span></div>
+              <div>
+                <span class="course-status ${progress.passed ? "complete" : "progress"}">${progress.passed ? "Concluído" : progress.percent ? "Em andamento" : "Disponível"}</span>
+                <h3>${escapeHtml(getInteractiveCourseDisplayTitle(course))}</h3>
+                <p>${escapeHtml(course.detectedLabel || course.category || "Segurança do Trabalho")} - ${course.hours || 0}h - ${progress.totalLessons || 0} aulas</p>
+                <div class="progress-track"><i style="width:${Math.min(100, progress.percent || 0)}%"></i></div>
+                <button class="button button-primary" type="button" data-portal-action="student-open-interactive-course" data-course-id="${escapeHtml(course.id)}">${progress.percent ? "Continuar treinamento" : "Iniciar treinamento"}</button>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    ` : '<div class="portal-empty-state"><strong>Nenhum treinamento interativo publicado ainda.</strong><span>Quando a equipe publicar um treinamento, ele aparecerá aqui.</span></div>'}
+  `;
+}
+
+function ensureStudentInteractiveShape(course) {
+  const modules = Array.isArray(course?.modules) ? course.modules : [];
+  const flat = modules.flatMap((module) => (module.lessons || []).map((lesson) => ({ ...lesson, moduleId: module.id, moduleTitle: module.title })));
+  const completedCount = flat.filter((lesson) => lesson.completed).length;
+  const progress = {
+    completedLessons: Number(course?.progress?.completedLessons ?? completedCount),
+    totalLessons: Number(course?.progress?.totalLessons ?? flat.length),
+    percent: Number(course?.progress?.percent ?? (flat.length ? Math.round((completedCount / flat.length) * 100) : 0)),
+    currentLessonId: course?.progress?.currentLessonId || flat.find((lesson) => !lesson.completed)?.id || flat[0]?.id || "",
+    assessmentUnlocked: Boolean(course?.progress?.assessmentUnlocked ?? (flat.length > 0 && completedCount >= flat.length)),
+    bestGrade: Number(course?.progress?.bestGrade || 0),
+    passed: Boolean(course?.progress?.passed),
+    certificateId: course?.progress?.certificateId || ""
+  };
+  let order = 0;
+  return {
+    ...course,
+    progress,
+    modules: modules.map((module) => ({
+      ...module,
+      lessons: (module.lessons || []).map((lesson) => {
+        const completed = Boolean(lesson.completed);
+        const locked = typeof lesson.locked === "boolean" ? lesson.locked : order > 0;
+        order += 1;
+        return { ...lesson, completed, locked };
+      })
+    }))
+  };
+}
+
+function flattenInteractiveLessons(course) {
+  return (course?.modules || []).flatMap((module, moduleIndex) => (module.lessons || []).map((lesson, lessonIndex) => ({
+    ...lesson,
+    moduleId: module.id,
+    moduleTitle: module.title,
+    moduleIndex,
+    lessonIndex
+  })));
+}
+
+function cloneInteractiveCourseForPreview(course) {
+  const clone = JSON.parse(JSON.stringify(course || {}));
+  const preview = ensureStudentInteractiveShape(clone);
+  preview.progress = {
+    ...preview.progress,
+    percent: preview.progress?.percent || 0,
+    completedLessons: preview.progress?.completedLessons || 0,
+    totalLessons: preview.progress?.totalLessons || flattenInteractiveLessons(preview).length,
+    assessmentUnlocked: true
+  };
+  preview.modules = (preview.modules || []).map((module) => ({
+    ...module,
+    lessons: (module.lessons || []).map((lesson) => ({
+      ...lesson,
+      locked: false
+    }))
+  }));
+  return preview;
+}
+
+function getInteractiveCurrentLesson(course, preferredLessonId = "", allowLocked = false) {
+  const lessons = flattenInteractiveLessons(course);
+  const canOpen = (lesson) => allowLocked || !lesson.locked;
+  return (
+    lessons.find((lesson) => lesson.id === preferredLessonId && canOpen(lesson)) ||
+    lessons.find((lesson) => lesson.id === course?.progress?.currentLessonId && canOpen(lesson)) ||
+    lessons.find((lesson) => canOpen(lesson)) ||
+    lessons[0] ||
+    null
+  );
+}
+
+function buildPdfFrameUrl(url) {
+  const value = String(url || "");
+  if (!value) return "";
+  return value.includes("#") ? `${value}&toolbar=1&view=FitH` : `${value}#toolbar=1&view=FitH`;
+}
+
+function isNoisyInteractiveTitle(value) {
+  const text = String(value || "").trim();
+  return !text || /^-*\s*\d+\s+of\s+\d+\s*-*$/i.test(text) || /^p[aá]gina\s+\d+$/i.test(text) || text.length < 4;
+}
+
+function getInteractiveCourseDisplayTitle(course) {
+  const title = String(course?.title || "").trim();
+  if (!title || /^nr\s*-?\s*35$/i.test(title) || /^nr35$/i.test(title)) {
+    return course?.detectedLabel || course?.code || "Treinamento interativo";
+  }
+  return title;
+}
+
+function getInteractiveLessonDisplayTitle(course, lesson) {
+  if (!isNoisyInteractiveTitle(lesson?.title)) return lesson.title;
+  const module = (course?.modules || []).find((item) => item.id === lesson?.moduleId) || (course?.modules || [])[lesson?.moduleIndex || 0];
+  return module?.topics?.[lesson?.lessonIndex || 0] || module?.topics?.[0] || module?.title || "Aula interativa";
+}
+
+function cleanInteractivePdfText(value, fallbackTitle) {
+  const text = String(value || "")
+    .replace(/--\s*\d+\s+of\s+\d+\s*--/gi, "")
+    .replace(/\bpage\s+\d+\s+of\s+\d+\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (!text || text.length < 35) {
+    return `Esta aula foi organizada a partir do template do treinamento. Revise o material de apoio e confirme o conteúdo técnico de "${fallbackTitle}" antes da publicação final.`;
+  }
+  return text;
+}
+
+function resolveInteractiveSummary(course, lesson, displayTitle) {
+  if (isNoisyInteractiveTitle(lesson?.title) || /--\s*\d+\s+of\s+\d+\s*--/i.test(lesson?.summary || "")) {
+    const module = (course?.modules || []).find((item) => item.id === lesson?.moduleId);
+    return `Nesta aula, o aluno revisa ${displayTitle.toLowerCase()} dentro do módulo ${module?.title?.toLowerCase() || "do treinamento"}, conectando regra, risco e prática segura.`;
+  }
+  return lesson?.summary || "Entender o conteúdo essencial e aplicar as medidas de segurança no trabalho.";
+}
+
+function openStudentInteractiveCourse(courseId, lessonId = "") {
+  if (!courseId) return;
+  if (!studentInteractiveCourses.some((course) => course.id === courseId) && selectedInteractiveCourse?.id === courseId) {
+    replaceStudentInteractiveCourse(selectedInteractiveCourse);
+  }
+  activeInteractiveCourseId = courseId;
+  const page = document.getElementById("page-student");
+  if (!page?.classList.contains("active")) navigate("student");
+  setTimeout(() => {
+    const lessonsButton = document.querySelector('#page-student [data-portal="student"][data-portal-target="lessons"]');
+    if (lessonsButton) activatePortalView(lessonsButton);
+    renderStudentInteractiveLearning(courseId, lessonId);
+  }, 80);
+}
+
+function renderStudentInteractiveLearning(courseId = activeInteractiveCourseId, preferredLessonId = "") {
+  const container = document.getElementById("studentInteractiveLearning");
+  if (!container) return;
+  const courseIndex = studentInteractiveCourses.findIndex((item) => item.id === courseId);
+  if (courseIndex < 0) {
+    container.classList.add("hidden");
+    document.querySelector("#page-student .learning-library")?.classList.remove("hidden");
+    return;
+  }
+  const course = ensureStudentInteractiveShape(studentInteractiveCourses[courseIndex]);
+  studentInteractiveCourses[courseIndex] = course;
+  activeInteractiveCourseId = course.id;
+  const current = getInteractiveCurrentLesson(course, preferredLessonId, false);
+  if (!current) {
+    container.innerHTML = '<div class="portal-empty-state">Este treinamento ainda não possui aulas.</div>';
+    container.classList.remove("hidden");
+    return;
+  }
+  document.querySelector("#page-student .learning-library")?.classList.add("hidden");
+  container.classList.remove("hidden");
+  container.innerHTML = renderInteractiveLearningShell(course, current, { mode: "student" });
+}
+
+function renderInteractiveLearningShell(course, current, options = {}) {
+  const isPreview = options.mode === "preview";
+  const finalAssessment = course.finalAssessment || {};
+  const pdfUrl = current.pageImageUrl || course.pdf?.url || "";
+  const pdfFrameUrl = buildPdfFrameUrl(pdfUrl);
+  const pdfDownloadUrl = course.pdf?.url || pdfUrl || "#";
+  const currentTitle = getInteractiveLessonDisplayTitle(course, current);
+  const currentSummary = resolveInteractiveSummary(course, current, currentTitle);
+  const currentText = cleanInteractivePdfText(current.extractedText, currentTitle);
+  const backButton = isPreview
+    ? `<button class="certificate-link back-to-courses" type="button" data-portal-action="admin-close-interactive-preview">← Voltar para revisão</button>`
+    : `<button class="certificate-link back-to-courses" type="button" data-portal="student" data-portal-target="courses" data-portal-title="Meus cursos">← Voltar para meus cursos</button>`;
+  const completeButton = isPreview
+    ? `<button class="button button-primary" type="button" disabled>Prévia sem alterar progresso</button>`
+    : `<button class="button button-primary" type="button" data-portal-action="student-complete-interactive-lesson" data-course-id="${escapeHtml(course.id)}" data-lesson-id="${escapeHtml(current.id)}">${current.completed ? "Aula concluída" : "Concluir aula"}</button>`;
+
+  return `
+    <div class="interactive-student-shell ${isPreview ? "admin-preview-shell" : ""}">
+      <aside class="interactive-student-sidebar">
+        ${backButton}
+        <h3>${escapeHtml(getInteractiveCourseDisplayTitle(course))}</h3>
+        <div class="progress-track"><i style="width:${Math.min(100, course.progress.percent || 0)}%"></i></div>
+        <small>Progresso: ${course.progress.percent || 0}% · ${course.progress.completedLessons || 0}/${course.progress.totalLessons || 0} aulas</small>
+        <div class="interactive-module-nav">
+          ${(course.modules || []).map((module, moduleIndex) => `
+            <article>
+              <strong>Módulo ${moduleIndex + 1}<span>${escapeHtml(module.title)}</span></strong>
+              ${(module.lessons || []).map((lesson, lessonIndex) => `
+                <button class="${lesson.id === current.id ? "active" : ""} ${lesson.completed ? "complete" : ""}" type="button" ${!isPreview && lesson.locked ? "disabled" : isPreview ? `data-admin-preview-lesson="${escapeHtml(lesson.id)}"` : `data-portal-action="student-open-interactive-course" data-course-id="${escapeHtml(course.id)}" data-lesson-id="${escapeHtml(lesson.id)}"`}>
+                  <span>${lesson.completed ? "✓" : lesson.locked ? "○" : "▶"}</span>
+                  ${moduleIndex + 1}.${lessonIndex + 1} ${escapeHtml(getInteractiveLessonDisplayTitle(course, { ...lesson, moduleId: module.id, moduleIndex, lessonIndex }))}
+                </button>
+              `).join("")}
+            </article>
+          `).join("")}
+        </div>
+      </aside>
+      <section class="interactive-student-content">
+        <div class="interactive-lesson-card">
+          ${isPreview ? `<div class="preview-mode-banner"><strong>Prévia do aluno</strong><span>Você continua logado como administrador. Esta tela não altera progresso, nota ou certificado.</span></div>` : ""}
+          <div class="interactive-lesson-top">
+            <div><span>${escapeHtml(current.moduleTitle || "Módulo")}</span><h3>${escapeHtml(currentTitle)}</h3></div>
+            <strong class="course-status ${current.completed ? "complete" : "progress"}">${current.completed ? "Concluída" : "Em andamento"}</strong>
+          </div>
+          <section class="lesson-objective"><strong>Objetivo da aula</strong><p>${escapeHtml(currentSummary)}</p></section>
+          <section class="lesson-pdf-text"><strong>Texto principal da aula</strong><p>${escapeHtml(currentText)}</p></section>
+          <div class="interactive-tip-grid">
+            <article class="practice-card"><span>Na prática</span><p>${escapeHtml(current.practiceCard || "Aplique o conteúdo em uma situação real antes de concluir a aula.")}</p></article>
+            <article class="attention-card"><span>Atenção</span><p>${escapeHtml(current.attentionCard || "Revise os riscos e confirme as medidas de controle antes da atividade.")}</p></article>
+          </div>
+          ${renderInteractiveChecklist(current)}
+          ${renderQuickQuestion(current, currentTitle)}
+          <div class="interactive-lesson-actions">
+            <a class="button button-secondary" href="${escapeHtml(pdfDownloadUrl)}" target="_blank" rel="noopener">Abrir apostila PDF</a>
+            ${completeButton}
+          </div>
+        </div>
+        <aside class="interactive-pdf-support">
+          <div class="interactive-support-header">
+            <div><span>Material de apoio</span><strong>Página ${escapeHtml(String(current.sourcePage || "-"))} da apostila</strong></div>
+            <div class="interactive-pdf-actions">
+              <a class="button button-secondary" href="${escapeHtml(pdfDownloadUrl)}" target="_blank" rel="noopener">Abrir em nova guia</a>
+            </div>
+          </div>
+          ${pdfFrameUrl ? `<iframe class="pdf-viewer" src="${escapeHtml(pdfFrameUrl)}" title="Página do PDF"></iframe>` : `<div class="portal-empty-state">PDF indisponível para visualização.</div>`}
+          ${isPreview ? "" : `<textarea rows="5" maxlength="300" placeholder="Notas pessoais sobre esta aula..."></textarea>`}
+        </aside>
+        ${renderInteractiveAssessment(course, finalAssessment, { preview: isPreview })}
+      </section>
+    </div>
+  `;
+}
+
+function renderInteractiveChecklist(lesson) {
+  const items = Array.isArray(lesson.checklist) ? lesson.checklist : [];
+  if (!items.length) return "";
+  return `
+    <section class="interactive-checklist">
+      <strong>Checklist da aula</strong>
+      ${items.map((item, index) => `<label><input type="checkbox"><span>${index + 1}. ${escapeHtml(item)}</span></label>`).join("")}
+    </section>
+  `;
+}
+
+function renderQuickQuestion(lesson, displayTitle = "") {
+  const question = lesson.quickQuestion || {};
+  const alternatives = Array.isArray(question.alternatives) ? question.alternatives : [];
+  if (!question.prompt || !alternatives.length) return "";
+  const prompt = displayTitle && lesson.title ? String(question.prompt).replaceAll(lesson.title, displayTitle) : question.prompt;
+  return `
+    <section class="interactive-quick-question">
+      <strong>Questão rápida</strong>
+      <p>${escapeHtml(prompt)}</p>
+      ${alternatives.map((alternative, index) => `
+        <label><input type="radio" name="quick-${escapeHtml(lesson.id)}"><span>${String.fromCharCode(65 + index)}) ${escapeHtml(alternative)}</span></label>
+      `).join("")}
+      <details><summary>Ver resposta</summary><p>${escapeHtml(alternatives[question.correctIndex] || alternatives[0])}</p><small>${escapeHtml(question.explanation || "Resposta baseada no template do treinamento.")}</small></details>
+    </section>
+  `;
+}
+
+function renderInteractiveAssessment(course, assessment, options = {}) {
+  const questions = Array.isArray(assessment?.questions) ? assessment.questions : [];
+  if (!questions.length) return "";
+  if (options.preview) {
+    const previewQuestions = questions.slice(0, 5);
+    return `
+      <section class="interactive-assessment preview-assessment">
+        <div class="interactive-lesson-top"><div><span>Prévia da prova final</span><h3>Avaliação automática</h3></div><strong>${questions.length} questões · Nota mínima: ${course.minimumGrade || assessment.minimumGrade || 70}%</strong></div>
+        <p>Na conta do aluno, a avaliação fica liberada após a conclusão de todas as aulas. Abaixo está uma amostra das perguntas geradas para revisão técnica.</p>
+        ${previewQuestions.map((question, index) => `
+          <fieldset>
+            <legend>${index + 1}. ${escapeHtml(question.prompt)}</legend>
+            ${(question.alternatives || []).map((alternative, optionIndex) => `
+              <label><input type="radio" disabled ${optionIndex === question.correctIndex ? "checked" : ""}><span>${String.fromCharCode(65 + optionIndex)}) ${escapeHtml(alternative)}</span></label>
+            `).join("")}
+          </fieldset>
+        `).join("")}
+      </section>
+    `;
+  }
+  if (!course.progress.assessmentUnlocked) {
+    return `<section class="interactive-assessment locked"><h3>Avaliação final bloqueada</h3><p>Conclua todas as aulas para liberar a prova final.</p></section>`;
+  }
+  return `
+    <section class="interactive-assessment">
+      <div class="interactive-lesson-top"><div><span>Prova final</span><h3>Avaliação automática</h3></div><strong>Nota mínima: ${course.minimumGrade || assessment.minimumGrade || 70}%</strong></div>
+      <form id="interactiveAssessmentForm" data-course-id="${escapeHtml(course.id)}" data-questions="${questions.length}">
+        ${questions.map((question, index) => `
+          <fieldset>
+            <legend>${index + 1}. ${escapeHtml(question.prompt)}</legend>
+            ${(question.alternatives || []).map((alternative, optionIndex) => `
+              <label><input type="radio" name="assessment-${index}" value="${optionIndex}"><span>${String.fromCharCode(65 + optionIndex)}) ${escapeHtml(alternative)}</span></label>
+            `).join("")}
+          </fieldset>
+        `).join("")}
+        <button class="button button-primary" type="button" data-portal-action="student-submit-interactive-assessment" data-course-id="${escapeHtml(course.id)}">Finalizar avaliação</button>
+      </form>
+      ${course.progress.bestGrade ? `<p class="status-copy">Melhor nota registrada: ${course.progress.bestGrade}% ${course.progress.passed ? "· Certificado demonstrativo liberado" : ""}</p>` : ""}
+    </section>
+  `;
+}
+
+async function completeInteractiveLesson(courseId, lessonId) {
+  if (!courseId || !lessonId) return;
+  try {
+    const data = await apiRequest(`/api/student/interactive-courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/complete`, {
+      method: "POST",
+      timeoutMs: 15_000
+    });
+    replaceStudentInteractiveCourse(data.course);
+    renderStudentInteractiveCourses();
+    renderStudentInteractiveLearning(courseId);
+    showToast("Aula concluída. Próxima aula liberada.");
+  } catch (error) {
+    showToast(error.message || "Não foi possível concluir a aula.");
+  }
+}
+
+async function submitInteractiveAssessment(courseId) {
+  const form = document.getElementById("interactiveAssessmentForm");
+  if (!form) return;
+  const total = Number(form.dataset.questions || 0);
+  const answers = [];
+  for (let index = 0; index < total; index += 1) {
+    const selected = form.querySelector(`input[name="assessment-${index}"]:checked`);
+    if (!selected) {
+      showToast("Responda todas as perguntas antes de finalizar.");
+      return;
+    }
+    answers.push(Number(selected.value));
+  }
+  try {
+    const data = await apiRequest(`/api/student/interactive-courses/${encodeURIComponent(courseId)}/assessment`, {
+      method: "POST",
+      body: JSON.stringify({ answers }),
+      timeoutMs: 20_000
+    });
+    replaceStudentInteractiveCourse(data.course);
+    if (data.certificate) {
+      certificateUnlocked = true;
+      APP_CONFIG.certificateCode = data.certificate.code || APP_CONFIG.certificateCode;
+      writeStorage("fortixsegCertificateUnlocked", true);
+    }
+    renderStudentInteractiveCourses();
+    renderStudentInteractiveLearning(courseId);
+    showToast(data.passed ? `Aprovado com ${data.grade}%. Certificado liberado.` : `Nota ${data.grade}%. Revise o conteúdo e tente novamente.`);
+  } catch (error) {
+    showToast(error.message || "Não foi possível finalizar a avaliação.");
+  }
+}
+
+function replaceStudentInteractiveCourse(course) {
+  if (!course?.id) return;
+  const shaped = ensureStudentInteractiveShape(course);
+  const index = studentInteractiveCourses.findIndex((item) => item.id === shaped.id);
+  if (index >= 0) studentInteractiveCourses[index] = shaped;
+  else studentInteractiveCourses.unshift(shaped);
+}
+
 function handlePortalSubmit(event) {
   const form = event.target;
   if (form.id === "adminCourseForm") {
     event.preventDefault();
     saveAdminCourse(form);
+    return;
+  }
+  if (form.id === "interactivePdfGeneratorForm") {
+    event.preventDefault();
+    void generateInteractiveCourseFromPdfForm(form);
+    return;
+  }
+  if (form.id === "interactiveCourseReviewForm") {
+    event.preventDefault();
+    void saveInteractiveCourseReview(form);
     return;
   }
   if (form.id === "studentProfileForm") {
@@ -1278,6 +1849,10 @@ function handlePortalSubmit(event) {
     event.preventDefault();
     void submitAdminSettingsForm(form);
   }
+  if (form.id === "adminUserForm") {
+    event.preventDefault();
+    void saveAdminUser(form);
+  }
 }
 
 function handlePortalInput(event) {
@@ -1290,6 +1865,9 @@ function handlePortalInput(event) {
   if (event.target.id === "adminCourseFiles") {
     renderSelectedAdminFiles(event.target.files);
   }
+  if (event.target.id === "interactivePdfFile") {
+    renderSelectedInteractivePdf(event.target.files?.[0]);
+  }
   if (event.target.id === "companyEmployeeSearch") {
     renderCompanyEmployeeDirectory(event.target.value);
   }
@@ -1298,6 +1876,277 @@ function handlePortalInput(event) {
     const quantity = Number(document.getElementById("companyPortalBulkQuantity")?.value || 0);
     setText("companyBulkEstimate", formatCurrency((course?.price || 0) * quantity));
   }
+  if (["adminUserSearch", "adminUserRoleFilter"].includes(event.target.id)) {
+    renderAdminUserList(
+      document.getElementById("adminUserSearch")?.value || "",
+      document.getElementById("adminUserRoleFilter")?.value || "all"
+    );
+  }
+}
+
+function renderSelectedInteractivePdf(file) {
+  const container = document.getElementById("interactivePdfSelection");
+  if (!container) return;
+  if (!file) {
+    container.innerHTML = "";
+    return;
+  }
+  const valid = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  container.innerHTML = `
+    <strong>${valid ? "PDF selecionado" : "Arquivo inválido"}</strong>
+    <span>${escapeHtml(file.name)} - ${formatFileSize(file.size)}</span>
+    ${valid ? "" : "<span>Envie somente arquivos PDF.</span>"}
+  `;
+}
+
+async function generateInteractiveCourseFromPdfForm(form) {
+  const fileInput = document.getElementById("interactivePdfFile");
+  const file = fileInput?.files?.[0];
+  const button = document.getElementById("interactiveGenerateButton");
+  const status = document.getElementById("interactiveGeneratorStatus");
+  if (!file) {
+    showToast("Selecione um PDF para gerar o treinamento.");
+    fileInput?.focus();
+    return;
+  }
+  if (!(file.type === "application/pdf" || /\.pdf$/i.test(file.name))) {
+    showToast("O gerador aceita somente PDF.");
+    return;
+  }
+  if (file.size > 20_000_000) {
+    showToast("O PDF deve ter no máximo 20 MB neste MVP.");
+    return;
+  }
+
+  const values = Object.fromEntries(new FormData(form).entries());
+  button.disabled = true;
+  if (status) status.textContent = "Lendo PDF e montando treinamento...";
+  try {
+    const data = await fileToDataUrl(file);
+    const result = await apiRequest("/api/admin/interactive-courses/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        ...values,
+        name: file.name,
+        data,
+        hours: Number(values.hours || 8),
+        minimumGrade: Number(values.minimumGrade || 70)
+      }),
+      timeoutMs: 120_000
+    });
+    adminInteractiveCourses = result.courses || [];
+    selectedInteractiveCourse = result.course;
+    renderAdminInteractiveCourseList();
+    renderInteractiveCourseReview(selectedInteractiveCourse);
+    form.reset();
+    renderSelectedInteractivePdf(null);
+    if (status) status.textContent = "Treinamento gerado como rascunho. Revise antes de publicar.";
+    showToast("Treinamento gerado em rascunho.");
+  } catch (error) {
+    if (status) status.textContent = error.message || "Não foi possível gerar o treinamento.";
+    showToast(error.message || "Não foi possível gerar o treinamento.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function loadAdminInteractiveCourses() {
+  const list = document.getElementById("adminInteractiveCourseList");
+  if (!list) return;
+  list.innerHTML = '<div class="portal-empty-state">Carregando treinamentos gerados...</div>';
+  try {
+    const data = await apiRequest("/api/admin/interactive-courses", { timeoutMs: 15_000 });
+    adminInteractiveCourses = data.courses || [];
+    renderAdminInteractiveCourseList();
+  } catch (error) {
+    adminInteractiveCourses = [];
+    list.innerHTML = `<div class="portal-empty-state"><strong>Não foi possível carregar o gerador.</strong><span>${escapeHtml(error.message || "Confira se o servidor está rodando.")}</span></div>`;
+  }
+}
+
+function renderAdminInteractiveCourseList() {
+  const list = document.getElementById("adminInteractiveCourseList");
+  if (!list) return;
+  list.innerHTML = adminInteractiveCourses.map((course) => {
+    const stats = course.stats || {};
+    const statusLabel = course.status === "published" ? "Publicado" : "Rascunho";
+    return `
+      <article class="admin-interactive-course-card ${course.status === "published" ? "published" : "draft"}">
+        <div>
+          <span class="course-status ${course.status === "published" ? "published" : "draft"}">${statusLabel}</span>
+          <h4>${escapeHtml(getInteractiveCourseDisplayTitle(course))}</h4>
+          <p>${escapeHtml(course.detectedLabel || course.category)} - ${stats.modules || 0} módulos - ${stats.lessons || 0} aulas - ${stats.questions || 0} questões</p>
+          <small>Gerado em ${escapeHtml(formatDate(course.generatedAt))} · Modelo: ${escapeHtml(course.detectedTemplate || "sst")}</small>
+        </div>
+        <div class="admin-interactive-actions">
+          <button class="button button-secondary" type="button" data-portal-action="admin-edit-interactive" data-course-id="${escapeHtml(course.id)}">Editar</button>
+          ${course.status === "published"
+            ? `<button class="button button-secondary" type="button" data-portal-action="admin-unpublish-interactive" data-course-id="${escapeHtml(course.id)}">Voltar para rascunho</button>`
+            : `<button class="button button-primary" type="button" data-portal-action="admin-publish-interactive" data-course-id="${escapeHtml(course.id)}">Publicar</button>`}
+        </div>
+      </article>
+    `;
+  }).join("") || '<div class="portal-empty-state"><strong>Nenhum treinamento gerado ainda.</strong><span>Suba um PDF para criar o primeiro rascunho interativo.</span></div>';
+}
+
+async function loadInteractiveCourseForReview(courseId) {
+  if (!courseId) return;
+  try {
+    const data = await apiRequest(`/api/admin/interactive-courses/${encodeURIComponent(courseId)}`, { timeoutMs: 15_000 });
+    selectedInteractiveCourse = data.course;
+    renderInteractiveCourseReview(selectedInteractiveCourse);
+  } catch (error) {
+    showToast(error.message || "Não foi possível abrir a revisão.");
+  }
+}
+
+function renderInteractiveCourseReview(course) {
+  const panel = document.getElementById("interactiveCourseReviewPanel");
+  if (!panel || !course) return;
+  const modules = Array.isArray(course.modules) ? course.modules : [];
+  const stats = course.stats || {};
+  panel.classList.remove("hidden");
+  setText("interactiveReviewStatus", course.status === "published" ? "Publicado" : "Rascunho");
+  setText("interactiveReviewTitle", getInteractiveCourseDisplayTitle(course) || "Treinamento gerado");
+  setText("interactiveReviewMeta", `${course.code || "SST"} · ${course.hours || 0}h · ${course.detectedLabel || "Modelo SST"} · ${stats.lessons || 0} aulas`);
+
+  const moduleContainer = document.getElementById("interactiveModuleReview");
+  if (moduleContainer) {
+    moduleContainer.innerHTML = modules.map((module, moduleIndex) => `
+      <article class="interactive-module-card">
+        <header><span>Módulo ${moduleIndex + 1}</span><strong>${escapeHtml(module.title)}</strong><small>${module.lessons?.length || 0} aulas</small></header>
+        <div>
+          ${(module.lessons || []).map((lesson, lessonIndex) => `
+            <button class="interactive-lesson-row" type="button" data-portal-action="admin-preview-interactive" data-lesson-id="${escapeHtml(lesson.id)}">
+              <span>${moduleIndex + 1}.${lessonIndex + 1}</span>
+              <strong>${escapeHtml(getInteractiveLessonDisplayTitle(course, { ...lesson, moduleId: module.id, moduleIndex, lessonIndex }))}</strong>
+              <small>Página ${escapeHtml(String(lesson.sourcePage || "-"))} · Prévia</small>
+            </button>
+          `).join("")}
+        </div>
+      </article>
+    `).join("") || '<div class="portal-empty-state">Nenhum módulo gerado.</div>';
+  }
+
+  const summary = document.getElementById("interactiveReviewSummary");
+  if (summary) {
+    summary.innerHTML = `
+      <article><span>Resumo do treinamento</span><strong>${stats.modules || 0}</strong><small>módulos</small></article>
+      <article><span>Aulas</span><strong>${stats.lessons || 0}</strong><small>interativas</small></article>
+      <article><span>Prova final</span><strong>${stats.questions || 0}</strong><small>questões editáveis</small></article>
+      <article><span>PDF anexado</span><strong>${escapeHtml(course.pdf?.name || "material.pdf")}</strong><small>${escapeHtml(formatFileSize(course.pdf?.size || 0))}</small></article>
+      <a class="button button-secondary" href="${escapeHtml(course.pdf?.url || "#")}" target="_blank" rel="noopener">Abrir PDF original</a>
+    `;
+  }
+
+  const editor = document.getElementById("interactiveCourseJsonEditor");
+  if (editor) editor.value = JSON.stringify(course, null, 2);
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function saveInteractiveCourseReview(form) {
+  if (!selectedInteractiveCourse?.id) {
+    showToast("Abra um treinamento gerado antes de salvar.");
+    return;
+  }
+  const status = document.getElementById("interactiveReviewSaveStatus");
+  const editor = document.getElementById("interactiveCourseJsonEditor");
+  let course;
+  try {
+    course = JSON.parse(editor?.value || "{}");
+  } catch {
+    showToast("O JSON da revisão está inválido.");
+    if (status) status.textContent = "JSON inválido. Corrija antes de salvar.";
+    return;
+  }
+  if (status) status.textContent = "Salvando revisão...";
+  try {
+    const data = await apiRequest(`/api/admin/interactive-courses/${encodeURIComponent(selectedInteractiveCourse.id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ course }),
+      timeoutMs: 30_000
+    });
+    selectedInteractiveCourse = data.course;
+    adminInteractiveCourses = data.courses || adminInteractiveCourses;
+    renderAdminInteractiveCourseList();
+    renderInteractiveCourseReview(selectedInteractiveCourse);
+    if (status) status.textContent = "Revisão salva.";
+    showToast("Revisão salva com sucesso.");
+  } catch (error) {
+    if (status) status.textContent = error.message || "Não foi possível salvar.";
+    showToast(error.message || "Não foi possível salvar a revisão.");
+  }
+}
+
+async function publishInteractiveCourse(courseId, publish) {
+  if (!courseId) {
+    showToast("Selecione um treinamento gerado.");
+    return;
+  }
+  try {
+    const action = publish ? "publish" : "unpublish";
+    const data = await apiRequest(`/api/admin/interactive-courses/${encodeURIComponent(courseId)}/${action}`, {
+      method: "POST",
+      timeoutMs: 20_000
+    });
+    selectedInteractiveCourse = data.course;
+    adminInteractiveCourses = data.courses || adminInteractiveCourses;
+    renderAdminInteractiveCourseList();
+    renderInteractiveCourseReview(selectedInteractiveCourse);
+    await hydratePortalData("student");
+    showToast(publish ? "Treinamento publicado na área do aluno." : "Treinamento voltou para rascunho.");
+  } catch (error) {
+    showToast(error.message || "Não foi possível alterar o status.");
+  }
+}
+
+function downloadSelectedInteractivePdf() {
+  if (!selectedInteractiveCourse?.pdf?.url) {
+    showToast("Este treinamento ainda não possui PDF anexado.");
+    return;
+  }
+  window.open(selectedInteractiveCourse.pdf.url, "_blank", "noopener");
+}
+
+function previewInteractiveCourseAsStudent(lessonId = "") {
+  if (!selectedInteractiveCourse) {
+    showToast("Abra um treinamento gerado para pré-visualizar.");
+    return;
+  }
+  renderAdminInteractivePreview(selectedInteractiveCourse, lessonId);
+}
+
+function renderAdminInteractivePreview(course, lessonId = "") {
+  const panel = document.getElementById("interactiveAdminPreviewPanel");
+  if (!panel || !course) return;
+  const previewCourse = cloneInteractiveCourseForPreview(course);
+  const current = getInteractiveCurrentLesson(previewCourse, lessonId, true);
+  if (!current) {
+    panel.innerHTML = '<div class="portal-empty-state">Este treinamento ainda não possui aulas para prévia.</div>';
+    panel.classList.remove("hidden");
+    return;
+  }
+  panel.innerHTML = `
+    <div class="admin-preview-top">
+      <div>
+        <span>Pré-visualização do treinamento</span>
+        <h3>Como o aluno verá este conteúdo</h3>
+        <p>Revise leitura, ordem das aulas, PDF de apoio, checklists e perguntas antes de publicar.</p>
+      </div>
+      <button class="button button-secondary" type="button" data-portal-action="admin-close-interactive-preview">Fechar prévia</button>
+    </div>
+    ${renderInteractiveLearningShell(previewCourse, current, { mode: "preview" })}
+  `;
+  panel.classList.remove("hidden");
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeAdminInteractivePreview() {
+  const panel = document.getElementById("interactiveAdminPreviewPanel");
+  if (!panel) return;
+  panel.classList.add("hidden");
+  panel.innerHTML = "";
+  document.getElementById("interactiveCourseReviewPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function loadAdminCourseCatalog() {
@@ -1320,6 +2169,89 @@ async function loadAdminCourseCatalog() {
     }));
     renderAdminCourseList();
     showToast("Servidor administrativo indisponível. O catálogo está em modo de consulta.");
+  }
+}
+
+async function loadAdminUsers() {
+  const list = document.getElementById("adminUserList");
+  if (!list) return;
+  list.innerHTML = '<div class="portal-empty-state">Carregando usuários...</div>';
+
+  try {
+    const data = await apiRequest("/api/admin/users");
+    adminUsers = data.users || [];
+    renderAdminUserList();
+  } catch (error) {
+    adminUsers = [];
+    list.innerHTML = `<div class="portal-empty-state"><strong>Não foi possível carregar usuários.</strong><span>${escapeHtml(error.message || "Confira o login administrativo.")}</span></div>`;
+  }
+}
+
+function renderAdminUserList(query = "", role = "all") {
+  const list = document.getElementById("adminUserList");
+  if (!list) return;
+  const normalizedQuery = normalizeText(query);
+  const filtered = adminUsers.filter((user) => {
+    const matchesQuery = !normalizedQuery || normalizeText(`${user.name} ${user.email} ${user.document} ${user.companyName}`).includes(normalizedQuery);
+    return matchesQuery && (role === "all" || user.role === role);
+  });
+
+  list.innerHTML = filtered.map((user) => `
+    <article class="admin-user-card">
+      <div>
+        <span class="course-status ${user.role === "admin" ? "draft" : "published"}">${escapeHtml(user.roleLabel || user.role)}</span>
+        <h4>${escapeHtml(user.name || "Usuário sem nome")}</h4>
+        <p>${escapeHtml(user.email)}${user.companyName ? ` - ${escapeHtml(user.companyName)}` : ""}</p>
+      </div>
+      <div>
+        <strong>${escapeHtml(user.status === "inactive" ? "Desativado" : "Ativo")}</strong>
+        <small>${escapeHtml(user.lastLoginAt ? `Último acesso: ${formatDate(user.lastLoginAt)}` : "Ainda sem login")}</small>
+        <button class="button button-secondary" type="button" data-portal-action="admin-toggle-user" data-user-id="${escapeHtml(user.id)}" data-user-status="${escapeHtml(user.status || "active")}">${user.status === "inactive" ? "Reativar" : "Desativar"}</button>
+      </div>
+    </article>
+  `).join("") || '<div class="portal-empty-state"><strong>Nenhum usuário encontrado.</strong><span>Cadastre um novo acesso pelo formulário ao lado.</span></div>';
+}
+
+async function saveAdminUser(form) {
+  const saveButton = document.getElementById("adminUserSaveButton");
+  const status = document.getElementById("adminUserSaveStatus");
+  const values = Object.fromEntries(new FormData(form).entries());
+
+  saveButton.disabled = true;
+  if (status) status.textContent = "Criando usuário...";
+  try {
+    await apiRequest("/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify(values),
+      timeoutMs: 15_000
+    });
+    form.reset();
+    setAdminFormValue(form, "password", "123456");
+    await loadAdminUsers();
+    await hydratePortalData("admin");
+    if (status) status.textContent = "Usuário criado com sucesso.";
+    showToast("Usuário criado com sucesso.");
+  } catch (error) {
+    if (status) status.textContent = error.message || "Não foi possível criar o usuário.";
+    showToast(error.message || "Não foi possível criar o usuário.");
+  } finally {
+    saveButton.disabled = false;
+  }
+}
+
+async function toggleAdminUser(userId, currentStatus) {
+  const nextStatus = currentStatus === "inactive" ? "active" : "inactive";
+  try {
+    await apiRequest(`/api/admin/users/${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: nextStatus }),
+      timeoutMs: 15_000
+    });
+    await loadAdminUsers();
+    await hydratePortalData("admin");
+    showToast(nextStatus === "active" ? "Usuário reativado." : "Usuário desativado.");
+  } catch (error) {
+    showToast(error.message || "Não foi possível alterar o usuário.");
   }
 }
 
@@ -1586,7 +2518,9 @@ function bindNavigation() {
 }
 
 function navigate(pageName, updateHash = true) {
-  const currentUser = readStorage("fortixsegCurrentUser", null);
+  const storedSession = normalizeStoredSession(readStorage("fortixsegCurrentUser", null));
+  const currentUser = storedSession?.user || null;
+  currentSession = storedSession;
   const pageAccess = {
     student: ["student", "admin"],
     lesson: ["student", "admin"],
@@ -2553,11 +3487,11 @@ async function checkout() {
     const status = Number(error.status) || 0;
     let message = "Não foi possível abrir o checkout do Mercado Pago. Confira a credencial de teste e tente novamente.";
     if (status === 404 || status === 405) {
-      message = "A funcao de checkout nao foi publicada na Vercel. Inclua a pasta api e faca um novo deploy.";
+      message = "A rota de checkout não está publicada no servidor. Envie a pasta api/server para o deploy e reinicie.";
     } else if (status === 503 || error.code === "MERCADO_PAGO_NOT_CONFIGURED" || /configurado|not configured/i.test(error.message)) {
-      message = "Falta configurar MERCADO_PAGO_ACCESS_TOKEN nas variaveis de ambiente da Vercel e fazer novo deploy.";
+      message = "Falta configurar MERCADO_PAGO_ACCESS_TOKEN nas variáveis do servidor e reiniciar/publicar novamente.";
     } else if (/Failed to fetch|fetch|URL scheme|NetworkError/i.test(error.message)) {
-      message = "O site nao conseguiu falar com a funcao de checkout. Verifique o deploy da Vercel e tente novamente.";
+      message = "O site não conseguiu falar com a função de checkout. Confira se o servidor está rodando e tente novamente.";
     }
     showToast(message);
   } finally {
@@ -2623,8 +3557,9 @@ async function handleLogin(event) {
       method: "POST",
       body: JSON.stringify({ email, password })
     });
+    currentSession = { user: session.user, token: session.token };
     localStorage.setItem("fortixsegApiToken", session.token);
-    localStorage.setItem("fortixsegCurrentUser", JSON.stringify({ email, role: session.user.role, apiOnline: true }));
+    localStorage.setItem("fortixsegCurrentUser", JSON.stringify(currentSession));
     closeAllModals();
     event.target.reset();
     navigate(getHomePageForRole(session.user.role));
@@ -2666,12 +3601,9 @@ async function handleRegister(event) {
       method: "POST",
       body: JSON.stringify(payload)
     });
+    currentSession = { user: session.user, token: session.token };
     localStorage.setItem("fortixsegApiToken", session.token);
-    localStorage.setItem("fortixsegCurrentUser", JSON.stringify({
-      email: session.user.email,
-      role: session.user.role,
-      apiOnline: true
-    }));
+    localStorage.setItem("fortixsegCurrentUser", JSON.stringify(currentSession));
 
     event.target.reset();
     switchAccountType("candidate");
@@ -2685,6 +3617,7 @@ async function handleRegister(event) {
 }
 
 function logout() {
+  currentSession = null;
   localStorage.removeItem("fortixsegCurrentUser");
   localStorage.removeItem("fortixsegApiToken");
   navigate("home");
@@ -3035,12 +3968,19 @@ function formatHours(value) {
   return `${formatted} ${hours === 1 ? "hora" : "horas"}`;
 }
 
+function formatDate(value) {
+  if (!value) return "Data não informada";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("pt-BR").format(date);
+}
+
 function formatNumber(value) {
   return new Intl.NumberFormat("pt-BR").format(Number(value) || 0);
 }
 
 function normalizeText(value) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
 function escapeHtml(value) {

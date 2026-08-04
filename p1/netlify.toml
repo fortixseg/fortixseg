@@ -1,9 +1,0 @@
-[build]
-  publish = "."
-  functions = "netlify/functions"
-
-[[redirects]]
-  from = "/api/checkout/preference"
-  to = "/.netlify/functions/checkout-preference"
-  status = 200
-

@@ -17,11 +17,33 @@ Plataforma de treinamentos online em Seguranca do Trabalho com site instituciona
 
 Precisa de Node.js 18 ou superior.
 
-1. Crie o arquivo `.env`.
-2. Preencha as variaveis obrigatorias.
+1. Copie `.env.example` para `.env`.
+2. Preencha as variaveis obrigatorias, principalmente admin e Mercado Pago.
 3. Rode `npm install`.
 4. Rode `npm start`.
 5. Abra `http://127.0.0.1:3001`.
+
+## Logins de teste
+
+Os acessos abaixo ficam disponiveis para teste local. Antes de publicar, troque a senha do admin no `.env`.
+
+```text
+Aluno:
+aluno@teste.com
+123456
+
+Empresa:
+empresa@teste.com
+123456
+
+Afiliado:
+afiliado@teste.com
+123456
+
+Admin:
+admin@teste.com
+defina em FORTIXSEG_ADMIN_PASSWORD
+```
 
 ## Variaveis de ambiente
 
@@ -30,6 +52,12 @@ PORT=3001
 PUBLIC_BASE_URL=https://fortixseg.com.br
 
 FORTIXSEG_SESSION_SECRET=troque-por-um-segredo-grande
+FORTIXSEG_STUDENT_EMAIL=aluno@teste.com
+FORTIXSEG_STUDENT_PASSWORD=123456
+FORTIXSEG_COMPANY_EMAIL=empresa@teste.com
+FORTIXSEG_COMPANY_PASSWORD=123456
+FORTIXSEG_AFFILIATE_EMAIL=afiliado@teste.com
+FORTIXSEG_AFFILIATE_PASSWORD=123456
 FORTIXSEG_ADMIN_EMAIL=
 FORTIXSEG_ADMIN_PASSWORD=
 FORTIXSEG_ADMIN_REGISTRATION_CODE=
@@ -48,9 +76,21 @@ OPENAI_MODEL=gpt-5.4-mini
 Observacoes:
 
 - `FORTIXSEG_ADMIN_EMAIL` e `FORTIXSEG_ADMIN_PASSWORD` criam a conta administrativa inicial.
+- `FORTIXSEG_ADMIN_REGISTRATION_CODE` libera cadastro de novos administradores pela tela de cadastro.
 - `DATABASE_URL` e `DIRECT_URL` ativam a camada Postgres/Supabase.
 - Se `DATABASE_URL` nao estiver preenchida, a aplicacao usa persistencia local em arquivo.
 - `PUBLIC_BASE_URL` deve ser a URL publica final do projeto.
+- `MERCADO_PAGO_ACCESS_TOKEN` nunca deve ser colocado em `index.html` ou `script.js`; use somente `.env` no servidor.
+
+## Fluxos ja preparados
+
+- Admin cadastra curso, altera preco, define carga horaria, nota minima, tentativas e publica/rascunho.
+- Admin anexa apostilas em PDF ao curso.
+- Aluno faz avaliacao; com nota minima de 70%, o certificado e liberado.
+- Certificado pode ser baixado em PDF com QR Code e validado publicamente por codigo.
+- Empresa cadastra colaboradores e acompanha painel corporativo.
+- Afiliado acessa link, cupom, indicacoes e comissoes demonstrativas.
+- Checkout cria preferencia no Mercado Pago quando `MERCADO_PAGO_ACCESS_TOKEN` estiver configurado.
 
 ## Rotas principais
 
