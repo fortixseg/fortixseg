@@ -1,0 +1,9 @@
+.env
+node_modules
+npm-debug.log*
+server-error.log
+server-output.log
+Nova pasta
+Nova pasta.zip
+preview-desktop.png
+preview-mobile.png

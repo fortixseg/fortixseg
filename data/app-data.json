@@ -1,0 +1,305 @@
+{
+  "proposals": [],
+  "contactMessages": [],
+  "supportTickets": [],
+  "assessmentResults": [],
+  "users": [
+    {
+      "id": "user-admin-ff7e93ef-a5d9-4545-bdde-1d29eea9d7d0",
+      "role": "admin",
+      "email": "adminteste@fortixseg.com",
+      "name": "Admin Teste FortixSeg",
+      "companyName": "",
+      "responsibleName": "",
+      "phone": "(11) 99999-9999",
+      "document": "",
+      "status": "active",
+      "passwordHash": "5baead1d6f8c0cb46847309b2e8880dd980cbaaa59beae13a2b32250e230518c3f69332dfca7411b5615d1211e5224cab6f6ac1e9b850e0c1289cf108b985b28",
+      "passwordSalt": "dcd72aaf-ff9c-4050-a9f9-e5bc405757ff",
+      "createdAt": "2026-08-04T13:49:11.333Z",
+      "updatedAt": "2026-08-04T15:11:31.603Z",
+      "lastLoginAt": "2026-08-04T15:11:31.603Z"
+    },
+    {
+      "id": "user-student-b6364b74-5fdd-4321-a411-47b17cbfaa43",
+      "role": "student",
+      "email": "aluno@teste.com",
+      "name": "Joao da Silva",
+      "companyName": "",
+      "responsibleName": "",
+      "phone": "(11) 99999-0001",
+      "document": "00000000000",
+      "status": "active",
+      "passwordHash": "c31855832f11a74741f4e81d48de0055bcdc9f35aacde399e242c30ff3262f37fe0657f0842a43b293489c117b772ba8b1166a584e0cae7a9d29396c1a76599d",
+      "passwordSalt": "ba50998d-a900-4bf1-ba12-d35f85af08b8",
+      "createdAt": "2026-08-04T12:25:34.233Z",
+      "updatedAt": "2026-08-04T15:07:49.343Z",
+      "lastLoginAt": "2026-08-04T15:03:48.901Z"
+    },
+    {
+      "id": "user-company-4d909190-df58-4e4f-8585-691bfe41725a",
+      "role": "company",
+      "email": "empresa@teste.com",
+      "name": "Empresa Exemplo Ltda.",
+      "companyName": "Empresa Exemplo Ltda.",
+      "responsibleName": "Responsavel da Empresa",
+      "phone": "(11) 99999-0002",
+      "document": "00000000000100",
+      "status": "active",
+      "passwordHash": "7ca5b79fa1072a4f8e358410a3ee73ed1e76d2165c87d080a8b17cb7849aa1914a695585160fc916261c6322b405b7f1e539ee6f7f3037502d162a4161799bda",
+      "passwordSalt": "2ef64dea-eb3b-4903-a72b-25247526f6df",
+      "createdAt": "2026-08-04T12:25:34.307Z",
+      "updatedAt": "2026-08-04T15:07:49.413Z",
+      "lastLoginAt": "2026-08-04T15:03:49.000Z"
+    },
+    {
+      "id": "user-affiliate-38b30d30-abb2-4ca6-a9a7-1484aff9696b",
+      "role": "affiliate",
+      "email": "afiliado@teste.com",
+      "name": "Afiliado FortixSeg",
+      "companyName": "",
+      "responsibleName": "",
+      "phone": "(11) 99999-0003",
+      "document": "00000000000",
+      "status": "active",
+      "passwordHash": "2f19b909b0f1e41781c7b991ea6fd878c70ea3c25a3a191063ac14892a814ec201ecc03abaf67b35a77d234924d697ceb9d02248d7f4d984c784749e9072ebfc",
+      "passwordSalt": "c3113ac2-d7d3-402f-87b7-ae0b1130bb23",
+      "createdAt": "2026-08-04T12:25:34.381Z",
+      "updatedAt": "2026-08-04T15:07:49.483Z",
+      "lastLoginAt": "2026-08-04T15:06:26.836Z"
+    },
+    {
+      "id": "user-admin-4c093dce-ce5d-4b7e-a8b2-a58bbca5d3a0",
+      "role": "admin",
+      "email": "admin@teste.com",
+      "name": "Administrador FortixSeg",
+      "companyName": "",
+      "responsibleName": "",
+      "phone": "",
+      "document": "",
+      "status": "active",
+      "passwordHash": "71451d08b97868556633e751796f5dc5d33deec77b0244d48556500a508fbb39641cdc90eccc7f33fc75e869b939e4fa086382ab097e2dd8bae2843caee1898a",
+      "passwordSalt": "0b6d002c-00f5-4f4a-8248-b9d0664934a0",
+      "createdAt": "2026-08-04T12:25:34.462Z",
+      "updatedAt": "2026-08-04T15:07:49.549Z",
+      "lastLoginAt": "2026-08-04T13:12:41.804Z"
+    }
+  ],
+  "registrations": [
+    {
+      "id": "registration-49a9ffce-e391-46f0-b4ae-cb05a669bcd8",
+      "role": "admin",
+      "email": "adminteste@fortixseg.com",
+      "name": "Admin Teste FortixSeg",
+      "createdAt": "2026-08-04T13:49:11.410Z"
+    }
+  ],
+  "enrollments": [],
+  "orders": [
+    {
+      "id": "order-29667318-6a75-4c47-9809-36025d883095",
+      "userId": "user-admin-ff7e93ef-a5d9-4545-bdde-1d29eea9d7d0",
+      "customerName": "Admin Teste FortixSeg",
+      "customerEmail": "adminteste@fortixseg.com",
+      "role": "admin",
+      "type": "student",
+      "status": "pending",
+      "items": [
+        {
+          "courseId": "nr35",
+          "packageId": "",
+          "kind": "course",
+          "title": "NR-35 Trabalho em Altura - Teórico",
+          "quantity": 1,
+          "unitPrice": 149.9
+        }
+      ],
+      "totalAmount": 149.9,
+      "externalReference": "fortixseg-2e721a29-01d3-4432-9b77-9f0c309a9162",
+      "paymentProvider": "mercado_pago",
+      "paymentId": "",
+      "providerStatus": "checkout_open",
+      "lastWebhookAt": "",
+      "releasedAt": "",
+      "createdAt": "2026-08-04T15:08:14.255Z",
+      "updatedAt": "2026-08-04T15:08:15.083Z",
+      "approvedAt": "",
+      "paymentPreferenceId": "3522633884-dc564cd1-5018-42b3-8dbb-698e0198cd11"
+    },
+    {
+      "id": "order-7e1ade0d-c9c6-414c-8d02-07c540adba59",
+      "userId": "user-admin-ff7e93ef-a5d9-4545-bdde-1d29eea9d7d0",
+      "customerName": "Admin Teste FortixSeg",
+      "customerEmail": "adminteste@fortixseg.com",
+      "role": "admin",
+      "type": "student",
+      "status": "pending",
+      "items": [
+        {
+          "courseId": "nr35",
+          "packageId": "",
+          "kind": "course",
+          "title": "NR-35 Trabalho em Altura - Teórico",
+          "quantity": 1,
+          "unitPrice": 149.9
+        }
+      ],
+      "totalAmount": 149.9,
+      "externalReference": "fortixseg-d25a3489-96fa-4330-94b9-91ad9f29a9da",
+      "paymentProvider": "mercado_pago",
+      "paymentId": "",
+      "providerStatus": "checkout_open",
+      "lastWebhookAt": "",
+      "releasedAt": "",
+      "createdAt": "2026-08-04T15:04:48.436Z",
+      "updatedAt": "2026-08-04T15:04:49.376Z",
+      "approvedAt": "",
+      "paymentPreferenceId": "3522633884-047c0952-0b4f-4335-b192-1c384c652586"
+    },
+    {
+      "id": "order-bbabdbbf-ed4f-4731-be97-9f04cd582832",
+      "userId": "user-admin-ff7e93ef-a5d9-4545-bdde-1d29eea9d7d0",
+      "customerName": "Admin Teste FortixSeg",
+      "customerEmail": "adminteste@fortixseg.com",
+      "role": "admin",
+      "type": "student",
+      "status": "pending",
+      "items": [
+        {
+          "courseId": "nr35",
+          "packageId": "",
+          "kind": "course",
+          "title": "NR-35 Trabalho em Altura - Teórico",
+          "quantity": 1,
+          "unitPrice": 149.9
+        }
+      ],
+      "totalAmount": 149.9,
+      "externalReference": "fortixseg-b2a67e41-f5a3-43af-a7bc-bfaeb3a91aa4",
+      "paymentProvider": "mercado_pago",
+      "paymentId": "",
+      "providerStatus": "preference_error",
+      "lastWebhookAt": "",
+      "releasedAt": "",
+      "createdAt": "2026-08-04T15:04:04.976Z",
+      "updatedAt": "2026-08-04T15:04:05.151Z",
+      "approvedAt": ""
+    },
+    {
+      "id": "order-06fb3cca-407c-4b20-b5c2-e513f166d546",
+      "userId": "user-student-b6364b74-5fdd-4321-a411-47b17cbfaa43",
+      "customerName": "Joao da Silva",
+      "customerEmail": "aluno@teste.com",
+      "role": "student",
+      "type": "student",
+      "status": "pending",
+      "items": [
+        {
+          "courseId": "",
+          "packageId": "pkg-chao-fabrica",
+          "kind": "package",
+          "title": "Chao de Fabrica",
+          "quantity": 10,
+          "unitPrice": 314.91
+        }
+      ],
+      "totalAmount": 3149.1,
+      "externalReference": "fortixseg-223026a7-dbf8-4ae4-af28-73815123ed4b",
+      "paymentProvider": "mercado_pago",
+      "paymentId": "",
+      "providerStatus": "checkout_open",
+      "lastWebhookAt": "",
+      "releasedAt": "",
+      "createdAt": "2026-08-04T14:19:36.553Z",
+      "updatedAt": "2026-08-04T14:19:37.468Z",
+      "approvedAt": "",
+      "paymentPreferenceId": "3522633884-96b12c06-800c-4c58-80cb-961522fbff8d"
+    },
+    {
+      "id": "order-126cfdc2-601e-4566-b2f4-ac2a11ef7449",
+      "userId": "",
+      "customerName": "",
+      "customerEmail": "",
+      "role": "guest",
+      "type": "student",
+      "status": "pending",
+      "items": [
+        {
+          "courseId": "nr35",
+          "packageId": "",
+          "kind": "course",
+          "title": "NR-35 Trabalho em Altura - Teórico",
+          "quantity": 1,
+          "unitPrice": 149.9
+        }
+      ],
+      "totalAmount": 149.9,
+      "externalReference": "fortixseg-e2edcff7-2884-48d2-843e-b748a33dbffe",
+      "paymentProvider": "mercado_pago",
+      "paymentId": "",
+      "providerStatus": "preference_error",
+      "lastWebhookAt": "",
+      "releasedAt": "",
+      "createdAt": "2026-08-04T14:05:50.494Z",
+      "updatedAt": "2026-08-04T14:05:50.608Z",
+      "approvedAt": ""
+    }
+  ],
+  "studentProfiles": {},
+  "companySettings": {},
+  "affiliateSettings": {},
+  "adminSettings": {},
+  "companyEmployees": {},
+  "certificates": [
+    {
+      "id": "certificate-c095c044-949d-44a9-ae8a-a693d6504e5d",
+      "code": "FS-NR35-2026-000001",
+      "userId": "user-student-b6364b74-5fdd-4321-a411-47b17cbfaa43",
+      "userEmail": "aluno@teste.com",
+      "studentName": "Joao da Silva",
+      "courseId": "nr-35-nr-35-teste-gerado-por-pdf-1785851367551",
+      "courseTitle": "NR-35 - Teste Gerado por PDF",
+      "hours": "8 horas",
+      "grade": 100,
+      "completedAt": "04/08/2026",
+      "issuedAt": "2026-08-04T13:49:54.911Z",
+      "status": "Valido"
+    }
+  ],
+  "interactiveProgress": {
+    "user-student-b6364b74-5fdd-4321-a411-47b17cbfaa43": {
+      "nr-35-nr-35-teste-gerado-por-pdf-1785851367551": {
+        "completedLessons": [
+          "lesson-a8f38717-4638-4c18-9445-bb924bb48d08",
+          "lesson-14f98eee-da09-4d4d-ad2c-f72de7f5c901",
+          "lesson-64b61ccc-54dd-40c6-80a9-f46f9c0b049a",
+          "lesson-c6c970e6-769a-4b35-bdd8-fc033e43610f",
+          "lesson-4b3e10d1-77c6-447b-82b7-e8524c631d6d",
+          "lesson-8935ca08-e1f0-45cd-83b7-834708788020",
+          "lesson-e08e7aca-82a1-4da9-aa5e-897b73bccb97"
+        ],
+        "attemptsUsed": 1,
+        "bestGrade": 100,
+        "passed": true,
+        "certificateId": "certificate-c095c044-949d-44a9-ae8a-a693d6504e5d",
+        "createdAt": "2026-08-04T13:49:40.654Z",
+        "updatedAt": "2026-08-04T13:49:54.853Z"
+      }
+    },
+    "user-admin-ff7e93ef-a5d9-4545-bdde-1d29eea9d7d0": {
+      "nr-35-nr-35-teste-gerado-por-pdf-1785851367551": {
+        "completedLessons": [
+          "lesson-a8f38717-4638-4c18-9445-bb924bb48d08",
+          "lesson-14f98eee-da09-4d4d-ad2c-f72de7f5c901",
+          "lesson-64b61ccc-54dd-40c6-80a9-f46f9c0b049a"
+        ],
+        "attemptsUsed": 0,
+        "bestGrade": 0,
+        "passed": false,
+        "certificateId": "",
+        "createdAt": "2026-08-04T14:02:04.454Z",
+        "updatedAt": "2026-08-04T14:17:53.789Z"
+      }
+    }
+  }
+}
