@@ -324,21 +324,21 @@ const defaultEmployees = [];
 
 const companyAnalytics = {
   "30": {
-    title: "Últimos 30 dias",
+    title: "Ultimos 30 dias",
     delta: "+4 p.p.",
     trend: [{ label: "Sem 1", value: 74 }, { label: "Sem 2", value: 75 }, { label: "Sem 3", value: 77 }, { label: "Sem 4", value: 78 }],
     status: [{ label: "Conformes", value: 78, color: "#2fa31f" }, { label: "Em andamento", value: 14, color: "#19708c" }, { label: "Atenção", value: 8, color: "#d28a1b" }],
     courses: [{ label: "NR 35", value: 42 }, { label: "NR 12", value: 31 }, { label: "EPI", value: 29 }, { label: "NR 10", value: 26 }]
   },
   "90": {
-    title: "Últimos 90 dias",
+    title: "Ultimos 90 dias",
     delta: "+8 p.p.",
     trend: [{ label: "Abril", value: 70 }, { label: "Maio", value: 74 }, { label: "Junho", value: 78 }],
     status: [{ label: "Conformes", value: 78, color: "#2fa31f" }, { label: "Em andamento", value: 14, color: "#19708c" }, { label: "Atenção", value: 8, color: "#d28a1b" }],
     courses: [{ label: "NR 35", value: 42 }, { label: "NR 12", value: 31 }, { label: "EPI", value: 29 }, { label: "NR 10", value: 26 }]
   },
   "365": {
-    title: "Últimos 12 meses",
+    title: "Ultimos 12 meses",
     delta: "+17 p.p.",
     trend: [{ label: "Ago", value: 61 }, { label: "Out", value: 65 }, { label: "Dez", value: 68 }, { label: "Fev", value: 72 }, { label: "Abr", value: 75 }, { label: "Jun", value: 78 }],
     status: [{ label: "Conformes", value: 78, color: "#2fa31f" }, { label: "Em andamento", value: 14, color: "#19708c" }, { label: "Atenção", value: 8, color: "#d28a1b" }],
@@ -726,7 +726,7 @@ function updateApiStatus(id, text, isOk) {
 
 function setText(id, value) {
   const element = document.getElementById(id);
-  if (element) element.textContent = value;
+  if (element) element.textContent = repairMojibake(value);
 }
 
 function initPortalWorkspaces() {
@@ -777,15 +777,15 @@ function initPortalWorkspaces() {
       pageId: "page-admin",
       eyebrow: "Painel administrativo",
       views: [
-        ["dashboard", "Dashboard", "Visão geral da plataforma"],
-        ["courses", "Cursos", "Gestão de cursos"],
+        ["dashboard", "Dashboard", "Visao geral da plataforma"],
+        ["courses", "Cursos", "Gestao de cursos"],
         ["generator", "Gerador de Treinamentos", "Gerador de Treinamentos"],
-        ["students", "Alunos", "Gestão de alunos"],
-        ["companies", "Empresas", "Gestão de empresas"],
+        ["students", "Alunos", "Gestao de alunos"],
+        ["companies", "Empresas", "Gestao de empresas"],
         ["certificates", "Certificados", "Certificados emitidos"],
         ["payments", "Pagamentos", "Pagamentos"],
-        ["reports", "Relatórios", "Relatórios administrativos"],
-        ["settings", "Configurações", "Configurações"]
+        ["reports", "Relatorios", "Relatorios administrativos"],
+        ["settings", "Configuracoes", "Configuracoes"]
       ]
     }
   };
@@ -1100,7 +1100,7 @@ function affiliatePortalTemplate(key, title) {
 
 function adminPortalTemplate(key, title) {
   if (key === "courses") return adminCourseManagerTemplate(title);
-  if (key === "generator") return adminPdfGeneratorTemplate(title);
+  if (key === "generator") return adminPdfGeneratorTemplateV2(title);
   if (key === "students") return adminUserManagerTemplate(title);
   if (key === "students") return `${portalHeading("Usuários", title, "Acompanhe cadastros, cursos e situação acadêmica.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Aluno</th><th>Curso</th><th>Status</th><th>Última atualização</th></tr></thead><tbody>${(portalData.admin?.recentStudents || []).length ? (portalData.admin.recentStudents || []).map((student) => `<tr><td>${escapeHtml(student.name)}</td><td>${escapeHtml(student.course)}</td><td><span class="table-status ${student.status === "Concluído" ? "complete" : "progress"}">${escapeHtml(student.status)}</span></td><td>${escapeHtml(student.date)}</td></tr>`).join("") : `<tr><td colspan="4">Nenhuma movimentação acadêmica registrada ainda.</td></tr>`}</tbody></table></div></div>`;
   if (key === "companies") return `${portalHeading("Contas B2B", title, "Visualize empresas, colaboradores e consumo de licenças.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Empresas ativas</span><h3>${formatNumber(portalData.admin?.metrics?.companies ?? 0)}</h3><p>Contas corporativas cadastradas na plataforma.</p><strong class="status-copy">Operação ativa</strong></article><article class="portal-data-card"><span>Alunos ativos</span><h3>${formatNumber(portalData.admin?.metrics?.students ?? 0)}</h3><p>Usuários com acesso liberado no ambiente.</p><strong class="status-copy">Base sincronizada</strong></article></div>`;
@@ -1179,6 +1179,111 @@ function adminPdfGeneratorTemplate(title) {
   `;
 }
 
+function adminPdfGeneratorTemplateV2(title) {
+  const steps = [
+    ["upload", "1", "Upload"],
+    ["analysis", "2", "Analise"],
+    ["structure", "3", "Estrutura"],
+    ["preview", "4", "Preview"],
+    ["review", "5", "Revisao"],
+    ["publication", "6", "Publicacao"]
+  ];
+  return `
+    ${portalHeading("Gerador de Treinamentos", title, "Suba uma apostila em PDF, confira a estrutura criada automaticamente e publique somente depois da revisao tecnica.", '<button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar lista</button>')}
+    <div class="interactive-wizard-shell">
+      <div class="interactive-stepper" id="interactiveWizardStepper">
+        ${steps.map(([key, number, label]) => `<button class="interactive-step ${key === "upload" ? "is-active" : ""}" type="button" data-portal-action="admin-wizard-step" data-step="${key}"><span>${number}</span><strong>${label}</strong></button>`).join("")}
+      </div>
+
+      <section class="interactive-stage is-active" data-interactive-stage="upload">
+        <div class="interactive-stage-heading">
+          <div><span>Novo treinamento interativo</span><h2>Upload do PDF</h2><p>Envie a apostila. O sistema identifica o tema, cria modulos, aulas, checklists e prova em rascunho.</p></div>
+          <small>Sem OpenAI nesta fase: regras, palavras-chave e templates FortixSeg.</small>
+        </div>
+        <form class="portal-form compact-form interactive-upload-form" id="interactivePdfGeneratorForm">
+          <div class="form-grid">
+            <label class="field full"><span>Nome do treinamento</span><input name="title" maxlength="180" placeholder="Ex.: NR-35 - Trabalho em Altura"></label>
+            <label class="field"><span>Categoria</span><input name="category" maxlength="90" value="Segurança do Trabalho"></label>
+            <label class="field"><span>Carga horária</span><input name="hours" type="number" min="1" max="120" value="8"></label>
+            <label class="field"><span>Nota mínima (%)</span><input name="minimumGrade" type="number" min="0" max="100" value="70"></label>
+            <label class="field full"><span>Responsável técnico</span><input name="responsible" maxlength="180" placeholder="Nome e qualificação do responsável"></label>
+          </div>
+          <label class="admin-upload-field generator-upload interactive-dropzone" data-interactive-dropzone>
+            <input id="interactivePdfFile" type="file" accept="application/pdf" required>
+            <strong>Arraste e solte o PDF aqui</strong>
+            <span>ou clique para selecionar do computador</span>
+            <small>Formato aceito: PDF. Tamanho maximo: 20 MB.</small>
+          </label>
+          <div class="admin-file-selection interactive-file-selection" id="interactivePdfSelection" aria-live="polite"></div>
+          <div class="generator-template-note">
+            <strong>Templates ativos</strong>
+            <span>NR-35, NR-33, NR-10, EPI/NR-06, Integração e SST generico. Se o PDF nao bater com nenhum, o sistema cria um treinamento SST base para revisao.</span>
+          </div>
+          <div class="admin-editor-actions">
+            <button class="button button-primary" type="submit" id="interactiveGenerateButton">Enviar e analisar PDF</button>
+            <span id="interactiveGeneratorStatus" aria-live="polite"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="interactive-stage" data-interactive-stage="analysis" id="interactiveAnalysisPanel">
+        <div class="portal-empty-state"><strong>Aguardando PDF.</strong><span>Depois do envio, a analise aparece aqui.</span></div>
+      </section>
+
+      <section class="interactive-stage" data-interactive-stage="structure" id="interactiveStructurePanel">
+        <div class="portal-empty-state"><strong>Estrutura ainda nao gerada.</strong><span>Envie um PDF para visualizar modulos e aulas encontrados.</span></div>
+      </section>
+
+      <section class="interactive-stage" data-interactive-stage="preview" id="interactivePreviewPanel">
+        <div class="portal-empty-state"><strong>Preview indisponivel.</strong><span>Gere ou abra um treinamento para revisar a experiencia do aluno sem sair do admin.</span></div>
+      </section>
+
+      <section class="interactive-stage" data-interactive-stage="review">
+        <section class="interactive-review-panel hidden" id="interactiveCourseReviewPanel">
+          <div class="interactive-review-header">
+            <div>
+              <span id="interactiveReviewStatus">Rascunho</span>
+              <h3 id="interactiveReviewTitle">Revisao do treinamento gerado</h3>
+              <p id="interactiveReviewMeta">Revise modulos, aulas, checklists e prova antes de publicar.</p>
+            </div>
+            <div class="interactive-review-actions">
+              <button class="button button-secondary" type="button" data-portal-action="admin-go-preview">Ver preview interno</button>
+              <button class="button button-primary" type="button" data-portal-action="admin-go-publication">Ir para publicacao</button>
+            </div>
+          </div>
+          <div class="interactive-review-grid">
+            <div class="interactive-module-review" id="interactiveModuleReview"></div>
+            <aside class="interactive-review-side" id="interactiveReviewSummary"></aside>
+          </div>
+          <form class="portal-form" id="interactiveCourseReviewForm">
+            <details class="interactive-json-details">
+              <summary>Editor avancado do treinamento</summary>
+              <label class="field full"><span>JSON do treinamento gerado</span><textarea id="interactiveCourseJsonEditor" name="courseJson" rows="16" spellcheck="false"></textarea><small>Use para ajustes finos de titulos, aulas, perguntas ou checklists. JSON invalido nao sera salvo.</small></label>
+            </details>
+            <div class="admin-editor-actions">
+              <button class="button button-primary" type="submit">Salvar revisao</button>
+              <button class="button button-secondary" type="button" data-portal-action="admin-download-interactive-pdf">Baixar PDF original</button>
+              <span id="interactiveReviewSaveStatus" aria-live="polite"></span>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <section class="interactive-stage" data-interactive-stage="publication" id="interactivePublishPanel">
+        <div class="portal-empty-state"><strong>Publicacao aguardando revisao.</strong><span>Quando o treinamento estiver pronto, a checagem final aparece aqui.</span></div>
+      </section>
+    </div>
+
+    <section class="admin-generated-list-panel interactive-generated-library">
+      <div class="dashboard-heading"><div><span>Treinamentos gerados</span><h2>Rascunhos e publicados</h2><p>Abra, publique, refaca com novo PDF ou exclua treinamentos gerados.</p></div></div>
+      <div id="adminInteractiveCourseList" class="admin-interactive-course-list">
+        <div class="portal-empty-state">Carregando treinamentos...</div>
+      </div>
+    </section>
+    <section class="admin-interactive-preview-panel hidden" id="interactiveAdminPreviewPanel" aria-live="polite"></section>
+  `;
+}
+
 function adminUserManagerTemplate(title) {
   return `
     ${portalHeading("Usuários e acessos", title, "Cadastre aluno, empresa, afiliado ou administrador e acompanhe os acessos criados.")}
@@ -1213,11 +1318,11 @@ function adminUserManagerTemplate(title) {
 
 function adminCourseManagerTemplate(title) {
   return `
-    ${portalHeading("Catálogo e conteúdo", title, "Crie cursos completos, altere preços e gerencie apostilas em PDF.", '<button class="button button-primary" type="button" data-portal-action="admin-new-course">Novo curso</button>')}
-    <div class="admin-course-manager">
+    ${portalHeading("Catalogo e conteudo", title, "Crie cursos completos, altere precos e gerencie apostilas em PDF.", '<button class="button button-primary" type="button" data-portal-action="admin-new-course">Novo curso</button>')}
+    <div class="admin-course-manager" id="adminCourseManager">
       <section class="admin-course-list-panel">
         <div class="portal-toolbar admin-course-toolbar">
-          <label class="search-field"><input id="adminCourseSearch" type="search" placeholder="Buscar curso, código ou categoria"></label>
+          <label class="search-field"><input id="adminCourseSearch" type="search" placeholder="Buscar curso, codigo ou categoria"></label>
           <select id="adminCourseStatusFilter" aria-label="Filtrar por status"><option value="all">Todos</option><option value="published">Publicados</option><option value="draft">Rascunhos</option></select>
         </div>
         <div class="admin-course-list" id="adminCourseList"><div class="portal-empty-state">Carregando catálogo...</div></div>
@@ -1225,24 +1330,24 @@ function adminCourseManagerTemplate(title) {
 
       <section class="admin-course-editor hidden" id="adminCourseEditor">
         <form id="adminCourseForm">
-          <div class="admin-editor-heading"><div><span>Editor de curso</span><h3 id="adminCourseEditorTitle">Novo curso</h3></div><button class="icon-button admin-editor-close" type="button" data-portal-action="admin-cancel-course" aria-label="Fechar editor">×</button></div>
+          <div class="admin-editor-heading"><div><span>Editor de curso</span><h3 id="adminCourseEditorTitle">Novo curso</h3></div><button class="icon-button admin-editor-close" type="button" data-portal-action="admin-cancel-course" aria-label="Fechar editor">x</button></div>
           <div class="form-grid">
             <label class="field full"><span>Nome do curso</span><input name="title" maxlength="180" required></label>
-            <label class="field"><span>Código</span><input name="code" maxlength="30" placeholder="Ex.: NR 35" required></label>
+            <label class="field"><span>Codigo</span><input name="code" maxlength="30" placeholder="Ex.: NR 35" required></label>
             <label class="field"><span>Categoria</span><input name="category" maxlength="80" placeholder="Ex.: Trabalho em altura" required></label>
-            <label class="field"><span>Carga horária</span><input name="hours" type="number" min="1" max="500" value="8" required></label>
-            <label class="field"><span>Preço</span><input name="price" type="number" min="0" step="0.01" value="149.90" required></label>
+            <label class="field"><span>Carga horaria</span><input name="hours" type="number" min="1" max="500" value="8" required></label>
+            <label class="field"><span>Preco</span><input name="price" type="number" min="0" step="0.01" value="149.90" required></label>
             <label class="field"><span>Status</span><select name="status"><option value="published">Publicado</option><option value="draft">Rascunho</option></select></label>
             <label class="field"><span>Quantidade de aulas</span><input name="lessons" type="number" min="1" max="200" value="7" required></label>
-            <label class="field"><span>Nota mínima (%)</span><input name="minimumGrade" type="number" min="0" max="100" value="70" required></label>
+            <label class="field"><span>Nota minima (%)</span><input name="minimumGrade" type="number" min="0" max="100" value="70" required></label>
             <label class="field"><span>Tentativas</span><input name="attempts" type="number" min="1" max="10" value="3" required></label>
-            <label class="field full"><span>Público-alvo</span><textarea name="audience" rows="3" required></textarea></label>
+            <label class="field full"><span>Publico-alvo</span><textarea name="audience" rows="3" required></textarea></label>
             <label class="field full"><span>Objetivo</span><textarea name="objective" rows="3" required></textarea></label>
-            <label class="field full"><span>Conteúdo programático</span><textarea name="syllabus" rows="8" placeholder="Digite um tópico por linha" required></textarea><small>Um tópico por linha. Eles serão exibidos na página do curso.</small></label>
+            <label class="field full"><span>Conteudo programatico</span><textarea name="syllabus" rows="8" placeholder="Digite um topico por linha" required></textarea><small>Um topico por linha. Eles serao exibidos na pagina do curso.</small></label>
           </div>
 
           <div class="admin-resource-manager">
-            <div><span>Biblioteca do curso</span><h4>Apostilas em PDF</h4><p>Envie somente arquivos PDF. Cada arquivo pode ter até 12 MB.</p></div>
+            <div><span>Biblioteca do curso</span><h4>Apostilas em PDF</h4><p>Envie somente arquivos PDF. Cada arquivo pode ter ate 12 MB.</p></div>
             <label class="admin-upload-field"><input id="adminCourseFiles" type="file" accept="application/pdf" multiple><span>Selecionar PDFs</span></label>
             <div class="admin-file-selection" id="adminCourseFileSelection" aria-live="polite"></div>
             <div class="admin-resource-list" id="adminCourseResourceList"><p>Nenhum material adicionado.</p></div>
@@ -1343,7 +1448,8 @@ function handlePortalClick(event) {
 
   const adminPreviewLessonButton = event.target.closest("[data-admin-preview-lesson]");
   if (adminPreviewLessonButton) {
-    renderAdminInteractivePreview(selectedInteractiveCourse, adminPreviewLessonButton.dataset.adminPreviewLesson);
+    renderInteractivePreviewPanel(selectedInteractiveCourse, adminPreviewLessonButton.dataset.adminPreviewLesson);
+    setInteractiveWizardStep("preview");
     return;
   }
 
@@ -1377,11 +1483,28 @@ function handlePortalClick(event) {
   }
   if (action === "admin-edit-course") openAdminCourseEditor(actionButton.dataset.courseId);
   if (action === "admin-cancel-course") closeAdminCourseEditor();
-  if (action === "admin-delete-course") deleteAdminCourse();
+  if (action === "admin-delete-course") deleteAdminCourse(actionButton.dataset.courseId || "");
   if (action === "admin-delete-resource") deleteAdminCourseResource(actionButton.dataset.courseId, actionButton.dataset.resourceId);
   if (action === "admin-toggle-user") toggleAdminUser(actionButton.dataset.userId, actionButton.dataset.userStatus);
   if (action === "admin-refresh-interactive") loadAdminInteractiveCourses();
   if (action === "admin-edit-interactive") loadInteractiveCourseForReview(actionButton.dataset.courseId);
+  if (action === "admin-delete-interactive") deleteInteractiveCourse(actionButton.dataset.courseId);
+  if (action === "admin-wizard-step") setInteractiveWizardStep(actionButton.dataset.step || "upload");
+  if (action === "admin-go-preview") {
+    if (!selectedInteractiveCourse) return showToast("Abra um treinamento gerado primeiro.");
+    renderInteractivePreviewPanel(selectedInteractiveCourse);
+    setInteractiveWizardStep("preview");
+  }
+  if (action === "admin-go-review") {
+    if (!selectedInteractiveCourse) return showToast("Abra um treinamento gerado primeiro.");
+    renderInteractiveCourseReview(selectedInteractiveCourse);
+    setInteractiveWizardStep("review");
+  }
+  if (action === "admin-go-publication") {
+    if (!selectedInteractiveCourse) return showToast("Abra um treinamento gerado primeiro.");
+    renderInteractivePublishPanel(selectedInteractiveCourse);
+    setInteractiveWizardStep("publication");
+  }
   if (action === "admin-preview-interactive") previewInteractiveCourseAsStudent(actionButton.dataset.lessonId || "");
   if (action === "admin-close-interactive-preview") closeAdminInteractivePreview();
   if (action === "admin-publish-interactive") publishInteractiveCourse(selectedInteractiveCourse?.id || actionButton.dataset.courseId, true);
@@ -1616,27 +1739,29 @@ function renderInteractiveLearningShell(course, current, options = {}) {
   const currentTitle = getInteractiveLessonDisplayTitle(course, current);
   const currentSummary = resolveInteractiveSummary(course, current, currentTitle);
   const currentText = cleanInteractivePdfText(current.extractedText, currentTitle);
+  const sourcePageLabel = current.sourcePage ? `Pagina ${current.sourcePage} do PDF` : "Pagina do PDF nao identificada";
+  const extractionLabel = course.pdf?.extractionStatus === "text-extracted" ? "Texto extraido do PDF" : "Aula montada por template";
   const backButton = isPreview
-    ? `<button class="certificate-link back-to-courses" type="button" data-portal-action="admin-close-interactive-preview">← Voltar para revisão</button>`
-    : `<button class="certificate-link back-to-courses" type="button" data-portal="student" data-portal-target="courses" data-portal-title="Meus cursos">← Voltar para meus cursos</button>`;
+    ? `<button class="certificate-link back-to-courses" type="button" data-portal-action="admin-close-interactive-preview">Voltar para revisao</button>`
+    : `<button class="certificate-link back-to-courses" type="button" data-portal="student" data-portal-target="courses" data-portal-title="Meus cursos">Voltar para meus cursos</button>`;
   const completeButton = isPreview
-    ? `<button class="button button-primary" type="button" disabled>Prévia sem alterar progresso</button>`
-    : `<button class="button button-primary" type="button" data-portal-action="student-complete-interactive-lesson" data-course-id="${escapeHtml(course.id)}" data-lesson-id="${escapeHtml(current.id)}">${current.completed ? "Aula concluída" : "Concluir aula"}</button>`;
+    ? `<button class="button button-primary" type="button" disabled>Previa sem alterar progresso</button>`
+    : `<button class="button button-primary" type="button" data-portal-action="student-complete-interactive-lesson" data-course-id="${escapeHtml(course.id)}" data-lesson-id="${escapeHtml(current.id)}">${current.completed ? "Aula concluida" : "Concluir aula"}</button>`;
 
   return `
     <div class="interactive-student-shell ${isPreview ? "admin-preview-shell" : ""}">
       <aside class="interactive-student-sidebar">
-        ${backButton}
+        ${repairMojibake(backButton)}
         <h3>${escapeHtml(getInteractiveCourseDisplayTitle(course))}</h3>
         <div class="progress-track"><i style="width:${Math.min(100, course.progress.percent || 0)}%"></i></div>
-        <small>Progresso: ${course.progress.percent || 0}% · ${course.progress.completedLessons || 0}/${course.progress.totalLessons || 0} aulas</small>
+        <small>Progresso: ${course.progress.percent || 0}% - ${course.progress.completedLessons || 0}/${course.progress.totalLessons || 0} aulas</small>
         <div class="interactive-module-nav">
           ${(course.modules || []).map((module, moduleIndex) => `
             <article>
-              <strong>Módulo ${moduleIndex + 1}<span>${escapeHtml(module.title)}</span></strong>
+              <strong>Modulo ${moduleIndex + 1}<span>${escapeHtml(module.title)}</span></strong>
               ${(module.lessons || []).map((lesson, lessonIndex) => `
                 <button class="${lesson.id === current.id ? "active" : ""} ${lesson.completed ? "complete" : ""}" type="button" ${!isPreview && lesson.locked ? "disabled" : isPreview ? `data-admin-preview-lesson="${escapeHtml(lesson.id)}"` : `data-portal-action="student-open-interactive-course" data-course-id="${escapeHtml(course.id)}" data-lesson-id="${escapeHtml(lesson.id)}"`}>
-                  <span>${lesson.completed ? "✓" : lesson.locked ? "○" : "▶"}</span>
+                  <span>${lesson.completed ? "OK" : lesson.locked ? "--" : ">"}</span>
                   ${moduleIndex + 1}.${lessonIndex + 1} ${escapeHtml(getInteractiveLessonDisplayTitle(course, { ...lesson, moduleId: module.id, moduleIndex, lessonIndex }))}
                 </button>
               `).join("")}
@@ -1651,6 +1776,11 @@ function renderInteractiveLearningShell(course, current, options = {}) {
             <div><span>${escapeHtml(current.moduleTitle || "Módulo")}</span><h3>${escapeHtml(currentTitle)}</h3></div>
             <strong class="course-status ${current.completed ? "complete" : "progress"}">${current.completed ? "Concluída" : "Em andamento"}</strong>
           </div>
+          <div class="interactive-lesson-meta">
+            <span>${escapeHtml(extractionLabel)}</span>
+            <span>${escapeHtml(sourcePageLabel)}</span>
+            <span>${escapeHtml(`${course.hours || 0}h de carga horária`)}</span>
+          </div>
           <section class="lesson-objective"><strong>Objetivo da aula</strong><p>${escapeHtml(currentSummary)}</p></section>
           <section class="lesson-pdf-text"><strong>Texto principal da aula</strong><p>${escapeHtml(currentText)}</p></section>
           <div class="interactive-tip-grid">
@@ -1661,7 +1791,7 @@ function renderInteractiveLearningShell(course, current, options = {}) {
           ${renderQuickQuestion(current, currentTitle)}
           <div class="interactive-lesson-actions">
             <a class="button button-secondary" href="${escapeHtml(pdfDownloadUrl)}" target="_blank" rel="noopener">Abrir apostila PDF</a>
-            ${completeButton}
+            ${repairMojibake(completeButton)}
           </div>
         </div>
         <aside class="interactive-pdf-support">
@@ -1865,6 +1995,14 @@ function handlePortalInput(event) {
   if (event.target.id === "adminCourseFiles") {
     renderSelectedAdminFiles(event.target.files);
   }
+  if (event.target.classList.contains("admin-course-quick-pdf")) {
+    void uploadAdminCoursePdfDirect(event.target.dataset.courseId, event.target.files?.[0]);
+    event.target.value = "";
+  }
+  if (event.target.classList.contains("interactive-course-replace-pdf")) {
+    void regenerateInteractiveCourseFromPdf(event.target.dataset.courseId, event.target.files?.[0]);
+    event.target.value = "";
+  }
   if (event.target.id === "interactivePdfFile") {
     renderSelectedInteractivePdf(event.target.files?.[0]);
   }
@@ -1884,6 +2022,226 @@ function handlePortalInput(event) {
   }
 }
 
+function setInteractiveWizardStep(stepKey = "upload") {
+  const order = ["upload", "analysis", "structure", "preview", "review", "publication"];
+  const activeIndex = Math.max(0, order.indexOf(stepKey));
+  document.querySelectorAll(".interactive-step").forEach((step) => {
+    const index = order.indexOf(step.dataset.step || "");
+    step.classList.toggle("is-active", index === activeIndex);
+    step.classList.toggle("is-complete", index >= 0 && index < activeIndex);
+  });
+  document.querySelectorAll("[data-interactive-stage]").forEach((stage) => {
+    stage.classList.toggle("is-active", stage.dataset.interactiveStage === order[activeIndex]);
+  });
+  document.querySelector("[data-interactive-stage].is-active")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function getInteractiveLessons(course) {
+  return (course?.modules || []).flatMap((module, moduleIndex) =>
+    (module.lessons || []).map((lesson, lessonIndex) => ({ ...lesson, module, moduleIndex, lessonIndex }))
+  );
+}
+
+function getInteractiveQualityGate(course) {
+  const lessons = getInteractiveLessons(course);
+  const questions = course?.finalAssessment?.questions || [];
+  const issues = [];
+  if (!course?.title) issues.push({ type: "error", text: "Titulo do treinamento ausente." });
+  if (!(course?.modules || []).length) issues.push({ type: "error", text: "Nenhum modulo foi criado." });
+  if (!lessons.length) issues.push({ type: "error", text: "Nenhuma aula foi criada." });
+  if (!questions.length) issues.push({ type: "error", text: "Avaliacao final sem perguntas." });
+  if (questions.some((question) => !Array.isArray(question.alternatives) || question.alternatives.length < 2)) {
+    issues.push({ type: "warning", text: "Existem perguntas com poucas alternativas." });
+  }
+  if (course?.pdf?.extractionStatus !== "text-extracted") {
+    issues.push({ type: "warning", text: "Texto do PDF nao foi extraido totalmente. Revisao tecnica recomendada." });
+  }
+  if (!course?.pdf?.url) issues.push({ type: "warning", text: "PDF sem link permanente neste ambiente. Em producao, configure storage." });
+  if (!issues.some((item) => item.type === "error")) {
+    issues.unshift({ type: "ok", text: "Estrutura minima pronta para publicacao apos revisao." });
+  }
+  return issues;
+}
+
+function renderInteractiveAnalysisPanel(state = "idle", course = null, message = "") {
+  const panel = document.getElementById("interactiveAnalysisPanel");
+  if (!panel) return;
+  const done = Boolean(course);
+  const pdf = course?.pdf || {};
+  const steps = [
+    ["PDF validado", state !== "idle"],
+    ["Texto extraido ou template aplicado", done],
+    ["Tema identificado", done],
+    ["Modulos, aulas e avaliacao criados", done]
+  ];
+  panel.innerHTML = `
+    <div class="interactive-stage-heading">
+      <div><span>Analise do conteudo</span><h2>${done ? "Analise concluida" : "Analisando PDF..."}</h2><p>${escapeHtml(message || "O sistema esta lendo o PDF e aplicando os templates FortixSeg.")}</p></div>
+      <small>${done ? escapeHtml(course.detectedLabel || "Modelo SST") : "Processando"}</small>
+    </div>
+    <div class="interactive-analysis-grid">
+      <article class="interactive-analysis-card">
+        <span>Arquivo fonte</span>
+        <strong>${escapeHtml(pdf.name || "PDF em processamento")}</strong>
+        <p>${escapeHtml(pdf.pages ? `${pdf.pages} paginas identificadas` : "Paginas serao estimadas apos a leitura.")}</p>
+      </article>
+      <article class="interactive-analysis-card">
+        <span>Modelo</span>
+        <strong>${escapeHtml(course?.detectedLabel || "Aguardando identificacao")}</strong>
+        <p>Confianca: ${Math.round(Number(course?.confidence || 0) * 100)}%</p>
+      </article>
+      <article class="interactive-analysis-card">
+        <span>Resultado</span>
+        <strong>${done ? "Rascunho criado" : "Gerando rascunho"}</strong>
+        <p>${escapeHtml(done ? `${course.stats?.modules || 0} modulos, ${course.stats?.lessons || 0} aulas e ${course.stats?.questions || 0} questoes` : "Aguarde alguns segundos.")}</p>
+      </article>
+    </div>
+    <div class="interactive-progress-list">
+      ${steps.map(([label, complete]) => `<div class="${complete ? "complete" : ""}"><span>${complete ? "✓" : "..."}</span><strong>${label}</strong></div>`).join("")}
+    </div>
+    ${done ? '<div class="admin-editor-actions"><button class="button button-primary" type="button" data-portal-action="admin-wizard-step" data-step="structure">Ver estrutura identificada</button></div>' : ""}
+  `;
+}
+
+function renderInteractiveStructurePanel(course) {
+  const panel = document.getElementById("interactiveStructurePanel");
+  if (!panel || !course) return;
+  const modules = course.modules || [];
+  const tags = [course.detectedLabel, course.category, course.code, course.pdf?.extractionStatus === "text-extracted" ? "texto extraido" : "template"].filter(Boolean);
+  panel.innerHTML = `
+    <div class="interactive-stage-heading">
+      <div><span>Estrutura identificada</span><h2>${escapeHtml(getInteractiveCourseDisplayTitle(course))}</h2><p>Confira como o PDF virou modulos, aulas e pontos de revisao antes de abrir o preview.</p></div>
+      <small>${escapeHtml(course.status === "published" ? "Publicado" : "Rascunho")}</small>
+    </div>
+    <div class="interactive-structure-layout">
+      <aside class="interactive-analysis-card">
+        <span>Resumo da analise</span>
+        <strong>${course.stats?.modules || modules.length} modulos</strong>
+        <p>${course.stats?.lessons || getInteractiveLessons(course).length} aulas interativas</p>
+        <p>${course.stats?.questions || course.finalAssessment?.questions?.length || 0} perguntas na prova final</p>
+        <div class="interactive-tag-list">${tags.map((tag) => `<small>${escapeHtml(tag)}</small>`).join("")}</div>
+      </aside>
+      <div class="interactive-structure-tree">
+        ${modules.map((module, moduleIndex) => `
+          <article>
+            <header><span>${moduleIndex + 1}</span><strong>${escapeHtml(module.title)}</strong><small>${module.lessons?.length || 0} aulas</small></header>
+            ${(module.lessons || []).map((lesson, lessonIndex) => `
+              <button type="button" data-portal-action="admin-go-preview" data-admin-preview-lesson="${escapeHtml(lesson.id)}">
+                <span>${moduleIndex + 1}.${lessonIndex + 1}</span>
+                <strong>${escapeHtml(getInteractiveLessonDisplayTitle(course, { ...lesson, moduleId: module.id, moduleIndex, lessonIndex }))}</strong>
+                <small>Origem: pagina ${escapeHtml(String(lesson.sourcePage || "-"))}</small>
+              </button>
+            `).join("")}
+          </article>
+        `).join("")}
+      </div>
+    </div>
+    <div class="admin-editor-actions">
+      <button class="button button-secondary" type="button" data-portal-action="admin-wizard-step" data-step="upload">Enviar outro PDF</button>
+      <button class="button button-primary" type="button" data-portal-action="admin-go-preview">Continuar para preview</button>
+    </div>
+  `;
+}
+
+function renderInteractivePreviewPanel(course, lessonId = "") {
+  const panel = document.getElementById("interactivePreviewPanel");
+  if (!panel || !course) return;
+  const lessons = getInteractiveLessons(course);
+  const current = lessons.find((lesson) => lesson.id === lessonId) || lessons[0];
+  if (!current) {
+    panel.innerHTML = '<div class="portal-empty-state">Este treinamento ainda nao possui aulas.</div>';
+    return;
+  }
+  const question = current.quickQuestion || {};
+  panel.innerHTML = `
+    <div class="interactive-stage-heading">
+      <div><span>Preview do treinamento</span><h2>Como a aula ficara para o aluno</h2><p>Preview interno do admin. Voce continua logado como administrador.</p></div>
+      <small>Modulo ${current.moduleIndex + 1} · Aula ${current.lessonIndex + 1}</small>
+    </div>
+    <div class="interactive-preview-admin">
+      <aside class="interactive-preview-nav">
+        ${(course.modules || []).map((module, moduleIndex) => `
+          <article>
+            <strong>Modulo ${moduleIndex + 1}<span>${escapeHtml(module.title)}</span></strong>
+            ${(module.lessons || []).map((lesson, lessonIndex) => `
+              <button class="${lesson.id === current.id ? "active" : ""}" type="button" data-admin-preview-lesson="${escapeHtml(lesson.id)}">
+                <span>${moduleIndex + 1}.${lessonIndex + 1}</span>${escapeHtml(getInteractiveLessonDisplayTitle(course, { ...lesson, moduleId: module.id, moduleIndex, lessonIndex }))}
+              </button>
+            `).join("")}
+          </article>
+        `).join("")}
+      </aside>
+      <article class="interactive-preview-lesson">
+        <span>${escapeHtml(current.module?.title || "Modulo")}</span>
+        <h3>${escapeHtml(getInteractiveLessonDisplayTitle(course, current))}</h3>
+        <p class="lesson-source-chip">Origem no PDF: pagina ${escapeHtml(String(current.sourcePage || "-"))}</p>
+        <div class="lesson-objective"><strong>Objetivo da aula</strong><p>${escapeHtml(current.summary || current.objective || "Resumo gerado pelo template para revisao tecnica.")}</p></div>
+        <div class="interactive-tip-grid">
+          <div class="practice-card"><span>Na pratica</span><p>${escapeHtml(current.practiceCard || "Aplicar o procedimento na rotina, conferindo riscos, controles e responsabilidades antes da atividade.")}</p></div>
+          <div class="attention-card"><span>Atencao</span><p>${escapeHtml(current.attentionCard || "Interrompa a atividade se houver condicao insegura ou falta de autorizacao.")}</p></div>
+        </div>
+        <div class="interactive-checklist"><strong>Checklist da aula</strong>${(current.checklist || []).map((item) => `<label><input type="checkbox"> <span>${escapeHtml(item)}</span></label>`).join("") || "<p>Nenhum checklist gerado para esta aula.</p>"}</div>
+        <div class="interactive-quick-question"><strong>Questao rapida</strong><p>${escapeHtml(question.prompt || "Pergunta rapida sera revisada antes da publicacao.")}</p>${(question.alternatives || []).map((answer, index) => `<label><input type="radio" disabled ${index === question.correctIndex ? "checked" : ""}> <span>${escapeHtml(answer)}</span></label>`).join("")}</div>
+      </article>
+      <aside class="interactive-preview-pdf">
+        <span>Material de apoio</span>
+        <strong>${escapeHtml(course.pdf?.name || "PDF original")}</strong>
+        <p>O aluno vera a apostila como apoio, sem quebrar a leitura da aula.</p>
+        ${course.pdf?.url ? `<a class="button button-secondary" href="${escapeHtml(course.pdf.url)}" target="_blank" rel="noopener">Abrir PDF original</a>` : `<small>PDF sem link permanente neste ambiente.</small>`}
+        <div class="pdf-page-placeholder"><strong>Pagina ${escapeHtml(String(current.sourcePage || "-"))}</strong><span>Preview visual do PDF sera trocado por renderizacao de pagina na fase com storage definitivo.</span></div>
+      </aside>
+    </div>
+    <div class="admin-editor-actions">
+      <button class="button button-secondary" type="button" data-portal-action="admin-go-review">Continuar para revisao</button>
+      <button class="button button-primary" type="button" data-portal-action="admin-go-publication">Ir para publicacao</button>
+    </div>
+  `;
+}
+
+function renderInteractivePublishPanel(course) {
+  const panel = document.getElementById("interactivePublishPanel");
+  if (!panel || !course) return;
+  const gate = getInteractiveQualityGate(course);
+  const hasError = gate.some((item) => item.type === "error");
+  panel.innerHTML = `
+    <div class="interactive-stage-heading">
+      <div><span>Publicar treinamento</span><h2>${hasError ? "Ajustes obrigatorios antes de publicar" : "Treinamento pronto para publicacao"}</h2><p>Confira as informacoes finais. Ao publicar, o treinamento aparece na area do aluno.</p></div>
+      <small>${escapeHtml(course.status === "published" ? "Publicado" : "Rascunho")}</small>
+    </div>
+    <div class="interactive-publication-grid">
+      <article class="interactive-analysis-card">
+        <span>Resumo do treinamento</span>
+        <strong>${escapeHtml(getInteractiveCourseDisplayTitle(course))}</strong>
+        <p>${course.stats?.modules || 0} modulos - ${course.stats?.lessons || 0} aulas - ${course.stats?.questions || 0} questoes</p>
+        <p>Carga horaria: ${escapeHtml(String(course.hours || 0))}h - Nota minima: ${escapeHtml(String(course.minimumGrade || 70))}%</p>
+      </article>
+      <article class="interactive-analysis-card">
+        <span>Arquivo fonte</span>
+        <strong>${escapeHtml(course.pdf?.name || "PDF original")}</strong>
+        <p>${escapeHtml(course.pdf?.pages ? `${course.pdf.pages} paginas` : "Paginas estimadas")} - ${escapeHtml(course.pdf?.extractionStatus || "template")}</p>
+      </article>
+      <article class="interactive-quality-card">
+        <span>Checklist de qualidade</span>
+        ${gate.map((item) => `<p class="${escapeHtml(item.type)}"><strong>${item.type === "ok" ? "OK" : item.type === "error" ? "!" : "i"}</strong>${escapeHtml(item.text)}</p>`).join("")}
+      </article>
+    </div>
+    <div class="admin-editor-actions">
+      <button class="button button-secondary" type="button" data-portal-action="admin-go-review">Voltar para revisao</button>
+      <button class="button button-primary" type="button" data-portal-action="admin-publish-interactive" data-course-id="${escapeHtml(course.id)}" ${hasError ? "disabled" : ""}>Publicar treinamento</button>
+    </div>
+  `;
+}
+
+function renderInteractiveWizardCourse(course, preferredStep = "structure") {
+  if (!course) return;
+  renderInteractiveAnalysisPanel("done", course, "PDF analisado e treinamento criado em rascunho.");
+  renderInteractiveStructurePanel(course);
+  renderInteractivePreviewPanel(course);
+  renderInteractiveCourseReview(course);
+  renderInteractivePublishPanel(course);
+  setInteractiveWizardStep(preferredStep);
+}
+
 function renderSelectedInteractivePdf(file) {
   const container = document.getElementById("interactivePdfSelection");
   if (!container) return;
@@ -1893,9 +2251,11 @@ function renderSelectedInteractivePdf(file) {
   }
   const valid = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
   container.innerHTML = `
-    <strong>${valid ? "PDF selecionado" : "Arquivo inválido"}</strong>
-    <span>${escapeHtml(file.name)} - ${formatFileSize(file.size)}</span>
-    ${valid ? "" : "<span>Envie somente arquivos PDF.</span>"}
+    <div class="interactive-file-card ${valid ? "valid" : "invalid"}">
+      <span>${valid ? "PDF selecionado" : "Arquivo invalido"}</span>
+      <strong>${escapeHtml(file.name)}</strong>
+      <small>${formatFileSize(file.size)} - ${valid ? "pronto para analise" : "envie somente PDF"}</small>
+    </div>
   `;
 }
 
@@ -1920,9 +2280,12 @@ async function generateInteractiveCourseFromPdfForm(form) {
 
   const values = Object.fromEntries(new FormData(form).entries());
   button.disabled = true;
+  setInteractiveWizardStep("analysis");
+  renderInteractiveAnalysisPanel("reading", null, "Validando arquivo e extraindo texto do PDF...");
   if (status) status.textContent = "Lendo PDF e montando treinamento...";
   try {
     const data = await fileToDataUrl(file);
+    renderInteractiveAnalysisPanel("generating", null, "PDF validado. Identificando tema, modulos, aulas e perguntas...");
     const result = await apiRequest("/api/admin/interactive-courses/generate", {
       method: "POST",
       body: JSON.stringify({
@@ -1937,11 +2300,15 @@ async function generateInteractiveCourseFromPdfForm(form) {
     adminInteractiveCourses = result.courses || [];
     selectedInteractiveCourse = result.course;
     renderAdminInteractiveCourseList();
-    renderInteractiveCourseReview(selectedInteractiveCourse);
+    renderInteractiveWizardCourse(selectedInteractiveCourse, "structure");
     form.reset();
     renderSelectedInteractivePdf(null);
-    if (status) status.textContent = "Treinamento gerado como rascunho. Revise antes de publicar.";
-    showToast("Treinamento gerado em rascunho.");
+    const extractionStatus = selectedInteractiveCourse?.pdf?.extractionStatus;
+    const extractionMessage = extractionStatus === "text-extracted"
+      ? "Texto do PDF extraido e treinamento gerado em rascunho."
+      : "Treinamento gerado por template. Revise o conteudo antes de publicar.";
+    if (status) status.textContent = extractionMessage;
+    showToast(extractionMessage);
   } catch (error) {
     if (status) status.textContent = error.message || "Não foi possível gerar o treinamento.";
     showToast(error.message || "Não foi possível gerar o treinamento.");
@@ -1980,9 +2347,11 @@ function renderAdminInteractiveCourseList() {
         </div>
         <div class="admin-interactive-actions">
           <button class="button button-secondary" type="button" data-portal-action="admin-edit-interactive" data-course-id="${escapeHtml(course.id)}">Editar</button>
+          <label class="button button-secondary interactive-replace-button">Subir novo PDF<input class="interactive-course-replace-pdf" type="file" accept="application/pdf" data-course-id="${escapeHtml(course.id)}"></label>
           ${course.status === "published"
             ? `<button class="button button-secondary" type="button" data-portal-action="admin-unpublish-interactive" data-course-id="${escapeHtml(course.id)}">Voltar para rascunho</button>`
             : `<button class="button button-primary" type="button" data-portal-action="admin-publish-interactive" data-course-id="${escapeHtml(course.id)}">Publicar</button>`}
+          <button class="button button-danger" type="button" data-portal-action="admin-delete-interactive" data-course-id="${escapeHtml(course.id)}">Excluir</button>
         </div>
       </article>
     `;
@@ -1994,7 +2363,7 @@ async function loadInteractiveCourseForReview(courseId) {
   try {
     const data = await apiRequest(`/api/admin/interactive-courses/${encodeURIComponent(courseId)}`, { timeoutMs: 15_000 });
     selectedInteractiveCourse = data.course;
-    renderInteractiveCourseReview(selectedInteractiveCourse);
+    renderInteractiveWizardCourse(selectedInteractiveCourse, "review");
   } catch (error) {
     showToast(error.message || "Não foi possível abrir a revisão.");
   }
@@ -2030,10 +2399,18 @@ function renderInteractiveCourseReview(course) {
 
   const summary = document.getElementById("interactiveReviewSummary");
   if (summary) {
+    const extractionStatus = course.pdf?.extractionStatus === "text-extracted" ? "Texto extraido" : "Template aplicado";
+    const storageLabel = course.pdf?.storage === "blob-public" || course.pdf?.storage === "blob-private"
+      ? "PDF salvo na nuvem"
+      : course.pdf?.storage === "local-file"
+        ? "PDF salvo localmente"
+        : "PDF sem storage permanente";
     summary.innerHTML = `
       <article><span>Resumo do treinamento</span><strong>${stats.modules || 0}</strong><small>módulos</small></article>
       <article><span>Aulas</span><strong>${stats.lessons || 0}</strong><small>interativas</small></article>
       <article><span>Prova final</span><strong>${stats.questions || 0}</strong><small>questões editáveis</small></article>
+      <article><span>Leitura do PDF</span><strong>${escapeHtml(extractionStatus)}</strong><small>${escapeHtml(course.pdf?.extractionError || "Pronto para revisao")}</small></article>
+      <article><span>Armazenamento</span><strong>${escapeHtml(storageLabel)}</strong><small>${escapeHtml(course.pdf?.pages ? `${course.pdf.pages} pagina${course.pdf.pages === 1 ? "" : "s"}` : "Paginas estimadas")}</small></article>
       <article><span>PDF anexado</span><strong>${escapeHtml(course.pdf?.name || "material.pdf")}</strong><small>${escapeHtml(formatFileSize(course.pdf?.size || 0))}</small></article>
       <a class="button button-secondary" href="${escapeHtml(course.pdf?.url || "#")}" target="_blank" rel="noopener">Abrir PDF original</a>
     `;
@@ -2069,7 +2446,7 @@ async function saveInteractiveCourseReview(form) {
     selectedInteractiveCourse = data.course;
     adminInteractiveCourses = data.courses || adminInteractiveCourses;
     renderAdminInteractiveCourseList();
-    renderInteractiveCourseReview(selectedInteractiveCourse);
+    renderInteractiveWizardCourse(selectedInteractiveCourse, "review");
     if (status) status.textContent = "Revisão salva.";
     showToast("Revisão salva com sucesso.");
   } catch (error) {
@@ -2092,11 +2469,77 @@ async function publishInteractiveCourse(courseId, publish) {
     selectedInteractiveCourse = data.course;
     adminInteractiveCourses = data.courses || adminInteractiveCourses;
     renderAdminInteractiveCourseList();
-    renderInteractiveCourseReview(selectedInteractiveCourse);
+    renderInteractiveWizardCourse(selectedInteractiveCourse, publish ? "publication" : "review");
     await hydratePortalData("student");
     showToast(publish ? "Treinamento publicado na área do aluno." : "Treinamento voltou para rascunho.");
   } catch (error) {
     showToast(error.message || "Não foi possível alterar o status.");
+  }
+}
+
+async function deleteInteractiveCourse(courseId) {
+  if (!courseId) {
+    showToast("Selecione um treinamento para excluir.");
+    return;
+  }
+  const course = adminInteractiveCourses.find((item) => item.id === courseId) || selectedInteractiveCourse;
+  const label = getInteractiveCourseDisplayTitle(course) || "este treinamento";
+  if (!confirm(`Excluir ${label}? Esta acao remove o rascunho/publicacao do gerador.`)) return;
+  try {
+    const data = await apiRequest("/api/admin/interactive-courses/generate", {
+      method: "POST",
+      body: JSON.stringify({ action: "delete", courseId }),
+      timeoutMs: 20_000
+    });
+    adminInteractiveCourses = data.courses || [];
+    if (selectedInteractiveCourse?.id === courseId) selectedInteractiveCourse = null;
+    renderAdminInteractiveCourseList();
+    setInteractiveWizardStep("upload");
+    document.getElementById("interactiveStructurePanel").innerHTML = '<div class="portal-empty-state"><strong>Treinamento excluido.</strong><span>Envie um novo PDF para gerar outro rascunho.</span></div>';
+    showToast("Treinamento excluido.");
+  } catch (error) {
+    showToast(error.message || "Nao foi possivel excluir o treinamento.");
+  }
+}
+
+async function regenerateInteractiveCourseFromPdf(courseId, file) {
+  if (!courseId || !file) return;
+  if (!(file.type === "application/pdf" || /\.pdf$/i.test(file.name))) {
+    showToast("Envie somente PDF.");
+    return;
+  }
+  if (file.size > 20_000_000) {
+    showToast("O PDF deve ter no maximo 20 MB neste MVP.");
+    return;
+  }
+  const existing = adminInteractiveCourses.find((item) => item.id === courseId) || selectedInteractiveCourse;
+  try {
+    showToast("Regerando treinamento com novo PDF...");
+    setInteractiveWizardStep("analysis");
+    renderInteractiveAnalysisPanel("reading", existing, "Recebendo novo PDF para atualizar o rascunho.");
+    const dataUrl = await fileToDataUrl(file);
+    const data = await apiRequest("/api/admin/interactive-courses/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "regenerate",
+        courseId,
+        name: file.name,
+        data: dataUrl,
+        title: existing?.title || "",
+        category: existing?.category || "Segurança do Trabalho",
+        hours: Number(existing?.hours || 8),
+        minimumGrade: Number(existing?.minimumGrade || 70),
+        responsible: existing?.responsible || ""
+      }),
+      timeoutMs: 120_000
+    });
+    selectedInteractiveCourse = data.course;
+    adminInteractiveCourses = data.courses || adminInteractiveCourses;
+    renderAdminInteractiveCourseList();
+    renderInteractiveWizardCourse(selectedInteractiveCourse, "structure");
+    showToast("Treinamento atualizado com novo PDF.");
+  } catch (error) {
+    showToast(error.message || "Nao foi possivel atualizar pelo PDF.");
   }
 }
 
@@ -2205,7 +2648,7 @@ function renderAdminUserList(query = "", role = "all") {
       </div>
       <div>
         <strong>${escapeHtml(user.status === "inactive" ? "Desativado" : "Ativo")}</strong>
-        <small>${escapeHtml(user.lastLoginAt ? `Último acesso: ${formatDate(user.lastLoginAt)}` : "Ainda sem login")}</small>
+        <small>${escapeHtml(user.lastLoginAt ? `Ultimo acesso: ${formatDate(user.lastLoginAt)}` : "Ainda sem login")}</small>
         <button class="button button-secondary" type="button" data-portal-action="admin-toggle-user" data-user-id="${escapeHtml(user.id)}" data-user-status="${escapeHtml(user.status || "active")}">${user.status === "inactive" ? "Reativar" : "Desativar"}</button>
       </div>
     </article>
@@ -2268,22 +2711,33 @@ function renderAdminCourseList(query = "", status = "all") {
     const topicCount = course.syllabus?.length || 0;
     const resourceCount = course.resources?.length || 0;
     const statusLabel = course.status === "draft" ? "Rascunho" : "Publicado";
+    const resourceLabel = resourceCount
+      ? `${resourceCount} ${resourceCount === 1 ? "PDF anexado" : "PDFs anexados"}`
+      : "Nenhum PDF anexado";
+    const uploadInputId = `adminCourseQuickPdf-${escapeHtml(course.id)}`;
     return `
       <article class="admin-course-item">
         <div class="admin-course-item-main">
           <span class="course-status ${course.status === "draft" ? "draft" : "published"}">${statusLabel}</span>
           <h4>${escapeHtml(course.title)}</h4>
-          <p>${escapeHtml(course.code)} - ${course.hours}h - ${topicCount} tópicos - ${resourceCount} materiais</p>
+          <p>${escapeHtml(course.code)} - ${course.hours}h - ${topicCount} topicos - ${resourceCount} materiais</p>
+          <span class="admin-course-resource-summary">${resourceLabel}</span>
         </div>
         <div class="admin-course-item-side">
           <strong>${formatCurrency(course.price)}</strong>
-          <button class="button button-secondary" type="button" data-portal-action="admin-edit-course" data-course-id="${escapeHtml(course.id)}">Editar</button>
+          <div class="admin-course-actions">
+            <button class="button button-secondary" type="button" data-portal-action="admin-edit-course" data-course-id="${escapeHtml(course.id)}">Editar</button>
+            <label class="button button-secondary admin-course-upload-button" for="${uploadInputId}">
+              Subir PDF
+              <input id="${uploadInputId}" class="admin-course-quick-pdf" type="file" accept="application/pdf" data-course-id="${escapeHtml(course.id)}">
+            </label>
+            <button class="button button-danger admin-course-delete-inline" type="button" data-portal-action="admin-delete-course" data-course-id="${escapeHtml(course.id)}">Excluir</button>
+          </div>
         </div>
       </article>
     `;
   }).join("") || '<div class="portal-empty-state"><strong>Nenhum curso encontrado.</strong><span>Ajuste os filtros ou cadastre um novo treinamento.</span></div>';
 }
-
 function openAdminCourseEditor(courseId = "") {
   const editor = document.getElementById("adminCourseEditor");
   const form = document.getElementById("adminCourseForm");
@@ -2311,6 +2765,7 @@ function openAdminCourseEditor(courseId = "") {
   document.getElementById("adminCourseDeleteButton")?.classList.toggle("hidden", !course);
   renderAdminCourseResources(course);
   renderSelectedAdminFiles([]);
+  document.getElementById("adminCourseManager")?.classList.add("editor-open");
   editor.classList.remove("hidden");
   editor.scrollIntoView({ behavior: "smooth", block: "start" });
   setTimeout(() => form.elements.namedItem("title")?.focus(), 250);
@@ -2320,6 +2775,7 @@ function closeAdminCourseEditor() {
   const editor = document.getElementById("adminCourseEditor");
   const form = document.getElementById("adminCourseForm");
   editor?.classList.add("hidden");
+  document.getElementById("adminCourseManager")?.classList.remove("editor-open");
   form?.reset();
   if (form) form.dataset.courseId = "";
 }
@@ -2337,8 +2793,8 @@ function renderAdminCourseResources(course) {
     <article class="admin-resource-item">
       <span class="admin-resource-type pdf">PDF</span>
       <div><strong>${escapeHtml(resource.name)}</strong><small>${formatFileSize(resource.size)}</small></div>
-      <a class="icon-button" href="${escapeHtml(resource.url)}" target="_blank" rel="noopener" aria-label="Abrir ${escapeHtml(resource.name)}" title="Abrir material">↗</a>
-      <button class="icon-button danger" type="button" data-portal-action="admin-delete-resource" data-course-id="${escapeHtml(course.id)}" data-resource-id="${escapeHtml(resource.id)}" aria-label="Excluir ${escapeHtml(resource.name)}" title="Excluir material">×</button>
+      <a class="icon-button" href="${escapeHtml(resource.url)}" target="_blank" rel="noopener" aria-label="Abrir ${escapeHtml(resource.name)}" title="Abrir material">PDF</a>
+      <button class="icon-button danger" type="button" data-portal-action="admin-delete-resource" data-course-id="${escapeHtml(course.id)}" data-resource-id="${escapeHtml(resource.id)}" aria-label="Excluir ${escapeHtml(resource.name)}" title="Excluir material">x</button>
     </article>
   `).join("") || "<p>Nenhum material adicionado. Salve o curso com arquivos selecionados para iniciar a biblioteca.</p>";
 }
@@ -2421,6 +2877,31 @@ async function uploadAdminCourseResource(courseId, file) {
   });
 }
 
+async function uploadAdminCoursePdfDirect(courseId, file) {
+  const course = adminCourseCatalog.find((item) => item.id === courseId);
+  if (!course || !file) return;
+  if (file.type !== "application/pdf") {
+    showToast("Envie somente arquivos PDF.");
+    return;
+  }
+  if (file.size > 12_000_000) {
+    showToast("O PDF deve ter no maximo 12 MB.");
+    return;
+  }
+
+  try {
+    showToast(`Enviando PDF para ${course.code}...`);
+    await uploadAdminCourseResource(courseId, file);
+    await loadAdminCourseCatalog();
+    await syncCourseCatalog();
+    const form = document.getElementById("adminCourseForm");
+    if (form?.dataset.courseId === courseId) openAdminCourseEditor(courseId);
+    showToast("PDF anexado ao treinamento.");
+  } catch (error) {
+    showToast(error.message || "Nao foi possivel anexar o PDF ao treinamento.");
+  }
+}
+
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -2430,18 +2911,18 @@ function fileToDataUrl(file) {
   });
 }
 
-async function deleteAdminCourse() {
+async function deleteAdminCourse(courseId = "") {
   const form = document.getElementById("adminCourseForm");
-  const courseId = form?.dataset.courseId;
-  const course = adminCourseCatalog.find((item) => item.id === courseId);
+  const targetCourseId = courseId || form?.dataset.courseId;
+  const course = adminCourseCatalog.find((item) => item.id === targetCourseId);
   if (!course || !window.confirm(`Excluir o curso "${course.title}"? Esta ação removerá o curso do catálogo.`)) return;
 
   try {
-    await apiRequest(`/api/admin/courses/${encodeURIComponent(courseId)}`, { method: "DELETE" });
-    closeAdminCourseEditor();
+    const result = await apiRequest(`/api/admin/courses/${encodeURIComponent(targetCourseId)}`, { method: "DELETE" });
+    if (form?.dataset.courseId === targetCourseId) closeAdminCourseEditor();
     await loadAdminCourseCatalog();
     await syncCourseCatalog();
-    showToast("Curso excluído do catálogo.");
+    showToast(result.archived ? "Curso arquivado como rascunho porque ja possui matriculas." : "Curso excluido do catalogo.");
   } catch (error) {
     showToast(error.message || "Não foi possível excluir o curso.");
   }
@@ -3833,7 +4314,7 @@ function renderCertificateValidation(result, data) {
   const certificate = data.certificate;
   result.className = "validation-result";
   result.innerHTML = `
-    <div class="status-seal">✓</div>
+    <div class="status-seal">OK</div>
     <div>
       <h2>Certificado válido</h2>
       <p><strong>Aluno:</strong> ${escapeHtml(certificate.student)}</p>
@@ -3984,12 +4465,28 @@ function normalizeText(value) {
 }
 
 function escapeHtml(value) {
-  return String(value)
+  return repairMojibake(String(value))
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function repairMojibake(value) {
+  return repairCommonPortugueseEncoding(String(value || ""));
+}
+
+function repairCommonPortugueseEncoding(value) {
+  const replacements = [
+    ["\u00c3\u00a1", "\u00e1"], ["\u00c3\u00a0", "\u00e0"], ["\u00c3\u00a2", "\u00e2"], ["\u00c3\u00a3", "\u00e3"],
+    ["\u00c3\u00a9", "\u00e9"], ["\u00c3\u00aa", "\u00ea"], ["\u00c3\u00ad", "\u00ed"], ["\u00c3\u00b3", "\u00f3"],
+    ["\u00c3\u00b4", "\u00f4"], ["\u00c3\u00b5", "\u00f5"], ["\u00c3\u00ba", "\u00fa"], ["\u00c3\u00a7", "\u00e7"],
+    ["\u00c3\u0081", "\u00c1"], ["\u00c3\u0089", "\u00c9"], ["\u00c3\u009a", "\u00da"], ["\u00c3\u0087", "\u00c7"],
+    ["\u00c2\u00b7", "\u00b7"], ["\u00e2\u0086\u0090", "\u2190"], ["\u00e2\u009c\u0093", "\u2713"],
+    ["\u00e2\u0097\u008b", "\u25cb"], ["\u00e2\u0096\u00b6", "\u25b6"], ["\u00e2\u0080\u00a2", "\u2022"]
+  ];
+  return replacements.reduce((text, [broken, fixed]) => text.replaceAll(broken, fixed), value);
 }
 
 // TODO: buscar cursos no banco de dados
@@ -4000,3 +4497,4 @@ function escapeHtml(value) {
 // TODO: implementar storage protegido para PDFs em produção
 // TODO: criar logs de acesso conforme requisitos do treinamento EAD
 // TODO: integrar banco PostgreSQL e políticas de acesso
+

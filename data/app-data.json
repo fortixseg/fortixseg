@@ -30,10 +30,10 @@
       "phone": "(11) 99999-0001",
       "document": "00000000000",
       "status": "active",
-      "passwordHash": "c31855832f11a74741f4e81d48de0055bcdc9f35aacde399e242c30ff3262f37fe0657f0842a43b293489c117b772ba8b1166a584e0cae7a9d29396c1a76599d",
-      "passwordSalt": "ba50998d-a900-4bf1-ba12-d35f85af08b8",
+      "passwordHash": "0e53e6d59ddff8b1de0e9b953307732481bbf55e94962672b6fd0041ae1431da792650a17b4ea58366526fa940e65d9cad27900370ebd1fad35e0cb6a76677df",
+      "passwordSalt": "8be32dd0-865a-4c94-b5f3-28ce4594cd87",
       "createdAt": "2026-08-04T12:25:34.233Z",
-      "updatedAt": "2026-08-04T15:07:49.343Z",
+      "updatedAt": "2026-08-09T22:14:29.422Z",
       "lastLoginAt": "2026-08-04T15:03:48.901Z"
     },
     {
@@ -46,10 +46,10 @@
       "phone": "(11) 99999-0002",
       "document": "00000000000100",
       "status": "active",
-      "passwordHash": "7ca5b79fa1072a4f8e358410a3ee73ed1e76d2165c87d080a8b17cb7849aa1914a695585160fc916261c6322b405b7f1e539ee6f7f3037502d162a4161799bda",
-      "passwordSalt": "2ef64dea-eb3b-4903-a72b-25247526f6df",
+      "passwordHash": "d14d95b10d933ed6df1ff6f15fb646037216cddc57abc30f3d99dfd82e684c00fdb85ffcfb2c336764e44c1b54587d0b71460cd926762f3e6a2c86422e31c62a",
+      "passwordSalt": "72a82c3b-e3de-43e4-b25d-2775b517252a",
       "createdAt": "2026-08-04T12:25:34.307Z",
-      "updatedAt": "2026-08-04T15:07:49.413Z",
+      "updatedAt": "2026-08-09T22:14:29.470Z",
       "lastLoginAt": "2026-08-04T15:03:49.000Z"
     },
     {
@@ -62,10 +62,10 @@
       "phone": "(11) 99999-0003",
       "document": "00000000000",
       "status": "active",
-      "passwordHash": "2f19b909b0f1e41781c7b991ea6fd878c70ea3c25a3a191063ac14892a814ec201ecc03abaf67b35a77d234924d697ceb9d02248d7f4d984c784749e9072ebfc",
-      "passwordSalt": "c3113ac2-d7d3-402f-87b7-ae0b1130bb23",
+      "passwordHash": "7154e8c73c9227643aad733fbbf7696d1a117db5126722a6731458a67d55455cbd30d5a8b8fef447cdc797366100067ff8018befa0d6980fed1f0b70009a3c25",
+      "passwordSalt": "cc01b1aa-3538-44ec-a416-80dda47c5599",
       "createdAt": "2026-08-04T12:25:34.381Z",
-      "updatedAt": "2026-08-04T15:07:49.483Z",
+      "updatedAt": "2026-08-09T22:14:29.518Z",
       "lastLoginAt": "2026-08-04T15:06:26.836Z"
     },
     {
@@ -78,11 +78,11 @@
       "phone": "",
       "document": "",
       "status": "active",
-      "passwordHash": "71451d08b97868556633e751796f5dc5d33deec77b0244d48556500a508fbb39641cdc90eccc7f33fc75e869b939e4fa086382ab097e2dd8bae2843caee1898a",
-      "passwordSalt": "0b6d002c-00f5-4f4a-8248-b9d0664934a0",
+      "passwordHash": "a5995b001db3325e0a0eec13c342e8fdfa689db811dc5af8aa33386ae456a79b4228002d15218f488c2da4bcc73ca451e66cc4a26f053e28ec4206cb4cfcd55e",
+      "passwordSalt": "e7469cc5-6363-4a8c-bc41-def475de1977",
       "createdAt": "2026-08-04T12:25:34.462Z",
-      "updatedAt": "2026-08-04T15:07:49.549Z",
-      "lastLoginAt": "2026-08-04T13:12:41.804Z"
+      "updatedAt": "2026-08-09T22:14:30.124Z",
+      "lastLoginAt": "2026-08-09T22:14:30.124Z"
     }
   ],
   "registrations": [
