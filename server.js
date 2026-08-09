@@ -11,7 +11,10 @@ import { createBlobReadUrl, deleteBlobResource, isBlobStorageEnabled, uploadBlob
 const ROOT_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const MODULE_FILE = fileURLToPath(import.meta.url);
 const ENV = typeof process === "undefined" ? {} : process.env;
-loadEnv(resolve(ROOT_DIR, ".env"));
+const IS_SERVERLESS_RUNTIME = Boolean(ENV.VERCEL || ENV.AWS_LAMBDA_FUNCTION_NAME || ENV.LAMBDA_TASK_ROOT);
+if (!IS_SERVERLESS_RUNTIME) {
+  loadEnv(resolve(ROOT_DIR, ".env"));
+}
 
 const PORT = Number(ENV.PORT) || 3001;
 const OPENAI_MODEL = ENV.OPENAI_MODEL || "gpt-5.4-mini";
@@ -26,7 +29,6 @@ const INTERACTIVE_UPLOAD_DIR = resolve(ROOT_DIR, "assets", "uploads", "interacti
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const SESSION_SECRET = ENV.FORTIXSEG_SESSION_SECRET || ENV.AUTH_TOKEN_SECRET || randomUUID();
 const IS_DIRECT_RUN = Boolean(process.argv[1]) && resolve(process.argv[1]) === MODULE_FILE;
-const IS_SERVERLESS_RUNTIME = Boolean(ENV.VERCEL || ENV.AWS_LAMBDA_FUNCTION_NAME || ENV.LAMBDA_TASK_ROOT);
 
 const DEFAULT_COURSE_CATALOG = {
   nr35: {
@@ -157,6 +159,13 @@ export async function handleRequest(request, response) {
       return await handleInteractiveCourseGenerate(request, response);
     }
 
+    const adminInteractiveRegenerateMatch = url.pathname.match(/^\/api\/admin\/interactive-courses\/([^/]+)\/regenerate$/);
+    if (adminInteractiveRegenerateMatch && request.method === "POST") {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return await handleInteractiveCourseRegenerate(request, response, decodeURIComponent(adminInteractiveRegenerateMatch[1]));
+    }
+
     const adminInteractiveMatch = url.pathname.match(/^\/api\/admin\/interactive-courses\/([^/]+)(?:\/(publish|unpublish))?$/);
     if (adminInteractiveMatch && request.method === "GET" && !adminInteractiveMatch[2]) {
       const session = requireRole(request, response, ["admin"]);
@@ -167,6 +176,11 @@ export async function handleRequest(request, response) {
       const session = requireRole(request, response, ["admin"]);
       if (!session) return;
       return await handleInteractiveCourseUpdate(request, response, decodeURIComponent(adminInteractiveMatch[1]));
+    }
+    if (adminInteractiveMatch && request.method === "DELETE" && !adminInteractiveMatch[2]) {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return await handleInteractiveCourseDelete(response, decodeURIComponent(adminInteractiveMatch[1]));
     }
     if (adminInteractiveMatch && request.method === "POST" && adminInteractiveMatch[2]) {
       const session = requireRole(request, response, ["admin"]);
@@ -379,9 +393,8 @@ export async function handleRequest(request, response) {
   }
 }
 
-const server = createServer(handleRequest);
-
 if (IS_DIRECT_RUN) {
+  const server = createServer(handleRequest);
   server.listen(PORT, "127.0.0.1", () => {
     console.log(`FortixSeg disponível em http://127.0.0.1:${PORT}`);
   });
@@ -418,6 +431,7 @@ function loadInteractiveCourses() {
 }
 
 function saveInteractiveCourses() {
+  if (IS_SERVERLESS_RUNTIME) return;
   mkdirSync(DATA_DIR, { recursive: true });
   writeFileSync(INTERACTIVE_COURSE_DATA_FILE, JSON.stringify(interactiveCourses.map(normalizeInteractiveCourse).filter(Boolean), null, 2), "utf8");
 }
@@ -467,13 +481,17 @@ async function initializeRuntimeState() {
     try {
       const persisted = await loadDatabaseState({
         defaultCourseCatalog: courseCatalog,
-        defaultAppData: appState
+        defaultAppData: appState,
+        defaultInteractiveCourses: interactiveCourses
       });
       if (persisted) {
         courseCatalog = Object.fromEntries(
           Object.entries(persisted.courseCatalog || {}).map(([id, course]) => [id, normalizeCourse(course, id)])
         );
         appState = loadAppDataFromSource(persisted.appData);
+        interactiveCourses = Array.isArray(persisted.interactiveCourses)
+          ? persisted.interactiveCourses.map(normalizeInteractiveCourse).filter(Boolean)
+          : interactiveCourses;
       }
     } catch (error) {
       console.error(`Não foi possível carregar dados do banco: ${error.message}`);
@@ -513,12 +531,22 @@ function loadAppDataFromSource(source = {}) {
 }
 
 async function persistRuntimeState() {
-  if (!IS_SERVERLESS_RUNTIME) {
-    saveCourseCatalog();
-    saveAppData();
-  }
-  if (isDatabaseEnabled()) {
-    await saveDatabaseState({ courseCatalog, appData: appState });
+  try {
+    if (!IS_SERVERLESS_RUNTIME) {
+      saveCourseCatalog();
+      saveAppData();
+      saveInteractiveCourses();
+    }
+    if (isDatabaseEnabled()) {
+      await saveDatabaseState({
+        courseCatalog,
+        appData: appState,
+        interactiveCourses: interactiveCourses.map(normalizeInteractiveCourse).filter(Boolean)
+      });
+    }
+  } catch (error) {
+    runtimeStateIssue = cleanText(error?.message || "Falha ao salvar estado da aplicacao.", 240);
+    console.error(`Nao foi possivel persistir estado da aplicacao: ${runtimeStateIssue}`);
   }
 }
 
@@ -692,7 +720,9 @@ function normalizeInteractiveCourse(course) {
       pathname: cleanText(course.pdf?.pathname, 500),
       mimeType: "application/pdf",
       size: Number(course.pdf?.size) || 0,
-      pages: Number(course.pdf?.pages) || 0
+      pages: Number(course.pdf?.pages) || 0,
+      extractionStatus: cleanText(course.pdf?.extractionStatus || "unknown", 40),
+      extractionError: cleanText(course.pdf?.extractionError || "", 240)
     },
     review: course.review && typeof course.review === "object" ? course.review : { required: true, status: "pending", notes: [] },
     modules,
@@ -837,7 +867,7 @@ async function handleAdminCourseResourceUpload(request, response, courseId) {
       mimeType,
       size: bytes.length
     });
-  } else {
+  } else if (!IS_SERVERLESS_RUNTIME) {
     const safeCourseId = slugify(courseId);
     const uploadDir = resolve(COURSE_UPLOAD_DIR, safeCourseId);
     if (!uploadDir.startsWith(`${COURSE_UPLOAD_DIR}${sep}`)) return sendJson(response, 403, { error: "Destino de upload inválido." });
@@ -851,6 +881,10 @@ async function handleAdminCourseResourceUpload(request, response, courseId) {
       url: `/assets/uploads/courses/${safeCourseId}/${fileName}`,
       mimeType,
       size: bytes.length
+    });
+  } else {
+    return sendJson(response, 501, {
+      error: "Upload de PDF em producao precisa do storage configurado. Configure BLOB_READ_WRITE_TOKEN e COURSE_STORAGE_MODE=blob-public na Vercel."
     });
   }
 
@@ -879,6 +913,10 @@ async function handleAdminCourseResourceDelete(response, courseId, resourceId) {
 
 async function handleInteractiveCourseGenerate(request, response) {
   const body = await readJsonBody(request, 30_000_000);
+  const action = String(body.action || "").toLowerCase();
+  if (action === "delete") return await handleInteractiveCourseDelete(response, body.courseId);
+  if (action === "regenerate") return await handleInteractiveCourseRegenerate(request, response, body.courseId, body);
+
   const match = String(body.data || "").match(/^data:([^;]+);base64,(.+)$/);
   if (!match) return sendJson(response, 400, { error: "Envie um PDF valido para gerar o treinamento." });
 
@@ -891,14 +929,37 @@ async function handleInteractiveCourseGenerate(request, response) {
 
   const baseName = slugify(basename(cleanText(body.name, 180), extname(cleanText(body.name, 180)))) || "treinamento";
   const draftKey = `${Date.now()}-${baseName}`;
-  const uploadDir = resolve(INTERACTIVE_UPLOAD_DIR, draftKey);
-  if (!uploadDir.startsWith(`${INTERACTIVE_UPLOAD_DIR}${sep}`)) return sendJson(response, 403, { error: "Destino de upload invalido." });
-  mkdirSync(uploadDir, { recursive: true });
-
   const fileName = `${baseName}.pdf`;
-  const filePath = resolve(uploadDir, fileName);
-  writeFileSync(filePath, bytes);
-  const storedUrl = `/assets/uploads/interactive/${draftKey}/${fileName}`;
+  let storedUrl = "";
+  let storedPathname = "";
+  let storageMode = "none";
+
+  try {
+    if (isBlobStorageEnabled()) {
+      const uploaded = await uploadBlobResource({
+        pathname: `interactive/${draftKey}/${fileName}`,
+        bytes,
+        mimeType
+      });
+      storedUrl = uploaded.storage === "blob-public" ? uploaded.url : "";
+      storedPathname = uploaded.pathname;
+      storageMode = uploaded.storage;
+    } else if (!IS_SERVERLESS_RUNTIME) {
+      const uploadDir = resolve(INTERACTIVE_UPLOAD_DIR, draftKey);
+      if (!uploadDir.startsWith(`${INTERACTIVE_UPLOAD_DIR}${sep}`)) return sendJson(response, 403, { error: "Destino de upload invalido." });
+      mkdirSync(uploadDir, { recursive: true });
+      const filePath = resolve(uploadDir, fileName);
+      writeFileSync(filePath, bytes);
+      storedUrl = `/assets/uploads/interactive/${draftKey}/${fileName}`;
+      storedPathname = filePath;
+      storageMode = "local-file";
+    }
+  } catch (error) {
+    return sendJson(response, 500, {
+      error: "Nao foi possivel armazenar o PDF.",
+      details: cleanText(error.message, 240)
+    });
+  }
 
   let generated;
   try {
@@ -906,7 +967,7 @@ async function handleInteractiveCourseGenerate(request, response) {
       bytes,
       originalName: body.name || fileName,
       storedUrl,
-      storedPathname: filePath,
+      storedPathname,
       options: {
         title: body.title,
         code: body.code,
@@ -924,9 +985,109 @@ async function handleInteractiveCourseGenerate(request, response) {
   const existingIds = new Set(interactiveCourses.map((course) => course.id));
   while (existingIds.has(generated.id)) generated.id = `${generated.id}-${String(randomUUID()).slice(0, 6)}`;
   const course = normalizeInteractiveCourse(generated);
+  course.pdf.storage = storageMode;
+  if (IS_SERVERLESS_RUNTIME && storageMode === "none") {
+    course.review.notes = [
+      ...(course.review.notes || []),
+      "PDF processado para gerar o treinamento, mas nao foi salvo permanentemente porque o Vercel Blob ainda nao esta configurado."
+    ];
+  }
   interactiveCourses.unshift(course);
-  saveInteractiveCourses();
+  await persistRuntimeState();
   return sendJson(response, 201, { course, courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
+}
+
+async function handleInteractiveCourseRegenerate(request, response, courseId, bodyOverride = null) {
+  const safeCourseId = slugify(courseId);
+  const index = interactiveCourses.findIndex((course) => course.id === safeCourseId);
+  if (index < 0) return sendJson(response, 404, { error: "Treinamento interativo nao encontrado." });
+
+  const existing = interactiveCourses[index];
+  const body = bodyOverride || await readJsonBody(request, 30_000_000);
+  const match = String(body.data || "").match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return sendJson(response, 400, { error: "Envie um PDF valido para atualizar o treinamento." });
+
+  const mimeType = match[1].toLowerCase();
+  if (mimeType !== "application/pdf") return sendJson(response, 415, { error: "Por enquanto, o gerador aceita somente PDF." });
+
+  const bytes = Buffer.from(match[2], "base64");
+  if (!bytes.length || bytes.length > 20_000_000) return sendJson(response, 413, { error: "O PDF deve ter no maximo 20 MB no MVP." });
+  if (bytes.subarray(0, 4).toString("utf8") !== "%PDF") return sendJson(response, 400, { error: "O arquivo enviado nao parece ser um PDF valido." });
+
+  const baseName = slugify(basename(cleanText(body.name, 180), extname(cleanText(body.name, 180)))) || "treinamento";
+  const draftKey = `${Date.now()}-${baseName}`;
+  const fileName = `${baseName}.pdf`;
+  let storedUrl = "";
+  let storedPathname = "";
+  let storageMode = "none";
+
+  try {
+    if (isBlobStorageEnabled()) {
+      const uploaded = await uploadBlobResource({
+        pathname: `interactive/${draftKey}/${fileName}`,
+        bytes,
+        mimeType
+      });
+      storedUrl = uploaded.storage === "blob-public" ? uploaded.url : "";
+      storedPathname = uploaded.pathname;
+      storageMode = uploaded.storage;
+    } else if (!IS_SERVERLESS_RUNTIME) {
+      const uploadDir = resolve(INTERACTIVE_UPLOAD_DIR, draftKey);
+      if (!uploadDir.startsWith(`${INTERACTIVE_UPLOAD_DIR}${sep}`)) return sendJson(response, 403, { error: "Destino de upload invalido." });
+      mkdirSync(uploadDir, { recursive: true });
+      const filePath = resolve(uploadDir, fileName);
+      writeFileSync(filePath, bytes);
+      storedUrl = `/assets/uploads/interactive/${draftKey}/${fileName}`;
+      storedPathname = filePath;
+      storageMode = "local-file";
+    }
+  } catch (error) {
+    return sendJson(response, 500, {
+      error: "Nao foi possivel armazenar o PDF.",
+      details: cleanText(error.message, 240)
+    });
+  }
+
+  let generated;
+  try {
+    generated = await generateInteractiveCourseFromPdf({
+      bytes,
+      originalName: body.name || fileName,
+      storedUrl,
+      storedPathname,
+      options: {
+        title: body.title || existing.title,
+        code: body.code || existing.code,
+        category: body.category || existing.category,
+        hours: body.hours || existing.hours,
+        minimumGrade: body.minimumGrade || existing.minimumGrade,
+        attempts: body.attempts || existing.attempts,
+        responsible: body.responsible || existing.responsible
+      }
+    });
+  } catch (error) {
+    return sendJson(response, 422, { error: "Nao foi possivel extrair o texto do PDF.", details: cleanText(error.message, 240) });
+  }
+
+  const course = normalizeInteractiveCourse({
+    ...generated,
+    id: existing.id,
+    status: "draft",
+    generatedAt: existing.generatedAt,
+    updatedAt: new Date().toISOString(),
+    review: {
+      ...(generated.review || {}),
+      status: "pending",
+      notes: [
+        "Treinamento atualizado por novo PDF. Revise antes de publicar.",
+        ...((generated.review || {}).notes || [])
+      ]
+    }
+  });
+  course.pdf.storage = storageMode;
+  interactiveCourses[index] = course;
+  await persistRuntimeState();
+  return sendJson(response, 200, { course, courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
 }
 
 function handleInteractiveCourseGet(response, courseId) {
@@ -948,11 +1109,20 @@ async function handleInteractiveCourseUpdate(request, response, courseId) {
     updatedAt: new Date().toISOString()
   });
   interactiveCourses[index] = nextCourse;
-  saveInteractiveCourses();
+  await persistRuntimeState();
   return sendJson(response, 200, { course: nextCourse, courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
 }
 
-function handleInteractiveCoursePublish(response, courseId, publish) {
+async function handleInteractiveCourseDelete(response, courseId) {
+  const safeCourseId = slugify(courseId);
+  const before = interactiveCourses.length;
+  interactiveCourses = interactiveCourses.filter((course) => course.id !== safeCourseId);
+  if (interactiveCourses.length === before) return sendJson(response, 404, { error: "Treinamento interativo nao encontrado." });
+  await persistRuntimeState();
+  return sendJson(response, 200, { courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
+}
+
+async function handleInteractiveCoursePublish(response, courseId, publish) {
   const course = findInteractiveCourse(courseId);
   if (!course) return sendJson(response, 404, { error: "Treinamento interativo nao encontrado." });
   course.status = publish ? "published" : "draft";
@@ -963,7 +1133,7 @@ function handleInteractiveCoursePublish(response, courseId, publish) {
   };
   course.updatedAt = new Date().toISOString();
   course.stats = summarizeCourse(course);
-  saveInteractiveCourses();
+  await persistRuntimeState();
   return sendJson(response, 200, { course, courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
 }
 

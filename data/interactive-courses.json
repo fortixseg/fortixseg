@@ -22,7 +22,9 @@
       "pathname": "C:\\Users\\leonardo\\.codex\\.chatgpt-projects\\g-p-6a473331ead481918b6cd5c337d62f46\\fortixseg-pronto-real\\assets\\uploads\\interactive\\1785856400435-ponte-e-talha-2026\\ponte-e-talha-2026.pdf",
       "mimeType": "application/pdf",
       "size": 4831159,
-      "pages": 65
+      "pages": 65,
+      "extractionStatus": "unknown",
+      "extractionError": ""
     },
     "review": {
       "required": true,
@@ -583,7 +585,9 @@
       "pathname": "C:\\Users\\leonardo\\.codex\\.chatgpt-projects\\g-p-6a473331ead481918b6cd5c337d62f46\\fortixseg-pronto-real\\assets\\uploads\\interactive\\1785856306678-ponte-e-talha-2026\\ponte-e-talha-2026.pdf",
       "mimeType": "application/pdf",
       "size": 4831159,
-      "pages": 65
+      "pages": 65,
+      "extractionStatus": "unknown",
+      "extractionError": ""
     },
     "review": {
       "required": true,
@@ -1144,7 +1148,9 @@
       "pathname": "C:\\Users\\leonardo\\.codex\\.chatgpt-projects\\g-p-6a473331ead481918b6cd5c337d62f46\\fortixseg-pronto-real\\assets\\uploads\\interactive\\1785852799946-nr-35\\nr-35.pdf",
       "mimeType": "application/pdf",
       "size": 4216958,
-      "pages": 58
+      "pages": 58,
+      "extractionStatus": "unknown",
+      "extractionError": ""
     },
     "review": {
       "required": true,
@@ -2374,7 +2380,9 @@
       "pathname": "C:\\Users\\leonardo\\.codex\\.chatgpt-projects\\g-p-6a473331ead481918b6cd5c337d62f46\\fortixseg-pronto-real\\assets\\uploads\\interactive\\1785851367446-apostila-nr35-demonstrativa\\apostila-nr35-demonstrativa.pdf",
       "mimeType": "application/pdf",
       "size": 2282,
-      "pages": 1
+      "pages": 1,
+      "extractionStatus": "unknown",
+      "extractionError": ""
     },
     "review": {
       "required": true,

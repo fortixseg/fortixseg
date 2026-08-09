@@ -3255,9 +3255,13 @@ svg {
 
 .admin-course-manager {
   display: grid;
-  grid-template-columns: minmax(340px, 0.78fr) minmax(520px, 1.22fr);
+  grid-template-columns: 1fr;
   align-items: start;
   gap: 18px;
+}
+
+.admin-course-manager.editor-open {
+  grid-template-columns: minmax(420px, 0.9fr) minmax(520px, 1.1fr);
 }
 
 .admin-user-manager {
@@ -3386,6 +3390,45 @@ svg {
   min-height: 35px;
   padding: 7px 13px;
   font-size: 11px;
+}
+
+.admin-course-resource-summary {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 5px 8px;
+  color: #17652b;
+  background: #eaf7e7;
+  border: 1px solid #c8ebc2;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.admin-course-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-course-upload-button {
+  position: relative;
+  cursor: pointer;
+}
+
+.admin-course-upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admin-course-delete-inline {
+  box-shadow: none;
 }
 
 .course-status {
@@ -5609,13 +5652,18 @@ th {
 
   .admin-course-item-side {
     width: 100%;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
     align-items: center;
     justify-items: start;
   }
 
   .admin-course-item-side .button {
-    justify-self: end;
+    justify-self: start;
+  }
+
+  .admin-course-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .admin-resource-item {
@@ -7108,14 +7156,556 @@ body.portal-mode {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.admin-generator-panel,
+.admin-generated-list-panel,
+.interactive-review-panel,
+.admin-interactive-preview-panel,
+.interactive-student-shell {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.admin-generator-panel .dashboard-heading h2,
+.admin-generated-list-panel .dashboard-heading h2,
+.interactive-review-panel h3,
+.interactive-student-shell h3,
+.interactive-student-shell h4,
+.interactive-lesson-card h3,
+.interactive-pdf-support strong,
+.interactive-checklist strong,
+.interactive-quick-question strong {
+  color: #fff;
+}
+
+.admin-generator-panel .dashboard-heading p,
+.admin-generated-list-panel .dashboard-heading p,
+.admin-interactive-course-card p,
+.admin-interactive-course-card small,
+.interactive-review-panel p,
+.interactive-review-panel small {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.admin-generator-panel .portal-form {
+  background: #fff;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.admin-generator-panel .admin-file-selection strong {
+  color: #fff;
+}
+
+.interactive-student-shell {
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  background:
+    radial-gradient(circle at top right, rgba(77, 191, 30, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(5, 13, 11, 0.98), rgba(2, 7, 6, 0.99));
+}
+
+.admin-preview-shell {
+  border-color: rgba(101, 214, 49, 0.26);
+}
+
+.interactive-student-content {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  align-items: start;
+}
+
+.interactive-lesson-card {
+  grid-column: 1;
+}
+
+.interactive-pdf-support {
+  grid-column: 2;
+  position: sticky;
+  top: 14px;
+}
+
+.interactive-assessment {
+  grid-column: 1 / -1;
+}
+
+.interactive-lesson-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -6px 0 18px;
+}
+
+.interactive-lesson-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 10px;
+  color: #dfffd6;
+  background: rgba(77, 191, 30, 0.12);
+  border: 1px solid rgba(101, 214, 49, 0.28);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.lesson-objective p,
+.lesson-pdf-text p,
+.practice-card p,
+.attention-card p,
+.interactive-quick-question p,
+.interactive-checklist span,
+.interactive-assessment p,
+.interactive-assessment span {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.lesson-pdf-text {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.lesson-pdf-text p {
+  max-height: 180px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+}
+
+.interactive-tip-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.interactive-pdf-support .interactive-support-header strong {
+  font-size: 0;
+}
+
+.interactive-pdf-support .interactive-support-header strong::before {
+  content: "Apostila original anexada";
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.admin-preview-shell .interactive-pdf-support .pdf-viewer {
+  display: none;
+}
+
+.admin-preview-shell .interactive-pdf-support::after {
+  content: "Na prévia do admin, o PDF fica como material de apoio para não atrapalhar a revisão da aula. Use o botão acima para abrir a apostila original.";
+  display: block;
+  padding: 14px;
+  color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.interactive-wizard-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.interactive-stepper {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  box-shadow: 0 12px 34px rgba(13, 26, 18, 0.06);
+}
+
+.interactive-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  color: #51605a;
+  background: #f6f8f6;
+  border: 1px solid #dfe7e1;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.interactive-step span {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  color: #27402f;
+  background: #fff;
+  border: 1px solid #d1ddd4;
+  border-radius: 50%;
+}
+
+.interactive-step strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.interactive-step.is-active {
+  color: #fff;
+  background: linear-gradient(135deg, #0e3b1b, #2fa31f);
+  border-color: #2fa31f;
+}
+
+.interactive-step.is-active span,
+.interactive-step.is-complete span {
+  color: #fff;
+  background: #2fa31f;
+  border-color: #2fa31f;
+}
+
+.interactive-step.is-complete {
+  color: #17652b;
+  background: #eaf7e7;
+  border-color: #bfe8b9;
+}
+
+.interactive-stage {
+  display: none;
+  min-width: 0;
+  padding: 22px;
+  background: linear-gradient(145deg, rgba(9, 18, 15, 0.98), rgba(4, 8, 7, 0.99));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.25);
+}
+
+.interactive-stage.is-active {
+  display: grid;
+  gap: 18px;
+}
+
+.interactive-stage-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.interactive-stage-heading span,
+.interactive-analysis-card span,
+.interactive-quality-card > span,
+.interactive-preview-pdf > span,
+.interactive-preview-lesson > span {
+  color: var(--green-light);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.interactive-stage-heading h2,
+.interactive-stage-heading h3,
+.interactive-analysis-card strong,
+.interactive-preview-lesson h3,
+.interactive-preview-pdf strong,
+.interactive-quality-card strong {
+  color: #fff;
+}
+
+.interactive-stage-heading p,
+.interactive-stage-heading small,
+.interactive-analysis-card p,
+.interactive-preview-lesson p,
+.interactive-preview-pdf p,
+.interactive-preview-pdf small {
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.55;
+}
+
+.interactive-upload-form {
+  background: #fff;
+  border-radius: 8px;
+}
+
+.interactive-dropzone {
+  min-height: 150px;
+  gap: 6px;
+  text-align: center;
+}
+
+.interactive-file-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  color: #11331d;
+  background: #f2fbef;
+  border: 1px solid #bfe8b9;
+  border-radius: 7px;
+}
+
+.interactive-file-card.invalid {
+  color: #7a1a1a;
+  background: #fff1f1;
+  border-color: #efb3b3;
+}
+
+.interactive-analysis-grid,
+.interactive-publication-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.interactive-analysis-card,
+.interactive-quality-card,
+.interactive-preview-pdf,
+.interactive-preview-lesson,
+.interactive-preview-nav {
+  min-width: 0;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+}
+
+.interactive-progress-list {
+  display: grid;
+  gap: 10px;
+}
+
+.interactive-progress-list div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 7px;
+}
+
+.interactive-progress-list div.complete {
+  color: #dfffd6;
+  border-color: rgba(101, 214, 49, 0.3);
+  background: rgba(77, 191, 30, 0.1);
+}
+
+.interactive-structure-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.interactive-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.interactive-tag-list small {
+  padding: 5px 8px;
+  color: #dfffd6;
+  background: rgba(77, 191, 30, 0.14);
+  border: 1px solid rgba(101, 214, 49, 0.28);
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.interactive-structure-tree {
+  display: grid;
+  gap: 12px;
+}
+
+.interactive-structure-tree article {
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.interactive-structure-tree header {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.interactive-structure-tree header span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: #fff;
+  background: #2fa31f;
+  border-radius: 50%;
+  font-weight: 900;
+}
+
+.interactive-structure-tree header strong {
+  color: #fff;
+}
+
+.interactive-structure-tree header small {
+  color: var(--green-light);
+  font-weight: 900;
+}
+
+.interactive-structure-tree button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  color: rgba(255, 255, 255, 0.86);
+  background: transparent;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  cursor: pointer;
+}
+
+.interactive-preview-admin {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.interactive-preview-nav {
+  display: grid;
+  gap: 12px;
+  max-height: 680px;
+  overflow: auto;
+}
+
+.interactive-preview-nav strong span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+}
+
+.interactive-preview-nav button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+  padding: 9px;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.interactive-preview-nav button.active {
+  color: #fff;
+  background: rgba(77, 191, 30, 0.13);
+  border-color: rgba(101, 214, 49, 0.5);
+}
+
+.lesson-source-chip {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  color: #dfffd6 !important;
+  background: rgba(77, 191, 30, 0.11);
+  border: 1px solid rgba(101, 214, 49, 0.28);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pdf-page-placeholder {
+  display: grid;
+  gap: 8px;
+  min-height: 230px;
+  place-content: center;
+  margin-top: 12px;
+  padding: 18px;
+  color: rgba(255, 255, 255, 0.76);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.interactive-quality-card p {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.interactive-quality-card p.ok {
+  color: #dfffd6;
+}
+
+.interactive-quality-card p.warning {
+  color: #ffe7ae;
+}
+
+.interactive-quality-card p.error {
+  color: #ffc5c5;
+}
+
+.interactive-replace-button {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.interactive-replace-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.interactive-generated-library {
+  margin-top: 20px;
+}
+
+.interactive-module-nav article,
+.interactive-lesson-card,
+.interactive-pdf-support,
+.interactive-assessment,
+.lesson-objective,
+.lesson-pdf-text,
+.interactive-checklist,
+.interactive-quick-question {
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+.interactive-module-nav button {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.interactive-module-nav button:disabled {
+  color: rgba(255, 255, 255, 0.48);
+}
+
 @media (max-width: 1180px) {
   .admin-generator-layout,
   .interactive-review-grid,
-  .interactive-student-shell {
+  .interactive-student-shell,
+  .interactive-student-content,
+  .interactive-structure-layout,
+  .interactive-preview-admin {
     grid-template-columns: 1fr;
   }
 
+  .interactive-stepper,
+  .interactive-analysis-grid,
+  .interactive-publication-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .interactive-student-sidebar {
+    position: static;
+  }
+
+  .interactive-pdf-support {
+    grid-column: auto;
     position: static;
   }
 
@@ -7130,9 +7720,18 @@ body.portal-mode {
   .admin-preview-top,
   .interactive-support-header,
   .student-interactive-heading,
-  .interactive-lesson-top {
+  .interactive-lesson-top,
+  .interactive-stage-heading,
+  .interactive-structure-tree header,
+  .interactive-structure-tree button {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .interactive-stepper,
+  .interactive-analysis-grid,
+  .interactive-publication-grid {
+    grid-template-columns: 1fr;
   }
 
   .interactive-tip-grid {

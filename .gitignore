@@ -10,3 +10,6 @@ Nova pasta.zip
 .vercel
 .env*
 !.env.example
+
+.vercel
+.env*
