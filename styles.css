@@ -7674,6 +7674,208 @@ body.portal-mode {
   margin-top: 20px;
 }
 
+.student-preview-simulator {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.student-preview-topbar,
+.student-preview-sidebar,
+.student-preview-lesson-card,
+.student-preview-material {
+  min-width: 0;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+
+.student-preview-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 18px;
+  align-items: center;
+}
+
+.student-preview-topbar span,
+.student-preview-sidebar-head span,
+.student-preview-material span {
+  color: var(--green-light);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.student-preview-topbar strong {
+  display: block;
+  margin: 5px 0;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.student-preview-topbar small,
+.student-preview-material p,
+.student-preview-material small {
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.55;
+}
+
+.student-preview-progress {
+  display: grid;
+  gap: 8px;
+}
+
+.student-preview-progress::before {
+  content: "";
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, var(--green-primary) var(--progress), rgba(255, 255, 255, 0.14) var(--progress));
+}
+
+.student-preview-progress strong {
+  margin: 0;
+  font-size: 26px;
+}
+
+.student-preview-progress span {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.student-preview-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(480px, 1fr) minmax(260px, 330px);
+  gap: 18px;
+  align-items: start;
+}
+
+.student-preview-sidebar {
+  display: grid;
+  gap: 12px;
+  max-height: 760px;
+  overflow: auto;
+}
+
+.student-preview-sidebar-head strong,
+.student-preview-material strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.student-preview-sidebar article {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+}
+
+.student-preview-sidebar article > strong {
+  color: #fff;
+  font-size: 13px;
+}
+
+.student-preview-sidebar article > strong span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.student-preview-sidebar button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  color: rgba(255, 255, 255, 0.82);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  text-align: left;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.student-preview-sidebar button span {
+  color: var(--green-light);
+  font-weight: 900;
+}
+
+.student-preview-sidebar button.active {
+  color: #fff;
+  background: rgba(77, 191, 30, 0.14);
+  border-color: rgba(101, 214, 49, 0.58);
+}
+
+.student-preview-main,
+.student-preview-bottom-grid {
+  min-width: 0;
+}
+
+.student-preview-lesson-card {
+  display: grid;
+  gap: 16px;
+}
+
+.student-preview-lesson-card .lesson-objective,
+.student-preview-lesson-card .lesson-pdf-text,
+.student-preview-lesson-card .interactive-checklist,
+.student-preview-lesson-card .interactive-quick-question {
+  margin-top: 0;
+}
+
+.student-preview-bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.student-preview-material {
+  display: grid;
+  gap: 14px;
+  position: sticky;
+  top: 96px;
+}
+
+.student-preview-material .button {
+  width: 100%;
+}
+
+.student-preview-material .pdf-viewer.compact {
+  width: 100%;
+  min-height: 460px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.interactive-inline-error {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  color: #ffe8e8;
+  background: rgba(145, 34, 34, 0.22);
+  border: 1px solid rgba(255, 120, 120, 0.35);
+  border-radius: 8px;
+}
+
+.interactive-inline-error strong {
+  color: #fff;
+}
+
 .interactive-module-nav article,
 .interactive-lesson-card,
 .interactive-pdf-support,
@@ -7699,7 +7901,9 @@ body.portal-mode {
   .interactive-student-shell,
   .interactive-student-content,
   .interactive-structure-layout,
-  .interactive-preview-admin {
+  .interactive-preview-admin,
+  .student-preview-layout,
+  .student-preview-topbar {
     grid-template-columns: 1fr;
   }
 
@@ -7715,6 +7919,10 @@ body.portal-mode {
 
   .interactive-pdf-support {
     grid-column: auto;
+    position: static;
+  }
+
+  .student-preview-material {
     position: static;
   }
 
@@ -7744,6 +7952,10 @@ body.portal-mode {
   }
 
   .interactive-tip-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-preview-bottom-grid {
     grid-template-columns: 1fr;
   }
 }

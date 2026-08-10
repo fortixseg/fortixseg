@@ -1455,6 +1455,7 @@ function handlePortalClick(event) {
 
   const actionButton = event.target.closest("[data-portal-action]");
   if (!actionButton) return;
+  event.preventDefault();
   const action = actionButton.dataset.portalAction;
 
   if (action === "continue-course") navigate("lesson");
@@ -1492,7 +1493,7 @@ function handlePortalClick(event) {
   if (action === "admin-wizard-step") setInteractiveWizardStep(actionButton.dataset.step || "upload");
   if (action === "admin-go-preview") {
     if (!selectedInteractiveCourse) return showToast("Abra um treinamento gerado primeiro.");
-    renderInteractivePreviewPanel(selectedInteractiveCourse);
+    renderInteractivePreviewPanel(selectedInteractiveCourse, actionButton.dataset.adminPreviewLesson || "");
     setInteractiveWizardStep("preview");
   }
   if (action === "admin-go-review") {
@@ -1505,9 +1506,13 @@ function handlePortalClick(event) {
     renderInteractivePublishPanel(selectedInteractiveCourse);
     setInteractiveWizardStep("publication");
   }
-  if (action === "admin-preview-interactive") previewInteractiveCourseAsStudent(actionButton.dataset.lessonId || "");
+  if (action === "admin-preview-interactive") {
+    if (!selectedInteractiveCourse) return showToast("Abra um treinamento gerado primeiro.");
+    renderInteractivePreviewPanel(selectedInteractiveCourse, actionButton.dataset.lessonId || "");
+    setInteractiveWizardStep("preview");
+  }
   if (action === "admin-close-interactive-preview") closeAdminInteractivePreview();
-  if (action === "admin-publish-interactive") publishInteractiveCourse(selectedInteractiveCourse?.id || actionButton.dataset.courseId, true);
+  if (action === "admin-publish-interactive") publishInteractiveCourse(actionButton.dataset.courseId || selectedInteractiveCourse?.id, true);
   if (action === "admin-unpublish-interactive") publishInteractiveCourse(actionButton.dataset.courseId, false);
   if (action === "admin-download-interactive-pdf") downloadSelectedInteractivePdf();
   if (action === "student-open-interactive-course") openStudentInteractiveCourse(actionButton.dataset.courseId, actionButton.dataset.lessonId);
@@ -2163,7 +2168,7 @@ function renderInteractiveStructurePanel(course) {
   `;
 }
 
-function renderInteractivePreviewPanel(course, lessonId = "") {
+function renderInteractivePreviewPanelLegacy(course, lessonId = "") {
   const panel = document.getElementById("interactivePreviewPanel");
   if (!panel || !course) return;
   const lessons = getInteractiveLessons(course);
@@ -2210,6 +2215,104 @@ function renderInteractivePreviewPanel(course, lessonId = "") {
         ${course.pdf?.url ? `<a class="button button-secondary" href="${escapeHtml(course.pdf.url)}" target="_blank" rel="noopener">Abrir PDF original</a>` : `<small>PDF sem link permanente neste ambiente.</small>`}
         <div class="pdf-page-placeholder"><strong>Pagina ${escapeHtml(String(current.sourcePage || "-"))}</strong><span>Preview visual do PDF sera trocado por renderizacao de pagina na fase com storage definitivo.</span></div>
       </aside>
+    </div>
+    <div class="admin-editor-actions">
+      <button class="button button-secondary" type="button" data-portal-action="admin-go-review">Continuar para revisao</button>
+      <button class="button button-primary" type="button" data-portal-action="admin-go-publication">Ir para publicacao</button>
+    </div>
+  `;
+}
+
+function renderInteractivePreviewPanel(course, lessonId = "") {
+  const panel = document.getElementById("interactivePreviewPanel");
+  if (!panel || !course) return;
+  const lessons = getInteractiveLessons(course);
+  const current = lessons.find((lesson) => lesson.id === lessonId) || lessons[0];
+  if (!current) {
+    panel.innerHTML = '<div class="portal-empty-state">Este treinamento ainda nao possui aulas.</div>';
+    return;
+  }
+
+  const question = current.quickQuestion || {};
+  const currentTitle = getInteractiveLessonDisplayTitle(course, current);
+  const currentSummary = resolveInteractiveSummary(course, current, currentTitle);
+  const cleanText = cleanInteractivePdfText(current.extractedText, currentTitle);
+  const previewText = cleanText.length > 1100 ? `${cleanText.slice(0, 1100).trim()}...` : cleanText;
+  const currentIndex = Math.max(0, lessons.findIndex((lesson) => lesson.id === current.id));
+  const progressPercent = Math.max(8, Math.round(((currentIndex + 1) / Math.max(lessons.length, 1)) * 100));
+  const nextLesson = lessons[currentIndex + 1];
+  const pdfUrl = current.pageImageUrl || course.pdf?.url || "";
+  const pdfFrameUrl = buildPdfFrameUrl(pdfUrl);
+
+  panel.innerHTML = `
+    <div class="interactive-stage-heading">
+      <div><span>Preview do treinamento</span><h2>Simulacao da area do aluno</h2><p>Veja como o aluno vai consumir esta aula. Esta previa nao desloga o admin e nao altera progresso real.</p></div>
+      <small>Modulo ${current.moduleIndex + 1} - Aula ${current.lessonIndex + 1}</small>
+    </div>
+    <div class="student-preview-simulator">
+      <header class="student-preview-topbar">
+        <div>
+          <span>Curso interativo</span>
+          <strong>${escapeHtml(getInteractiveCourseDisplayTitle(course))}</strong>
+          <small>${escapeHtml(course.detectedLabel || course.category || "Treinamento SST")} - ${escapeHtml(String(course.hours || 0))}h - Nota minima ${escapeHtml(String(course.minimumGrade || 70))}%</small>
+        </div>
+        <div class="student-preview-progress" style="--progress:${progressPercent}%">
+          <strong>${progressPercent}%</strong>
+          <span>${currentIndex + 1}/${lessons.length} aulas na simulacao</span>
+        </div>
+      </header>
+      <div class="student-preview-layout">
+        <aside class="student-preview-sidebar">
+          <div class="student-preview-sidebar-head"><span>Modulos do curso</span><strong>Ordem das aulas</strong></div>
+          ${(course.modules || []).map((module, moduleIndex) => `
+            <article>
+              <strong>Modulo ${moduleIndex + 1}<span>${escapeHtml(module.title)}</span></strong>
+              ${(module.lessons || []).map((lesson, lessonIndex) => `
+                <button class="${lesson.id === current.id ? "active" : ""}" type="button" data-admin-preview-lesson="${escapeHtml(lesson.id)}">
+                  <span>${moduleIndex + 1}.${lessonIndex + 1}</span>${escapeHtml(getInteractiveLessonDisplayTitle(course, { ...lesson, moduleId: module.id, moduleIndex, lessonIndex }))}
+                </button>
+              `).join("")}
+            </article>
+          `).join("")}
+        </aside>
+        <main class="student-preview-main">
+          <div class="student-preview-lesson-card">
+            <div class="interactive-lesson-top">
+              <div><span>${escapeHtml(current.module?.title || "Modulo")}</span><h3>${escapeHtml(currentTitle)}</h3></div>
+              <strong class="course-status progress">Em andamento</strong>
+            </div>
+            <div class="interactive-lesson-meta">
+              <span>Origem: pagina ${escapeHtml(String(current.sourcePage || "-"))} do PDF</span>
+              <span>${escapeHtml(course.pdf?.extractionStatus === "text-extracted" ? "Texto extraido" : "Template aplicado")}</span>
+              <span>Preview do admin</span>
+            </div>
+            <section class="lesson-objective"><strong>Objetivo da aula</strong><p>${escapeHtml(currentSummary)}</p></section>
+            <section class="lesson-pdf-text"><strong>Texto principal gerado a partir do PDF</strong><p>${escapeHtml(previewText)}</p></section>
+            <div class="interactive-tip-grid">
+              <article class="practice-card"><span>Na pratica</span><p>${escapeHtml(current.practiceCard || "Aplique o procedimento na rotina, conferindo riscos, controles e responsabilidades antes da atividade.")}</p></article>
+              <article class="attention-card"><span>Atencao</span><p>${escapeHtml(current.attentionCard || "Interrompa a atividade se houver condicao insegura ou falta de autorizacao.")}</p></article>
+            </div>
+            <div class="student-preview-bottom-grid">
+              <section class="interactive-checklist"><strong>Checklist da aula</strong>${(current.checklist || []).map((item) => `<label><input type="checkbox"> <span>${escapeHtml(item)}</span></label>`).join("") || "<p>Nenhum checklist gerado para esta aula.</p>"}</section>
+              <section class="interactive-quick-question"><strong>Questao rapida</strong><p>${escapeHtml(question.prompt || "Pergunta rapida sera revisada antes da publicacao.")}</p>${(question.alternatives || []).map((answer, index) => `<label><input type="radio" disabled ${index === question.correctIndex ? "checked" : ""}> <span>${escapeHtml(answer)}</span></label>`).join("")}<small>${escapeHtml(question.explanation || "Resposta e explicacao ficam disponiveis para revisao tecnica.")}</small></section>
+            </div>
+            <div class="interactive-lesson-actions">
+              <button class="button button-secondary" type="button" data-portal-action="admin-go-review">Voltar para revisao</button>
+              ${nextLesson ? `<button class="button button-secondary" type="button" data-admin-preview-lesson="${escapeHtml(nextLesson.id)}">Ver proxima aula</button>` : ""}
+              <button class="button button-primary" type="button" disabled>Concluir aula - simulacao</button>
+            </div>
+          </div>
+        </main>
+        <aside class="student-preview-material">
+          <div>
+            <span>Material de apoio</span>
+            <strong>${escapeHtml(course.pdf?.name || "PDF original")}</strong>
+            <p>O PDF fica como apoio lateral para o aluno consultar sem sair da aula.</p>
+          </div>
+          ${course.pdf?.url ? `<a class="button button-secondary" href="${escapeHtml(course.pdf.url)}" target="_blank" rel="noopener">Abrir PDF original</a>` : `<small>PDF processado sem link permanente neste ambiente. Configure storage para manter o arquivo em producao.</small>`}
+          ${pdfFrameUrl ? `<iframe class="pdf-viewer compact" src="${escapeHtml(pdfFrameUrl)}" title="Preview do PDF"></iframe>` : `<div class="pdf-page-placeholder"><strong>Pagina ${escapeHtml(String(current.sourcePage || "-"))}</strong><span>Preview visual do PDF sera exibido quando o arquivo tiver URL permanente.</span></div>`}
+        </aside>
+      </div>
     </div>
     <div class="admin-editor-actions">
       <button class="button button-secondary" type="button" data-portal-action="admin-go-review">Continuar para revisao</button>
@@ -2515,13 +2618,15 @@ async function saveInteractiveCourseReview(form) {
 }
 
 async function publishInteractiveCourse(courseId, publish) {
-  if (!courseId) {
+  const safeCourseId = String(courseId || "").trim();
+  if (!safeCourseId) {
     showToast("Selecione um treinamento gerado.");
     return;
   }
   try {
     const action = publish ? "publish" : "unpublish";
-    const data = await apiRequest(`/api/admin/interactive-courses/${encodeURIComponent(courseId)}/${action}`, {
+    showToast(publish ? "Publicando treinamento..." : "Voltando treinamento para rascunho...");
+    const data = await apiRequest(`/api/admin/interactive-courses/${encodeURIComponent(safeCourseId)}/${action}`, {
       method: "POST",
       timeoutMs: 20_000
     });
