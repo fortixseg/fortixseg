@@ -1120,7 +1120,7 @@ function adminPdfGeneratorTemplate(title) {
           <div class="form-grid">
             <label class="field full"><span>Nome do treinamento</span><input name="title" maxlength="260" placeholder="Ex.: NR-35 - Trabalho em Altura"></label>
             <label class="field"><span>Categoria</span><input name="category" maxlength="90" value="Segurança do Trabalho"></label>
-            <label class="field"><span>Carga horária</span><input name="hours" type="number" min="1" max="120" value="8"></label>
+            <label class="field"><span>Carga horaria</span><input name="hours" type="number" min="1" max="120" placeholder="Detectar automaticamente"></label>
             <label class="field"><span>Nota mínima (%)</span><input name="minimumGrade" type="number" min="0" max="100" value="70"></label>
             <label class="field full"><span>Responsável técnico</span><input name="responsible" maxlength="180" placeholder="Nome e qualificação do responsável"></label>
           </div>
@@ -1204,7 +1204,7 @@ function adminPdfGeneratorTemplateV2(title) {
           <div class="form-grid">
             <label class="field full"><span>Nome do treinamento</span><input name="title" maxlength="260" placeholder="Ex.: NR-35 - Trabalho em Altura"></label>
             <label class="field"><span>Categoria</span><input name="category" maxlength="90" value="Segurança do Trabalho"></label>
-            <label class="field"><span>Carga horária</span><input name="hours" type="number" min="1" max="120" value="8"></label>
+            <label class="field"><span>Carga horaria</span><input name="hours" type="number" min="1" max="120" placeholder="Detectar automaticamente"></label>
             <label class="field"><span>Nota mínima (%)</span><input name="minimumGrade" type="number" min="0" max="100" value="70"></label>
             <label class="field full"><span>Responsável técnico</span><input name="responsible" maxlength="180" placeholder="Nome e qualificação do responsável"></label>
           </div>
@@ -1212,7 +1212,7 @@ function adminPdfGeneratorTemplateV2(title) {
             <input id="interactivePdfFile" type="file" accept="application/pdf" required>
             <strong>Arraste e solte o PDF aqui</strong>
             <span>ou clique para selecionar do computador</span>
-            <small>Formato aceito: PDF. Tamanho maximo: 20 MB.</small>
+            <small>Formato aceito: PDF. O gerador detecta tema, titulo e carga horaria quando essas informacoes aparecem no material.</small>
           </label>
           <div class="admin-file-selection interactive-file-selection" id="interactivePdfSelection" aria-live="polite"></div>
           <div class="generator-template-note">
@@ -2076,8 +2076,8 @@ function renderInteractiveAnalysisPanel(state = "idle", course = null, message =
         <strong>O que fazer</strong>
         <ul>
           <li>Use um PDF com texto selecionavel, nao apenas imagem escaneada.</li>
-          <li>Evite arquivos muito pesados. Para teste na Vercel, use ate 4 MB.</li>
-          <li>Nomes grandes de arquivo sao encurtados automaticamente, mas o titulo do curso pode ser editado.</li>
+          <li>Se o arquivo for muito grande, compacte ou teste no VPS para evitar limite de tempo.</li>
+          <li>Nomes grandes de arquivo sao encurtados automaticamente; titulo e carga horaria podem ser detectados pelo texto.</li>
         </ul>
       </div>
       <div class="admin-editor-actions">
@@ -2346,7 +2346,7 @@ async function generateInteractiveCourseFromPdfForm(form) {
         name: safeName,
         originalName: file.name,
         data,
-        hours: Number(values.hours || 8),
+        hours: values.hours ? Number(values.hours) : null,
         minimumGrade: Number(values.minimumGrade || 70)
       }),
       timeoutMs: 90_000
@@ -2588,7 +2588,7 @@ async function regenerateInteractiveCourseFromPdf(courseId, file) {
         data: dataUrl,
         title: existing?.title || "",
         category: existing?.category || "Segurança do Trabalho",
-        hours: Number(existing?.hours || 8),
+        hours: Number(existing?.hours || 0) || null,
         minimumGrade: Number(existing?.minimumGrade || 70),
         responsible: existing?.responsible || ""
       }),

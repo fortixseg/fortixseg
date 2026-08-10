@@ -965,7 +965,7 @@ async function handleInteractiveCourseGenerate(request, response) {
   try {
     generated = await generateInteractiveCourseFromPdf({
       bytes,
-      originalName: body.name || fileName,
+      originalName: body.originalName || body.name || fileName,
       storedUrl,
       storedPathname,
       options: {
@@ -1052,7 +1052,7 @@ async function handleInteractiveCourseRegenerate(request, response, courseId, bo
   try {
     generated = await generateInteractiveCourseFromPdf({
       bytes,
-      originalName: body.name || fileName,
+      originalName: body.originalName || body.name || fileName,
       storedUrl,
       storedPathname,
       options: {
