@@ -1704,7 +1704,7 @@ function renderInteractiveLearningShell(course, current, options = {}) {
   const currentSummary = resolveInteractiveSummary(course, current, currentTitle);
   const currentText = cleanInteractivePdfText(current.extractedText, currentTitle);
   const sourcePageLabel = current.sourcePage ? `Pagina ${current.sourcePage} do PDF` : "Pagina do PDF nao identificada";
-  const extractionLabel = course.pdf?.extractionStatus === "text-extracted" ? "Texto extraido do PDF" : "Aula montada por template";
+  const extractionLabel = getInteractiveExtractionLabel(course);
   const backButton = isPreview
     ? `<button class="certificate-link back-to-courses" type="button" data-portal-action="admin-close-interactive-preview">Voltar para revisao</button>`
     : `<button class="certificate-link back-to-courses" type="button" data-portal="student" data-portal-target="courses" data-portal-title="Meus cursos">Voltar para meus cursos</button>`;
@@ -2006,6 +2006,16 @@ function getInteractiveLessons(course) {
   );
 }
 
+function hasInteractivePdfText(course) {
+  return ["text-extracted", "text-sampled"].includes(course?.pdf?.extractionStatus);
+}
+
+function getInteractiveExtractionLabel(course) {
+  if (course?.pdf?.extractionStatus === "text-extracted") return "Texto extraido do PDF";
+  if (course?.pdf?.extractionStatus === "text-sampled") return "PDF lido em modo rapido";
+  return "Aula montada por template";
+}
+
 function getInteractiveQualityGate(course) {
   const lessons = getInteractiveLessons(course);
   const questions = course?.finalAssessment?.questions || [];
@@ -2017,8 +2027,10 @@ function getInteractiveQualityGate(course) {
   if (questions.some((question) => !Array.isArray(question.alternatives) || question.alternatives.length < 2)) {
     issues.push({ type: "warning", text: "Existem perguntas com poucas alternativas." });
   }
-  if (course?.pdf?.extractionStatus !== "text-extracted") {
+  if (!hasInteractivePdfText(course)) {
     issues.push({ type: "warning", text: "Texto do PDF nao foi extraido totalmente. Revisao tecnica recomendada." });
+  } else if (course?.pdf?.extractionStatus === "text-sampled") {
+    issues.push({ type: "warning", text: "PDF lido em modo rapido para evitar travamento. Revise os pontos técnicos antes de publicar." });
   }
   if (!course?.pdf?.url) issues.push({ type: "warning", text: "PDF sem link permanente neste ambiente. Em producao, configure storage." });
   if (!issues.some((item) => item.type === "error")) {
@@ -2111,7 +2123,7 @@ function renderInteractiveAnalysisPanel(state = "idle", course = null, message =
       </article>
       <article class="interactive-analysis-card">
         <span>Leitura do PDF</span>
-        <strong>${escapeHtml(done ? (pdf.extractionStatus === "text-extracted" ? "Texto extraido" : "Template aplicado") : "Em andamento")}</strong>
+        <strong>${escapeHtml(done ? getInteractiveExtractionLabel(course) : "Em andamento")}</strong>
         <p>${escapeHtml(done ? `${analysis.searchablePages || 0} paginas com texto - ${analysis.relevantPages || 0} paginas relevantes` : "Extraindo paginas e blocos de texto.")}</p>
       </article>
       <article class="interactive-analysis-card">
@@ -2139,7 +2151,7 @@ function renderInteractiveStructurePanel(course) {
   if (!panel || !course) return;
   const modules = course.modules || [];
   const analysis = getInteractiveCourseAnalysis(course);
-  const tags = [course.detectedLabel, course.category, course.code, course.pdf?.extractionStatus === "text-extracted" ? "texto extraido" : "template"].filter(Boolean);
+  const tags = [course.detectedLabel, course.category, course.code, hasInteractivePdfText(course) ? "pdf lido" : "template"].filter(Boolean);
   panel.innerHTML = `
     <div class="interactive-stage-heading">
       <div><span>Estrutura identificada</span><h2>${escapeHtml(getInteractiveCourseDisplayTitle(course))}</h2><p>Confira como o PDF virou modulos, aulas e pontos de revisao antes de abrir o preview.</p></div>
@@ -2300,7 +2312,7 @@ function renderInteractivePreviewPanel(course, lessonId = "") {
             </div>
             <div class="interactive-lesson-meta">
               <span>Origem: ${escapeHtml(formatInteractivePages(current.sourcePage))} do PDF</span>
-              <span>${escapeHtml(course.pdf?.extractionStatus === "text-extracted" ? "Texto extraido" : "Template aplicado")}</span>
+              <span>${escapeHtml(getInteractiveExtractionLabel(course))}</span>
               <span>Preview do admin</span>
             </div>
             <section class="lesson-objective"><strong>Objetivo da aula</strong><p>${escapeHtml(currentSummary)}</p></section>
@@ -2329,7 +2341,7 @@ function renderInteractivePreviewPanel(course, lessonId = "") {
           <div class="student-preview-source-card">
             <span>Fonte da aula</span>
             <strong>${escapeHtml(formatInteractivePages(current.sourcePage))}</strong>
-            <small>${escapeHtml(course.pdf?.extractionStatus === "text-extracted" ? "Texto aproveitado do PDF." : "Conteudo montado pelo template por falta de texto selecionavel.")}</small>
+            <small>${escapeHtml(hasInteractivePdfText(course) ? "Texto aproveitado do PDF." : "Conteudo montado pelo template por falta de texto selecionavel.")}</small>
           </div>
           <div class="student-preview-source-card">
             <span>Analise geral</span>
@@ -2509,7 +2521,7 @@ async function generateInteractiveCourseFromPdfForm(form) {
     form.reset();
     renderSelectedInteractivePdf(null);
     const extractionStatus = selectedInteractiveCourse?.pdf?.extractionStatus;
-    const extractionMessage = extractionStatus === "text-extracted"
+    const extractionMessage = extractionStatus === "text-extracted" || extractionStatus === "text-sampled"
       ? "Texto do PDF extraido e treinamento gerado em rascunho."
       : "Treinamento gerado por template. Revise o conteudo antes de publicar.";
     if (status) status.textContent = extractionMessage;
@@ -2620,7 +2632,7 @@ function renderInteractiveCourseReview(course) {
 
   const summary = document.getElementById("interactiveReviewSummary");
   if (summary) {
-    const extractionStatus = course.pdf?.extractionStatus === "text-extracted" ? "Texto extraido" : "Template aplicado";
+    const extractionStatus = getInteractiveExtractionLabel(course);
     const storageLabel = course.pdf?.storage === "blob-public" || course.pdf?.storage === "blob-private"
       ? "PDF salvo na nuvem"
       : course.pdf?.storage === "local-file"
