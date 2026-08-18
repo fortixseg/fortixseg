@@ -1140,6 +1140,7 @@ function adminTrainingGeneratorWorkspaceTemplate() {
         id="trainingOriginalFrame"
         class="training-original-frame"
         src="/modules/training-studio/index.html"
+        scrolling="no"
         title="Gerador de Treinamento por PDF"
       ></iframe>
     </section>
@@ -1420,6 +1421,13 @@ function closeTrainingGeneratorWorkspace(restoreLanding = true) {
 window.addEventListener("message", (event) => {
   if (event.data?.type === "fortix:training-studio-close") {
     closeTrainingGeneratorWorkspace(true);
+    return;
+  }
+  if (event.data?.type === "fortix:training-resize") {
+    const iframe = document.querySelector("#trainingOriginalFrame");
+    if (!iframe) return;
+    const height = Math.max(700, Number(event.data.height) || 0);
+    iframe.style.height = `${height}px`;
   }
 });
 

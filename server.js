@@ -536,7 +536,7 @@ function loadAppDataFromSource(source = {}) {
   };
 }
 
-async function persistRuntimeState() {
+async function persistRuntimeState(options = {}) {
   try {
     if (!IS_SERVERLESS_RUNTIME) {
       saveCourseCatalog();
@@ -553,6 +553,7 @@ async function persistRuntimeState() {
   } catch (error) {
     runtimeStateIssue = cleanText(error?.message || "Falha ao salvar estado da aplicacao.", 240);
     console.error(`Nao foi possivel persistir estado da aplicacao: ${runtimeStateIssue}`);
+    if (options.strict) throw new Error(runtimeStateIssue);
   }
 }
 
@@ -1306,7 +1307,7 @@ async function handleTrainingStudioUpload(request, response, session) {
   try {
     if (isBlobStorageEnabled()) {
       const uploaded = await uploadBlobResource({
-        pathname: `interactive/${draftKey}/${baseName}.pdf`,
+        pathname: `trainings/${draftKey}/source/original.pdf`,
         bytes: file.bytes,
         mimeType: "application/pdf"
       });
@@ -1325,6 +1326,12 @@ async function handleTrainingStudioUpload(request, response, session) {
     }
   } catch (error) {
     return sendJson(response, 500, { detail: `Falha ao armazenar PDF: ${cleanText(error.message, 180)}` });
+  }
+
+  if (IS_SERVERLESS_RUNTIME && storageMode === "none") {
+    return sendJson(response, 500, {
+      detail: "Storage persistente nao configurado. Configure COURSE_STORAGE_MODE/BLOB_READ_WRITE_TOKEN ou execute no VPS antes de enviar PDFs reais."
+    });
   }
 
   let generated;
@@ -1370,7 +1377,12 @@ async function handleTrainingStudioUpload(request, response, session) {
   };
   course.studioPayload = studioPayloadFromInteractiveCourse(course);
   interactiveCourses.unshift(course);
-  await persistRuntimeState();
+  try {
+    await persistRuntimeState({ strict: true });
+  } catch (error) {
+    interactiveCourses = interactiveCourses.filter((item) => item.id !== course.id);
+    return sendJson(response, 500, { detail: `Falha ao persistir treinamento: ${cleanText(error.message, 220)}` });
+  }
   return sendJson(response, 201, interactiveCourseToStudioProject(course));
 }
 
@@ -1380,6 +1392,7 @@ async function handleTrainingStudioProjectUpdate(request, response, projectId) {
   const body = await readJsonBody(request, 5_000_000);
   const payload = body?.payload && typeof body.payload === "object" ? body.payload : body;
   const current = interactiveCourses[index];
+  const previous = structuredClone(current);
   const next = normalizeInteractiveCourse({
     ...current,
     title: payload.title || current.title,
@@ -1391,15 +1404,27 @@ async function handleTrainingStudioProjectUpdate(request, response, projectId) {
     updatedAt: new Date().toISOString()
   });
   interactiveCourses[index] = next;
-  await persistRuntimeState();
+  try {
+    await persistRuntimeState({ strict: true });
+  } catch (error) {
+    interactiveCourses[index] = previous;
+    return sendJson(response, 500, { detail: `Falha ao salvar rascunho: ${cleanText(error.message, 220)}` });
+  }
   return sendJson(response, 200, interactiveCourseToStudioProject(next));
 }
 
 async function handleTrainingStudioPublish(response, projectId, session) {
   const course = findInteractiveCourse(projectId);
   if (!course) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
+  if (IS_SERVERLESS_RUNTIME && !isDatabaseEnabled()) {
+    return sendJson(response, 500, { detail: "Banco/Supabase nao configurado. A publicacao nao foi realizada." });
+  }
+  if (course.pdf?.storage === "none") {
+    return sendJson(response, 500, { detail: "PDF de origem nao possui storage persistente. Reenvie o PDF com storage configurado antes de publicar." });
+  }
   const quality = buildStudioQuality(course);
   if (!quality.canPublish) return sendJson(response, 422, quality);
+  const previous = structuredClone(course);
   course.status = "published";
   course.review = {
     ...(course.review || {}),
@@ -1415,7 +1440,12 @@ async function handleTrainingStudioPublish(response, projectId, session) {
   };
   course.updatedAt = new Date().toISOString();
   course.stats = summarizeCourse(course);
-  await persistRuntimeState();
+  try {
+    await persistRuntimeState({ strict: true });
+  } catch (error) {
+    Object.assign(course, previous);
+    return sendJson(response, 500, { detail: `Falha ao publicar treinamento: ${cleanText(error.message, 220)}` });
+  }
   return sendJson(response, 200, interactiveCourseToStudioProject(course));
 }
 
@@ -1426,19 +1456,39 @@ async function handleTrainingStudioMaterialUpload(request, response, projectId) 
   const file = form.files.file || Object.values(form.files)[0];
   if (!file?.bytes?.length) return sendJson(response, 400, { detail: "Selecione um material." });
   const payload = course.studioPayload || studioPayloadFromInteractiveCourse(course);
+  let resource = null;
+  if (isBlobStorageEnabled()) {
+    try {
+      resource = await uploadBlobResource({
+        pathname: `trainings/${course.id}/materials/${slugify(file.filename || `material-${randomUUID()}`)}`,
+        bytes: file.bytes,
+        mimeType: file.mimeType || "application/octet-stream"
+      });
+    } catch (error) {
+      return sendJson(response, 500, { detail: `Falha ao armazenar material: ${cleanText(error.message, 180)}` });
+    }
+  } else if (IS_SERVERLESS_RUNTIME) {
+    return sendJson(response, 500, { detail: "Storage persistente nao configurado para materiais." });
+  }
   const material = {
     id: `material-${randomUUID()}`,
     title: cleanText(form.fields.title || file.filename || "Material complementar", 160),
     filename: cleanText(file.filename || "material", 180),
     mimeType: cleanText(file.mimeType || "application/octet-stream", 100),
     size: file.bytes.length,
-    url: "",
-    storage: "memory-only"
+    url: resource?.storage === "blob-public" ? resource.url : "",
+    pathname: resource?.pathname || "",
+    storage: resource?.storage || "local-only"
   };
   payload.materials = [...(payload.materials || []), material];
   course.studioPayload = payload;
   course.updatedAt = new Date().toISOString();
-  await persistRuntimeState();
+  try {
+    await persistRuntimeState({ strict: true });
+  } catch (error) {
+    payload.materials = (payload.materials || []).filter((item) => item.id !== material.id);
+    return sendJson(response, 500, { detail: `Falha ao salvar material: ${cleanText(error.message, 220)}` });
+  }
   return sendJson(response, 201, material);
 }
 
@@ -1446,9 +1496,10 @@ async function handleTrainingStudioMaterialDownload(response, projectId, materia
   const course = findInteractiveCourse(projectId);
   const material = (course?.studioPayload?.materials || []).find((item) => item.id === materialId);
   if (!material) return sendJson(response, 404, { detail: "Material nao encontrado." });
-  if (material.url) {
+  const materialUrl = await createBlobReadUrl(material);
+  if (materialUrl) {
     response.statusCode = 302;
-    response.setHeader("Location", material.url);
+    response.setHeader("Location", materialUrl);
     return response.end();
   }
   return sendJson(response, 501, { detail: "Material salvo como rascunho demonstrativo neste ambiente." });
@@ -1458,10 +1509,23 @@ async function handleTrainingStudioMaterialDelete(response, projectId, materialI
   const course = findInteractiveCourse(projectId);
   if (!course) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
   const payload = course.studioPayload || studioPayloadFromInteractiveCourse(course);
+  const material = (payload.materials || []).find((item) => item.id === materialId);
   payload.materials = (payload.materials || []).filter((item) => item.id !== materialId);
   course.studioPayload = payload;
   course.updatedAt = new Date().toISOString();
-  await persistRuntimeState();
+  try {
+    await persistRuntimeState({ strict: true });
+  } catch (error) {
+    if (material) payload.materials = [...(payload.materials || []), material];
+    return sendJson(response, 500, { detail: `Falha ao persistir exclusao do material: ${cleanText(error.message, 220)}` });
+  }
+  if (material?.url || material?.pathname) {
+    try {
+      await deleteBlobResource(material);
+    } catch (error) {
+      return sendJson(response, 500, { detail: `Material removido do projeto, mas falhou ao remover do storage: ${cleanText(error.message, 180)}` });
+    }
+  }
   return sendJson(response, 200, { ok: true });
 }
 
@@ -1493,6 +1557,8 @@ function interactiveCourseToStudioProject(course) {
     payload,
     createdAt: normalized.generatedAt,
     updatedAt: normalized.updatedAt,
+    version: Number(normalized.publication?.version || 0),
+    published_at: normalized.publication?.publishedAt || null,
     publication: normalized.publication || null
   };
 }
