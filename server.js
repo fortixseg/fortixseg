@@ -989,6 +989,8 @@ async function handleInteractiveCourseGenerate(request, response) {
   const bytes = Buffer.from(match[2], "base64");
   if (!bytes.length || bytes.length > 20_000_000) return sendJson(response, 413, { error: "O PDF deve ter no maximo 20 MB no MVP." });
   if (bytes.subarray(0, 4).toString("utf8") !== "%PDF") return sendJson(response, 400, { error: "O arquivo enviado nao parece ser um PDF valido." });
+  const sampledUpload = Boolean(body.sampled);
+  const originalSize = Number(body.originalSize) > bytes.length ? Number(body.originalSize) : bytes.length;
 
   const baseName = slugify(basename(cleanText(body.name, 180), extname(cleanText(body.name, 180)))) || "treinamento";
   const draftKey = `${Date.now()}-${baseName}`;
@@ -998,7 +1000,7 @@ async function handleInteractiveCourseGenerate(request, response) {
   let storageMode = "none";
 
   try {
-    if (isBlobStorageEnabled()) {
+    if (!sampledUpload && isBlobStorageEnabled()) {
       const uploaded = await uploadBlobResource({
         pathname: `interactive/${draftKey}/${fileName}`,
         bytes,
@@ -1049,6 +1051,15 @@ async function handleInteractiveCourseGenerate(request, response) {
   while (existingIds.has(generated.id)) generated.id = `${generated.id}-${String(randomUUID()).slice(0, 6)}`;
   const course = normalizeInteractiveCourse(generated);
   course.pdf.storage = storageMode;
+  course.pdf.size = originalSize;
+  course.pdf.sampledUpload = sampledUpload;
+  course.pdf.sampleSize = Number(body.sampleSize) || bytes.length;
+  if (sampledUpload) {
+    course.review.notes = [
+      ...(course.review.notes || []),
+      "PDF grande recebido em modo rapido. O treinamento foi gerado por amostra/template para evitar timeout; anexe o PDF completo no storage definitivo quando for publicar em producao."
+    ];
+  }
   if (IS_SERVERLESS_RUNTIME && storageMode === "none") {
     course.review.notes = [
       ...(course.review.notes || []),
@@ -1076,6 +1087,8 @@ async function handleInteractiveCourseRegenerate(request, response, courseId, bo
   const bytes = Buffer.from(match[2], "base64");
   if (!bytes.length || bytes.length > 20_000_000) return sendJson(response, 413, { error: "O PDF deve ter no maximo 20 MB no MVP." });
   if (bytes.subarray(0, 4).toString("utf8") !== "%PDF") return sendJson(response, 400, { error: "O arquivo enviado nao parece ser um PDF valido." });
+  const sampledUpload = Boolean(body.sampled);
+  const originalSize = Number(body.originalSize) > bytes.length ? Number(body.originalSize) : bytes.length;
 
   const baseName = slugify(basename(cleanText(body.name, 180), extname(cleanText(body.name, 180)))) || "treinamento";
   const draftKey = `${Date.now()}-${baseName}`;
@@ -1085,7 +1098,7 @@ async function handleInteractiveCourseRegenerate(request, response, courseId, bo
   let storageMode = "none";
 
   try {
-    if (isBlobStorageEnabled()) {
+    if (!sampledUpload && isBlobStorageEnabled()) {
       const uploaded = await uploadBlobResource({
         pathname: `interactive/${draftKey}/${fileName}`,
         bytes,
@@ -1148,6 +1161,15 @@ async function handleInteractiveCourseRegenerate(request, response, courseId, bo
     }
   });
   course.pdf.storage = storageMode;
+  course.pdf.size = originalSize;
+  course.pdf.sampledUpload = sampledUpload;
+  course.pdf.sampleSize = Number(body.sampleSize) || bytes.length;
+  if (sampledUpload) {
+    course.review.notes = [
+      ...(course.review.notes || []),
+      "PDF grande recebido em modo rapido. O treinamento foi atualizado por amostra/template para evitar timeout; anexe o PDF completo no storage definitivo quando for publicar em producao."
+    ];
+  }
   interactiveCourses[index] = course;
   await persistRuntimeState();
   return sendJson(response, 200, { course, courses: interactiveCourses.map(serializeInteractiveCourseSummary) });

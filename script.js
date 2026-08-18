@@ -1114,28 +1114,24 @@ function adminPdfGeneratorTemplate(title) {
 
 function adminTrainingManagementTemplate(title) {
   return `
-    ${portalHeading("Gestão de Treinamentos", title, "Cadastre treinamentos, anexe apostilas em PDF e transforme materiais em cursos interativos revisáveis antes da publicação.", '<button class="button button-primary" type="button" data-portal-action="admin-new-course">Adicionar curso manual</button><button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar treinamentos</button>')}
-    <section class="training-management-hub">
+    ${portalHeading("Gestão de Treinamentos", title, "Por enquanto esta área fica focada somente no gerador de treinamentos por PDF. Suba a apostila, revise a estrutura criada e publique quando estiver pronto.", '<button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar lista</button>')}
+    <section class="training-management-hub pdf-only">
       <article>
-        <span>Catálogo FortixSeg</span>
-        <strong>Cursos cadastrados e apostilas</strong>
-        <p>Edite preço, carga horária, status, conteúdo programático e PDFs dos treinamentos já existentes.</p>
+        <span>1. Upload</span>
+        <strong>Envie a apostila em PDF</strong>
+        <p>O arquivo vira a fonte do treinamento e fica ligado ao rascunho gerado.</p>
       </article>
       <article>
-        <span>Criação por PDF</span>
-        <strong>Estrutura automática em rascunho</strong>
-        <p>Envie uma apostila para gerar módulos, aulas, checklists e avaliação em uma revisão interna.</p>
+        <span>2. Estrutura</span>
+        <strong>Template inteligente</strong>
+        <p>O sistema detecta NR-35, NR-33, NR-10, EPI, Integração ou SST genérico e monta módulos, aulas e prova.</p>
       </article>
       <article>
-        <span>Preview interno</span>
-        <strong>Visualizar como aluno</strong>
-        <p>Confira a experiência sem sair do admin e sem derrubar a sessão administrativa.</p>
+        <span>3. Revisão</span>
+        <strong>Preview antes de publicar</strong>
+        <p>Você revisa tudo dentro do admin antes do treinamento aparecer para o aluno.</p>
       </article>
     </section>
-    <div class="training-management-section">
-      <div class="dashboard-heading"><div><span>Catálogo e materiais</span><h2>Treinamentos cadastrados</h2><p>Use esta área para criar, editar, excluir e anexar PDFs aos cursos.</p></div></div>
-      ${adminCourseManagerBodyTemplate()}
-    </div>
     <div class="training-management-section">
       ${adminPdfGeneratorTemplateV2("Criar treinamento por PDF", true)}
     </div>
@@ -2495,13 +2491,29 @@ function getInteractivePdfMaxBytes() {
   return 20_000_000;
 }
 
+function getInteractivePdfInlineBytes() {
+  return 1_500_000;
+}
+
+async function buildInteractivePdfPayload(file) {
+  const inlineLimit = getInteractivePdfInlineBytes();
+  const sampled = file.size > inlineLimit;
+  const source = sampled ? file.slice(0, inlineLimit, "application/pdf") : file;
+  return {
+    data: await fileToDataUrl(source),
+    sampled,
+    originalSize: file.size,
+    sampleSize: source.size
+  };
+}
+
 function getPdfGenerationErrorMessage(error) {
   const message = error?.message || "";
   if (/demorou|timeout|timed out|504|invocation|function/i.test(message)) {
-    return "A analise demorou demais neste ambiente. Tente um PDF menor ou com texto selecionavel. Se for PDF grande, o ideal e usar VPS ou storage externo.";
+    return "A analise excedeu o tempo do deploy. Atualize a pagina e tente novamente; PDFs grandes agora entram pelo template rapido para gerar rascunho sem travar.";
   }
   if (/413|grande|too large|payload/i.test(message)) {
-    return "O PDF ficou grande para enviar pela Vercel. Tente um arquivo menor ou compacte o PDF antes de gerar o treinamento.";
+    return "O PDF excedeu o limite de envio do MVP. Use um arquivo de ate 20 MB ou compacte antes de gerar o treinamento.";
   }
   return message || "Nao foi possivel gerar o treinamento.";
 }
@@ -2536,16 +2548,21 @@ async function generateInteractiveCourseFromPdfForm(form) {
   renderInteractiveAnalysisPanel("reading", null, "Validando arquivo e extraindo texto do PDF...");
   if (status) status.textContent = "Lendo PDF e montando treinamento...";
   try {
-    const data = await fileToDataUrl(file);
+    const payload = await buildInteractivePdfPayload(file);
     const safeName = normalizePdfUploadName(file.name);
-    renderInteractiveAnalysisPanel("generating", null, "PDF validado. Identificando tema, modulos, aulas e perguntas...");
+    renderInteractiveAnalysisPanel("generating", null, payload.sampled
+      ? "PDF grande detectado. Usando modo rapido para identificar o tema e gerar o rascunho sem travar."
+      : "PDF validado. Identificando tema, modulos, aulas e perguntas...");
     const result = await apiRequest("/api/admin/interactive-courses/generate", {
       method: "POST",
       body: JSON.stringify({
         ...values,
         name: safeName,
         originalName: file.name,
-        data,
+        data: payload.data,
+        sampled: payload.sampled,
+        originalSize: payload.originalSize,
+        sampleSize: payload.sampleSize,
         hours: values.hours ? Number(values.hours) : null,
         minimumGrade: Number(values.minimumGrade || 70)
       }),
@@ -2813,7 +2830,7 @@ async function regenerateInteractiveCourseFromPdf(courseId, file) {
     showToast("Regerando treinamento com novo PDF...");
     setInteractiveWizardStep("analysis");
     renderInteractiveAnalysisPanel("reading", existing, "Recebendo novo PDF para atualizar o rascunho.");
-    const dataUrl = await fileToDataUrl(file);
+    const payload = await buildInteractivePdfPayload(file);
     const safeName = normalizePdfUploadName(file.name);
     const data = await apiRequest("/api/admin/interactive-courses/generate", {
       method: "POST",
@@ -2822,7 +2839,10 @@ async function regenerateInteractiveCourseFromPdf(courseId, file) {
         courseId,
         name: safeName,
         originalName: file.name,
-        data: dataUrl,
+        data: payload.data,
+        sampled: payload.sampled,
+        originalSize: payload.originalSize,
+        sampleSize: payload.sampleSize,
         title: existing?.title || "",
         category: existing?.category || "Segurança do Trabalho",
         hours: Number(existing?.hours || 0) || null,
