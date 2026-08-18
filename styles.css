@@ -2693,6 +2693,30 @@ svg {
   grid-template-columns: 245px minmax(0, 1fr);
 }
 
+.app-shell.training-workspace-open {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
+.app-shell.training-workspace-open .app-sidebar {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+.app-shell.training-workspace-open .app-main {
+  width: 100%;
+  max-width: none;
+  padding: 22px;
+}
+
+.app-shell.training-workspace-open .app-topbar {
+  display: none;
+}
+
 .app-sidebar {
   display: flex;
   flex-direction: column;
@@ -3260,26 +3284,28 @@ align-items: start;
 gap: 18px;
 }
 
-.training-management-hub {
-display: grid;
-grid-template-columns: repeat(3, minmax(0, 1fr));
-gap: 16px;
-margin-bottom: 20px;
-}
-
-.training-management-hub article,
-.training-management-section {
+.training-management-entry,
+.training-management-entry article,
+.training-management-section,
+.training-workspace-topbar {
 background: #ffffff;
 border: 1px solid var(--border-light);
 border-radius: 8px;
 box-shadow: 0 18px 48px rgba(7, 18, 13, 0.08);
 }
 
-.training-management-hub article {
-padding: 20px;
+.training-management-entry {
+padding: 18px;
 }
 
-.training-management-hub span,
+.training-management-entry article {
+max-width: 720px;
+padding: 28px;
+border-left: 5px solid var(--green-primary);
+box-shadow: none;
+}
+
+.training-management-entry span,
 .training-management-section .dashboard-heading span {
 display: block;
 color: var(--green-dark);
@@ -3290,18 +3316,52 @@ text-transform: uppercase;
 margin-bottom: 8px;
 }
 
-.training-management-hub strong {
-display: block;
-font-size: 18px;
+.training-management-entry h3 {
+margin: 0 0 10px;
+font-size: clamp(24px, 3vw, 36px);
 line-height: 1.25;
 color: var(--text-dark);
-margin-bottom: 8px;
 }
 
-.training-management-hub p {
-margin: 0;
+.training-management-entry p {
+max-width: 620px;
+margin: 0 0 20px;
 color: var(--text-muted);
 line-height: 1.55;
+}
+
+.training-workspace-topbar {
+position: sticky;
+top: 0;
+z-index: 25;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 16px;
+padding: 14px;
+margin-bottom: 16px;
+}
+
+.training-workspace-topbar span,
+.training-workspace-topbar strong {
+display: block;
+text-align: right;
+}
+
+.training-workspace-topbar span {
+color: var(--green-dark);
+font-size: 11px;
+font-weight: 900;
+text-transform: uppercase;
+}
+
+.training-workspace-topbar strong {
+color: var(--text-dark);
+font-size: 16px;
+}
+
+.training-generator-workspace-view {
+max-width: none;
 }
 
 .training-management-section {
@@ -5183,10 +5243,6 @@ th {
   .api-status-grid,
   .admin-action-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .training-management-hub {
-    grid-template-columns: 1fr;
   }
 
   .portal-card-grid,

@@ -1114,27 +1114,28 @@ function adminPdfGeneratorTemplate(title) {
 
 function adminTrainingManagementTemplate(title) {
   return `
-    ${portalHeading("Gestão de Treinamentos", title, "Por enquanto esta área fica focada somente no gerador de treinamentos por PDF. Suba a apostila, revise a estrutura criada e publique quando estiver pronto.", '<button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar lista</button>')}
-    <section class="training-management-hub pdf-only">
+    ${portalHeading("Gestão de Treinamentos", title, "Nesta fase, esta área abre somente o gerador de treinamento por PDF. Não há catálogo, lista de cursos ou dashboard de treinamentos aqui.")}
+    <section class="training-management-entry">
       <article>
-        <span>1. Upload</span>
-        <strong>Envie a apostila em PDF</strong>
-        <p>O arquivo vira a fonte do treinamento e fica ligado ao rascunho gerado.</p>
-      </article>
-      <article>
-        <span>2. Estrutura</span>
-        <strong>Template inteligente</strong>
-        <p>O sistema detecta NR-35, NR-33, NR-10, EPI, Integração ou SST genérico e monta módulos, aulas e prova.</p>
-      </article>
-      <article>
-        <span>3. Revisão</span>
-        <strong>Preview antes de publicar</strong>
-        <p>Você revisa tudo dentro do admin antes do treinamento aparecer para o aluno.</p>
+        <span>Gerador de Treinamento por PDF</span>
+        <h3>Criar treinamento a partir de apostila</h3>
+        <p>Abra o workspace imersivo para enviar um PDF, analisar o conteúdo, revisar estrutura, pré-visualizar e publicar o treinamento.</p>
+        <button class="button button-primary" type="button" data-portal-action="admin-open-training-generator">Abrir gerador por PDF</button>
       </article>
     </section>
-    <div class="training-management-section">
-      ${adminPdfGeneratorTemplateV2("Criar treinamento por PDF", true)}
+  `;
+}
+
+function adminTrainingGeneratorWorkspaceTemplate() {
+  return `
+    <div class="training-workspace-topbar">
+      <button class="button button-secondary" type="button" data-portal-action="admin-close-training-generator">← Voltar à Gestão de Treinamentos</button>
+      <div>
+        <span>Workspace de autoria</span>
+        <strong>Gerador de Treinamento por PDF</strong>
+      </div>
     </div>
+    ${adminPdfGeneratorTemplateV2("Gerador de Treinamento por PDF", true)}
   `;
 }
 
@@ -1256,13 +1257,6 @@ function adminPdfGeneratorTemplateV2(title, embedded = false) {
         <div class="portal-empty-state"><strong>Publicacao aguardando revisao.</strong><span>Quando o treinamento estiver pronto, a checagem final aparece aqui.</span></div>
       </section>
     </div>
-
-    <section class="admin-generated-list-panel interactive-generated-library training-studio-library">
-      <div class="dashboard-heading"><div><span>Treinamentos gerados</span><h2>Rascunhos e publicados</h2><p>Abra, publique, refaca com novo PDF ou exclua treinamentos gerados.</p></div></div>
-      <div id="adminInteractiveCourseList" class="admin-interactive-course-list">
-        <div class="portal-empty-state">Carregando treinamentos...</div>
-      </div>
-    </section>
   `;
 }
 
@@ -1358,6 +1352,9 @@ function activatePortalView(button) {
   const key = button.dataset.portalTarget;
   const page = button.closest(".app-page");
   if (!portal || !key || !page) return;
+  if (portal !== "admin" || key !== "training-management") {
+    closeTrainingGeneratorWorkspace(false);
+  }
 
   page.querySelectorAll(".portal-view").forEach((view) => {
     view.classList.toggle("active", view.dataset.portalView === `${portal}:${key}`);
@@ -1374,12 +1371,45 @@ function activatePortalView(button) {
 
   if (portal === "company" && key === "employees") renderCompanyEmployeeDirectory();
   if (portal === "admin" && key === "training-management") {
-    loadAdminCourseCatalog();
-    loadAdminInteractiveCourses();
+    if (page.querySelector(".app-shell.training-workspace-open")) {
+      closeTrainingGeneratorWorkspace(true);
+    }
   }
   if (portal === "admin" && key === "students") loadAdminUsers();
   closePortalNavigation(page);
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function getAdminTrainingManagementView() {
+  return document.querySelector('[data-portal-view="admin:training-management"]');
+}
+
+function setTrainingWorkspaceOpen(open) {
+  const shell = document.querySelector("#page-admin .app-shell");
+  shell?.classList.toggle("training-workspace-open", Boolean(open));
+}
+
+function openTrainingGeneratorWorkspace() {
+  const view = getAdminTrainingManagementView();
+  if (!view) return;
+  selectedInteractiveCourse = null;
+  view.classList.add("training-generator-workspace-view");
+  view.innerHTML = adminTrainingGeneratorWorkspaceTemplate();
+  setTrainingWorkspaceOpen(true);
+  setInteractiveWizardStep("upload");
+  renderSelectedInteractivePdf(null);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function closeTrainingGeneratorWorkspace(restoreLanding = true) {
+  const view = getAdminTrainingManagementView();
+  setTrainingWorkspaceOpen(false);
+  if (!view) return;
+  view.classList.remove("training-generator-workspace-view");
+  if (restoreLanding) {
+    view.innerHTML = adminTrainingManagementTemplate("Gestão de treinamentos");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 }
 
 function handlePortalClick(event) {
@@ -1469,10 +1499,12 @@ function handlePortalClick(event) {
   }
   if (action === "admin-new-course") {
     const page = actionButton.closest(".app-page") || document.getElementById("page-admin");
-    const coursesButton = page?.querySelector('[data-portal="admin"][data-portal-target="training-management"]');
-    if (coursesButton && !coursesButton.classList.contains("active")) activatePortalView(coursesButton);
-    setTimeout(() => openAdminCourseEditor(), 40);
+    const trainingButton = page?.querySelector('[data-portal="admin"][data-portal-target="training-management"]');
+    if (trainingButton && !trainingButton.classList.contains("active")) activatePortalView(trainingButton);
+    setTimeout(openTrainingGeneratorWorkspace, 40);
   }
+  if (action === "admin-open-training-generator") openTrainingGeneratorWorkspace();
+  if (action === "admin-close-training-generator") closeTrainingGeneratorWorkspace(true);
   if (action === "admin-edit-course") openAdminCourseEditor(actionButton.dataset.courseId);
   if (action === "admin-cancel-course") closeAdminCourseEditor();
   if (action === "admin-delete-course") deleteAdminCourse(actionButton.dataset.courseId || "");
@@ -2492,7 +2524,7 @@ function getInteractivePdfMaxBytes() {
 }
 
 function getInteractivePdfInlineBytes() {
-  return 1_500_000;
+  return 650_000;
 }
 
 async function buildInteractivePdfPayload(file) {
