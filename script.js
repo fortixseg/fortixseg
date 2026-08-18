@@ -778,8 +778,7 @@ function initPortalWorkspaces() {
       eyebrow: "Painel administrativo",
       views: [
         ["dashboard", "Dashboard", "Visao geral da plataforma"],
-        ["courses", "Cursos", "Gestao de cursos"],
-        ["generator", "Gerador de Treinamentos", "Gerador de Treinamentos"],
+        ["training-management", "Gestão de Treinamentos", "Gestao de treinamentos"],
         ["students", "Alunos", "Gestao de alunos"],
         ["companies", "Empresas", "Gestao de empresas"],
         ["certificates", "Certificados", "Certificados emitidos"],
@@ -1099,8 +1098,7 @@ function affiliatePortalTemplate(key, title) {
 }
 
 function adminPortalTemplate(key, title) {
-  if (key === "courses") return adminCourseManagerTemplate(title);
-  if (key === "generator") return adminPdfGeneratorTemplateV2(title);
+  if (key === "training-management") return adminTrainingManagementTemplate(title);
   if (key === "students") return adminUserManagerTemplate(title);
   if (key === "students") return `${portalHeading("Usuários", title, "Acompanhe cadastros, cursos e situação acadêmica.")}<div class="dashboard-section portal-table-section"><div class="table-wrap"><table><thead><tr><th>Aluno</th><th>Curso</th><th>Status</th><th>Última atualização</th></tr></thead><tbody>${(portalData.admin?.recentStudents || []).length ? (portalData.admin.recentStudents || []).map((student) => `<tr><td>${escapeHtml(student.name)}</td><td>${escapeHtml(student.course)}</td><td><span class="table-status ${student.status === "Concluído" ? "complete" : "progress"}">${escapeHtml(student.status)}</span></td><td>${escapeHtml(student.date)}</td></tr>`).join("") : `<tr><td colspan="4">Nenhuma movimentação acadêmica registrada ainda.</td></tr>`}</tbody></table></div></div>`;
   if (key === "companies") return `${portalHeading("Contas B2B", title, "Visualize empresas, colaboradores e consumo de licenças.")}<div class="portal-card-grid compact"><article class="portal-data-card"><span>Empresas ativas</span><h3>${formatNumber(portalData.admin?.metrics?.companies ?? 0)}</h3><p>Contas corporativas cadastradas na plataforma.</p><strong class="status-copy">Operação ativa</strong></article><article class="portal-data-card"><span>Alunos ativos</span><h3>${formatNumber(portalData.admin?.metrics?.students ?? 0)}</h3><p>Usuários com acesso liberado no ambiente.</p><strong class="status-copy">Base sincronizada</strong></article></div>`;
@@ -1114,7 +1112,37 @@ function adminPdfGeneratorTemplate(title) {
   return adminPdfGeneratorTemplateV2(title);
 }
 
-function adminPdfGeneratorTemplateV2(title) {
+function adminTrainingManagementTemplate(title) {
+  return `
+    ${portalHeading("Gestão de Treinamentos", title, "Cadastre treinamentos, anexe apostilas em PDF e transforme materiais em cursos interativos revisáveis antes da publicação.", '<button class="button button-primary" type="button" data-portal-action="admin-new-course">Adicionar curso manual</button><button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar treinamentos</button>')}
+    <section class="training-management-hub">
+      <article>
+        <span>Catálogo FortixSeg</span>
+        <strong>Cursos cadastrados e apostilas</strong>
+        <p>Edite preço, carga horária, status, conteúdo programático e PDFs dos treinamentos já existentes.</p>
+      </article>
+      <article>
+        <span>Criação por PDF</span>
+        <strong>Estrutura automática em rascunho</strong>
+        <p>Envie uma apostila para gerar módulos, aulas, checklists e avaliação em uma revisão interna.</p>
+      </article>
+      <article>
+        <span>Preview interno</span>
+        <strong>Visualizar como aluno</strong>
+        <p>Confira a experiência sem sair do admin e sem derrubar a sessão administrativa.</p>
+      </article>
+    </section>
+    <div class="training-management-section">
+      <div class="dashboard-heading"><div><span>Catálogo e materiais</span><h2>Treinamentos cadastrados</h2><p>Use esta área para criar, editar, excluir e anexar PDFs aos cursos.</p></div></div>
+      ${adminCourseManagerBodyTemplate()}
+    </div>
+    <div class="training-management-section">
+      ${adminPdfGeneratorTemplateV2("Criar treinamento por PDF", true)}
+    </div>
+  `;
+}
+
+function adminPdfGeneratorTemplateV2(title, embedded = false) {
   const steps = [
     ["upload", "1", "Upload"],
     ["analysis", "2", "Analise"],
@@ -1123,13 +1151,14 @@ function adminPdfGeneratorTemplateV2(title) {
     ["review", "5", "Revisao"],
     ["publication", "6", "Publicacao"]
   ];
+  const heading = embedded ? "" : portalHeading("Criação por PDF", title, "Transforme uma apostila em PDF em treinamento interativo. Revise tudo antes de publicar.", '<button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar lista</button>');
   return `
-    ${portalHeading("Gerador de Treinamentos", title, "Transforme uma apostila em PDF em treinamento interativo. Revise tudo antes de publicar.", '<button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar lista</button>')}
+    ${heading}
     <div class="training-studio-shell">
       <section class="training-studio-hero">
         <div>
           <span>Studio FortixSeg</span>
-          <h2>Gerador de Treinamentos</h2>
+          <h2>${escapeHtml(title || "Criar treinamento por PDF")}</h2>
           <p>Suba um PDF, o motor identifica o tema, estima carga horaria, cria modulos, aulas, checklists e avaliacao em rascunho. Sem mexer na area de login existente.</p>
         </div>
         <div class="training-studio-hero-card">
@@ -1276,6 +1305,12 @@ function adminUserManagerTemplate(title) {
 function adminCourseManagerTemplate(title) {
   return `
     ${portalHeading("Catalogo e conteudo", title, "Crie cursos completos, altere precos e gerencie apostilas em PDF.", '<button class="button button-primary" type="button" data-portal-action="admin-new-course">Novo curso</button>')}
+    ${adminCourseManagerBodyTemplate()}
+  `;
+}
+
+function adminCourseManagerBodyTemplate() {
+  return `
     <div class="admin-course-manager" id="adminCourseManager">
       <section class="admin-course-list-panel">
         <div class="portal-toolbar admin-course-toolbar">
@@ -1342,8 +1377,10 @@ function activatePortalView(button) {
   if (eyebrow) eyebrow.textContent = topbar.dataset.portalEyebrow || "Portal FortixSeg";
 
   if (portal === "company" && key === "employees") renderCompanyEmployeeDirectory();
-  if (portal === "admin" && key === "courses") loadAdminCourseCatalog();
-  if (portal === "admin" && key === "generator") loadAdminInteractiveCourses();
+  if (portal === "admin" && key === "training-management") {
+    loadAdminCourseCatalog();
+    loadAdminInteractiveCourses();
+  }
   if (portal === "admin" && key === "students") loadAdminUsers();
   closePortalNavigation(page);
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1436,8 +1473,8 @@ function handlePortalClick(event) {
   }
   if (action === "admin-new-course") {
     const page = actionButton.closest(".app-page") || document.getElementById("page-admin");
-    const coursesButton = page?.querySelector('[data-portal="admin"][data-portal-target="courses"]');
-    if (coursesButton) activatePortalView(coursesButton);
+    const coursesButton = page?.querySelector('[data-portal="admin"][data-portal-target="training-management"]');
+    if (coursesButton && !coursesButton.classList.contains("active")) activatePortalView(coursesButton);
     setTimeout(() => openAdminCourseEditor(), 40);
   }
   if (action === "admin-edit-course") openAdminCourseEditor(actionButton.dataset.courseId);
