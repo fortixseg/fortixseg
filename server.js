@@ -978,6 +978,7 @@ async function handleInteractiveCourseGenerate(request, response) {
   const action = String(body.action || "").toLowerCase();
   if (action === "delete") return await handleInteractiveCourseDelete(response, body.courseId);
   if (action === "regenerate") return await handleInteractiveCourseRegenerate(request, response, body.courseId, body);
+  if (action === "publish" || action === "unpublish") return await handleInteractiveCoursePublish(response, body.courseId, action === "publish");
 
   const match = String(body.data || "").match(/^data:([^;]+);base64,(.+)$/);
   if (!match) return sendJson(response, 400, { error: "Envie um PDF valido para gerar o treinamento." });

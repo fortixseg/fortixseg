@@ -1124,35 +1124,58 @@ function adminPdfGeneratorTemplateV2(title) {
     ["publication", "6", "Publicacao"]
   ];
   return `
-    ${portalHeading("Gerador de Treinamentos", title, "Suba uma apostila em PDF, confira a estrutura criada automaticamente e publique somente depois da revisao tecnica.", '<button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar lista</button>')}
-    <div class="interactive-wizard-shell">
-      <div class="interactive-stepper" id="interactiveWizardStepper">
+    ${portalHeading("Gerador de Treinamentos", title, "Transforme uma apostila em PDF em treinamento interativo. Revise tudo antes de publicar.", '<button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar lista</button>')}
+    <div class="training-studio-shell">
+      <section class="training-studio-hero">
+        <div>
+          <span>Studio FortixSeg</span>
+          <h2>Gerador de Treinamentos</h2>
+          <p>Suba um PDF, o motor identifica o tema, estima carga horaria, cria modulos, aulas, checklists e avaliacao em rascunho. Sem mexer na area de login existente.</p>
+        </div>
+        <div class="training-studio-hero-card">
+          <strong>Fluxo seguro</strong>
+          <small>Upload -> analise -> estrutura -> preview -> revisao -> publicacao</small>
+        </div>
+      </section>
+
+      <div class="interactive-stepper training-studio-stepper" id="interactiveWizardStepper">
         ${steps.map(([key, number, label]) => `<button class="interactive-step ${key === "upload" ? "is-active" : ""}" type="button" data-portal-action="admin-wizard-step" data-step="${key}"><span>${number}</span><strong>${label}</strong></button>`).join("")}
       </div>
 
-      <section class="interactive-stage is-active" data-interactive-stage="upload">
-        <div class="interactive-stage-heading">
-          <div><span>Novo treinamento interativo</span><h2>Upload do PDF</h2><p>Envie a apostila. O sistema identifica tema, titulo e carga horaria, cria modulos, aulas, checklists e prova em rascunho.</p></div>
-          <small>Processamento por regras e templates FortixSeg</small>
+      <section class="interactive-stage training-studio-stage is-active" data-interactive-stage="upload">
+        <div class="training-studio-stage-title">
+          <div class="training-studio-step-badge">1</div>
+          <div><span>Upload do PDF</span><h2>Envie o material do treinamento</h2><p>Use apostilas com texto selecionavel sempre que possivel. PDFs escaneados entram no template correspondente para revisao tecnica.</p></div>
         </div>
-        <form class="portal-form compact-form interactive-upload-form" id="interactivePdfGeneratorForm">
+        <form class="portal-form compact-form interactive-upload-form training-studio-form" id="interactivePdfGeneratorForm">
+          <div class="training-studio-upload-grid">
+            <label class="admin-upload-field generator-upload interactive-dropzone training-studio-dropzone" data-interactive-dropzone>
+              <input id="interactivePdfFile" type="file" accept="application/pdf" required>
+              <strong>Arraste e solte seu PDF aqui</strong>
+              <span>ou clique para selecionar do computador</span>
+              <small>Formato aceito: PDF. Limite atual do MVP: ${formatFileSize(getInteractivePdfMaxBytes())}.</small>
+            </label>
+            <aside class="training-studio-help-card">
+              <strong>Dicas para melhor resultado</strong>
+              <ul>
+                <li>PDF com texto selecionavel gera aulas mais fiéis.</li>
+                <li>Titulos e subtitulos ajudam a separar modulos.</li>
+                <li>Se deixar carga horaria em branco, o sistema tenta detectar.</li>
+                <li>Revise tecnicamente antes de publicar.</li>
+              </ul>
+            </aside>
+          </div>
+          <div class="admin-file-selection interactive-file-selection" id="interactivePdfSelection" aria-live="polite"></div>
           <div class="form-grid">
-            <label class="field full"><span>Nome do treinamento</span><input name="title" maxlength="260" placeholder="Ex.: NR-35 - Trabalho em Altura"></label>
+            <label class="field full"><span>Nome do treinamento</span><input name="title" maxlength="260" placeholder="Opcional: o sistema pode sugerir pelo PDF"></label>
             <label class="field"><span>Categoria</span><input name="category" maxlength="90" value="Segurança do Trabalho"></label>
             <label class="field"><span>Carga horaria</span><input name="hours" type="number" min="1" max="120" placeholder="Detectar automaticamente"></label>
             <label class="field"><span>Nota mínima (%)</span><input name="minimumGrade" type="number" min="0" max="100" value="70"></label>
             <label class="field full"><span>Responsável técnico</span><input name="responsible" maxlength="180" placeholder="Nome e qualificação do responsável"></label>
           </div>
-          <label class="admin-upload-field generator-upload interactive-dropzone" data-interactive-dropzone>
-            <input id="interactivePdfFile" type="file" accept="application/pdf" required>
-            <strong>Arraste e solte o PDF aqui</strong>
-            <span>ou clique para selecionar do computador</span>
-            <small>Formato aceito: PDF. Para melhor resultado, use PDF com texto selecionavel e estrutura de titulos.</small>
-          </label>
-          <div class="admin-file-selection interactive-file-selection" id="interactivePdfSelection" aria-live="polite"></div>
-          <div class="generator-template-note">
-            <strong>Templates ativos</strong>
-            <span>NR-35, NR-33, NR-10, EPI/NR-06, Integracao e SST generico. Se o PDF nao bater com nenhum, o sistema cria um treinamento SST base para revisao.</span>
+          <div class="training-studio-template-strip">
+            <span>Templates ativos</span>
+            <strong>NR-35</strong><strong>NR-33</strong><strong>NR-10</strong><strong>EPI / NR-06</strong><strong>Integração</strong><strong>SST genérico</strong>
           </div>
           <div class="admin-editor-actions">
             <button class="button button-primary" type="submit" id="interactiveGenerateButton">Enviar e analisar PDF</button>
@@ -1161,19 +1184,19 @@ function adminPdfGeneratorTemplateV2(title) {
         </form>
       </section>
 
-      <section class="interactive-stage" data-interactive-stage="analysis" id="interactiveAnalysisPanel">
+      <section class="interactive-stage training-studio-stage" data-interactive-stage="analysis" id="interactiveAnalysisPanel">
         <div class="portal-empty-state"><strong>Aguardando PDF.</strong><span>Depois do envio, a analise aparece aqui.</span></div>
       </section>
 
-      <section class="interactive-stage" data-interactive-stage="structure" id="interactiveStructurePanel">
+      <section class="interactive-stage training-studio-stage" data-interactive-stage="structure" id="interactiveStructurePanel">
         <div class="portal-empty-state"><strong>Estrutura ainda nao gerada.</strong><span>Envie um PDF para visualizar modulos e aulas encontrados.</span></div>
       </section>
 
-      <section class="interactive-stage" data-interactive-stage="preview" id="interactivePreviewPanel">
+      <section class="interactive-stage training-studio-stage" data-interactive-stage="preview" id="interactivePreviewPanel">
         <div class="portal-empty-state"><strong>Preview indisponivel.</strong><span>Gere ou abra um treinamento para revisar a experiencia do aluno sem sair do admin.</span></div>
       </section>
 
-      <section class="interactive-stage" data-interactive-stage="review">
+      <section class="interactive-stage training-studio-stage" data-interactive-stage="review">
         <section class="interactive-review-panel hidden" id="interactiveCourseReviewPanel">
           <div class="interactive-review-header">
             <div>
@@ -1204,12 +1227,12 @@ function adminPdfGeneratorTemplateV2(title) {
         </section>
       </section>
 
-      <section class="interactive-stage" data-interactive-stage="publication" id="interactivePublishPanel">
+      <section class="interactive-stage training-studio-stage" data-interactive-stage="publication" id="interactivePublishPanel">
         <div class="portal-empty-state"><strong>Publicacao aguardando revisao.</strong><span>Quando o treinamento estiver pronto, a checagem final aparece aqui.</span></div>
       </section>
     </div>
 
-    <section class="admin-generated-list-panel interactive-generated-library">
+    <section class="admin-generated-list-panel interactive-generated-library training-studio-library">
       <div class="dashboard-heading"><div><span>Treinamentos gerados</span><h2>Rascunhos e publicados</h2><p>Abra, publique, refaca com novo PDF ou exclua treinamentos gerados.</p></div></div>
       <div id="adminInteractiveCourseList" class="admin-interactive-course-list">
         <div class="portal-empty-state">Carregando treinamentos...</div>
@@ -1390,6 +1413,7 @@ function handlePortalClick(event) {
   const actionButton = event.target.closest("[data-portal-action]");
   if (!actionButton) return;
   event.preventDefault();
+  event.stopPropagation();
   const action = actionButton.dataset.portalAction;
 
   if (action === "continue-course") navigate("lesson");
@@ -2675,10 +2699,20 @@ async function publishInteractiveCourse(courseId, publish) {
   try {
     const action = publish ? "publish" : "unpublish";
     showToast(publish ? "Publicando treinamento..." : "Voltando treinamento para rascunho...");
-    const data = await apiRequest(`/api/admin/interactive-courses/${encodeURIComponent(safeCourseId)}/${action}`, {
-      method: "POST",
-      timeoutMs: 20_000
-    });
+    let data;
+    try {
+      data = await apiRequest(`/api/admin/interactive-courses/${encodeURIComponent(safeCourseId)}/${action}`, {
+        method: "POST",
+        timeoutMs: 20_000
+      });
+    } catch (error) {
+      if (!/404|not_found|not found|encontrado/i.test(error?.message || "")) throw error;
+      data = await apiRequest("/api/admin/interactive-courses/generate", {
+        method: "POST",
+        body: JSON.stringify({ action, courseId: safeCourseId }),
+        timeoutMs: 20_000
+      });
+    }
     selectedInteractiveCourse = data.course;
     adminInteractiveCourses = data.courses || adminInteractiveCourses;
     renderAdminInteractiveCourseList();
