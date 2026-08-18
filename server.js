@@ -188,6 +188,12 @@ export async function handleRequest(request, response) {
       return handleInteractiveCoursePublish(response, decodeURIComponent(adminInteractiveMatch[1]), adminInteractiveMatch[2] === "publish");
     }
 
+    if (url.pathname === "/api/projects" || url.pathname.startsWith("/api/projects/")) {
+      const session = requireRole(request, response, ["admin"]);
+      if (!session) return;
+      return await handleTrainingStudioProjects(request, response, url, session);
+    }
+
     if (request.method === "POST" && url.pathname === "/api/admin/courses") {
       const session = requireRole(request, response, ["admin"]);
       if (!session) return;
@@ -1220,6 +1226,681 @@ async function handleInteractiveCoursePublish(response, courseId, publish) {
   course.stats = summarizeCourse(course);
   await persistRuntimeState();
   return sendJson(response, 200, { course, courses: interactiveCourses.map(serializeInteractiveCourseSummary) });
+}
+
+async function handleTrainingStudioProjects(request, response, url, session) {
+  if (url.pathname === "/api/projects" && request.method === "GET") {
+    return sendJson(response, 200, interactiveCourses.map(serializeStudioProjectSummary));
+  }
+
+  if (url.pathname === "/api/projects/upload" && request.method === "POST") {
+    return await handleTrainingStudioUpload(request, response, session);
+  }
+
+  const match = url.pathname.match(/^\/api\/projects\/([^/]+)(?:\/([^/]+)(?:\/([^/]+))?)?$/);
+  if (!match) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
+
+  const projectId = decodeURIComponent(match[1]);
+  const action = match[2] ? decodeURIComponent(match[2]) : "";
+  const nestedId = match[3] ? decodeURIComponent(match[3]) : "";
+
+  if (request.method === "GET" && !action) {
+    const project = interactiveCourseToStudioProject(findInteractiveCourse(projectId));
+    if (!project) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
+    return sendJson(response, 200, project);
+  }
+  if (request.method === "PUT" && !action) {
+    return await handleTrainingStudioProjectUpdate(request, response, projectId);
+  }
+  if (request.method === "DELETE" && !action) {
+    return await handleInteractiveCourseDelete(response, projectId);
+  }
+  if (request.method === "GET" && action === "export") {
+    const project = interactiveCourseToStudioProject(findInteractiveCourse(projectId));
+    if (!project) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
+    const bytes = Buffer.from(JSON.stringify(project, null, 2), "utf8");
+    response.statusCode = 200;
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.setHeader("Content-Disposition", `attachment; filename="${slugify(project.title || projectId)}-backup.json"`);
+    return response.end(bytes);
+  }
+  if (request.method === "POST" && action === "quality") {
+    return sendJson(response, 200, buildStudioQuality(findInteractiveCourse(projectId)));
+  }
+  if (request.method === "POST" && action === "publish") {
+    return await handleTrainingStudioPublish(response, projectId, session);
+  }
+  if (action === "materials") {
+    if (request.method === "POST" && !nestedId) return await handleTrainingStudioMaterialUpload(request, response, projectId);
+    if (request.method === "GET" && nestedId) return await handleTrainingStudioMaterialDownload(response, projectId, nestedId);
+    if (request.method === "DELETE" && nestedId) return await handleTrainingStudioMaterialDelete(response, projectId, nestedId);
+  }
+
+  return sendJson(response, 405, { detail: "Acao nao suportada neste projeto." });
+}
+
+async function handleTrainingStudioUpload(request, response, session) {
+  let form;
+  try {
+    form = await readMultipartBody(request, 30_000_000);
+  } catch (error) {
+    return sendJson(response, error.statusCode || 400, { detail: error.message });
+  }
+
+  const file = form.files.file || Object.values(form.files)[0];
+  if (!file?.bytes?.length) return sendJson(response, 400, { detail: "Envie um arquivo PDF." });
+  if (file.mimeType !== "application/pdf" && !/\.pdf$/i.test(file.filename || "")) {
+    return sendJson(response, 415, { detail: "O arquivo precisa ser PDF." });
+  }
+  if (file.bytes.subarray(0, 4).toString("utf8") !== "%PDF") {
+    return sendJson(response, 400, { detail: "O arquivo enviado nao parece ser um PDF valido." });
+  }
+
+  const originalName = cleanText(file.filename || "treinamento.pdf", 220);
+  const baseName = slugify(basename(originalName, extname(originalName))) || "treinamento";
+  const draftKey = `${Date.now()}-${baseName}`;
+  let storedUrl = "";
+  let storedPathname = "";
+  let storageMode = "none";
+
+  try {
+    if (isBlobStorageEnabled()) {
+      const uploaded = await uploadBlobResource({
+        pathname: `interactive/${draftKey}/${baseName}.pdf`,
+        bytes: file.bytes,
+        mimeType: "application/pdf"
+      });
+      storedUrl = uploaded.storage === "blob-public" ? uploaded.url : "";
+      storedPathname = uploaded.pathname;
+      storageMode = uploaded.storage;
+    } else if (!IS_SERVERLESS_RUNTIME) {
+      const uploadDir = resolve(INTERACTIVE_UPLOAD_DIR, draftKey);
+      if (!uploadDir.startsWith(`${INTERACTIVE_UPLOAD_DIR}${sep}`)) return sendJson(response, 403, { detail: "Destino de upload invalido." });
+      mkdirSync(uploadDir, { recursive: true });
+      const filePath = resolve(uploadDir, `${baseName}.pdf`);
+      writeFileSync(filePath, file.bytes);
+      storedUrl = `/assets/uploads/interactive/${draftKey}/${baseName}.pdf`;
+      storedPathname = filePath;
+      storageMode = "local-file";
+    }
+  } catch (error) {
+    return sendJson(response, 500, { detail: `Falha ao armazenar PDF: ${cleanText(error.message, 180)}` });
+  }
+
+  let generated;
+  try {
+    generated = await generateInteractiveCourseFromPdf({
+      bytes: file.bytes,
+      originalName,
+      storedUrl,
+      storedPathname,
+      options: {
+        title: cleanFileNameAsTitle(originalName),
+        responsible: session?.user?.name || "Administrador FortixSeg"
+      }
+    });
+  } catch (error) {
+    return sendJson(response, 422, {
+      detail: `Nao foi possivel gerar o treinamento: ${cleanText(error.message, 220)}`
+    });
+  }
+
+  const existingIds = new Set(interactiveCourses.map((course) => course.id));
+  while (existingIds.has(generated.id)) generated.id = `${generated.id}-${String(randomUUID()).slice(0, 6)}`;
+  const course = normalizeInteractiveCourse(generated);
+  course.pdf.storage = storageMode;
+  course.pdf.size = file.bytes.length;
+  course.pdf.name = originalName;
+  course.sourceDocument = normalizeInteractiveSourceDocument({
+    ...(course.sourceDocument || {}),
+    filename: originalName,
+    size: file.bytes.length,
+    url: storedUrl,
+    pathname: storedPathname
+  });
+  course.review = {
+    ...(course.review || {}),
+    status: "pending",
+    notes: [
+      ...((course.review || {}).notes || []),
+      storageMode === "none"
+        ? "PDF processado para gerar rascunho, mas o storage definitivo ainda nao esta configurado neste ambiente."
+        : "PDF anexado ao rascunho do treinamento."
+    ].filter(Boolean)
+  };
+  course.studioPayload = studioPayloadFromInteractiveCourse(course);
+  interactiveCourses.unshift(course);
+  await persistRuntimeState();
+  return sendJson(response, 201, interactiveCourseToStudioProject(course));
+}
+
+async function handleTrainingStudioProjectUpdate(request, response, projectId) {
+  const index = interactiveCourses.findIndex((course) => course.id === slugify(projectId));
+  if (index < 0) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
+  const body = await readJsonBody(request, 5_000_000);
+  const payload = body?.payload && typeof body.payload === "object" ? body.payload : body;
+  const current = interactiveCourses[index];
+  const next = normalizeInteractiveCourse({
+    ...current,
+    title: payload.title || current.title,
+    category: payload.category || current.category,
+    hours: Number(payload.estimatedHours || payload.hours || current.hours),
+    minimumGrade: Number(payload.passingScore || payload.minimumGrade || current.minimumGrade),
+    attempts: Number(payload.attempts || current.attempts),
+    studioPayload: payload,
+    updatedAt: new Date().toISOString()
+  });
+  interactiveCourses[index] = next;
+  await persistRuntimeState();
+  return sendJson(response, 200, interactiveCourseToStudioProject(next));
+}
+
+async function handleTrainingStudioPublish(response, projectId, session) {
+  const course = findInteractiveCourse(projectId);
+  if (!course) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
+  const quality = buildStudioQuality(course);
+  if (!quality.canPublish) return sendJson(response, 422, quality);
+  course.status = "published";
+  course.review = {
+    ...(course.review || {}),
+    status: "approved",
+    publishedAt: new Date().toISOString(),
+    publishedBy: session?.user?.email || ""
+  };
+  course.publication = {
+    id: `publication-${randomUUID()}`,
+    version: Number(course.publication?.version || 0) + 1,
+    publishedAt: course.review.publishedAt,
+    snapshot: sanitizeStudentTrainingPayload(course.studioPayload || studioPayloadFromInteractiveCourse(course))
+  };
+  course.updatedAt = new Date().toISOString();
+  course.stats = summarizeCourse(course);
+  await persistRuntimeState();
+  return sendJson(response, 200, interactiveCourseToStudioProject(course));
+}
+
+async function handleTrainingStudioMaterialUpload(request, response, projectId) {
+  const course = findInteractiveCourse(projectId);
+  if (!course) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
+  const form = await readMultipartBody(request, 25_000_000);
+  const file = form.files.file || Object.values(form.files)[0];
+  if (!file?.bytes?.length) return sendJson(response, 400, { detail: "Selecione um material." });
+  const payload = course.studioPayload || studioPayloadFromInteractiveCourse(course);
+  const material = {
+    id: `material-${randomUUID()}`,
+    title: cleanText(form.fields.title || file.filename || "Material complementar", 160),
+    filename: cleanText(file.filename || "material", 180),
+    mimeType: cleanText(file.mimeType || "application/octet-stream", 100),
+    size: file.bytes.length,
+    url: "",
+    storage: "memory-only"
+  };
+  payload.materials = [...(payload.materials || []), material];
+  course.studioPayload = payload;
+  course.updatedAt = new Date().toISOString();
+  await persistRuntimeState();
+  return sendJson(response, 201, material);
+}
+
+async function handleTrainingStudioMaterialDownload(response, projectId, materialId) {
+  const course = findInteractiveCourse(projectId);
+  const material = (course?.studioPayload?.materials || []).find((item) => item.id === materialId);
+  if (!material) return sendJson(response, 404, { detail: "Material nao encontrado." });
+  if (material.url) {
+    response.statusCode = 302;
+    response.setHeader("Location", material.url);
+    return response.end();
+  }
+  return sendJson(response, 501, { detail: "Material salvo como rascunho demonstrativo neste ambiente." });
+}
+
+async function handleTrainingStudioMaterialDelete(response, projectId, materialId) {
+  const course = findInteractiveCourse(projectId);
+  if (!course) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
+  const payload = course.studioPayload || studioPayloadFromInteractiveCourse(course);
+  payload.materials = (payload.materials || []).filter((item) => item.id !== materialId);
+  course.studioPayload = payload;
+  course.updatedAt = new Date().toISOString();
+  await persistRuntimeState();
+  return sendJson(response, 200, { ok: true });
+}
+
+function serializeStudioProjectSummary(course) {
+  const normalized = normalizeInteractiveCourse(course);
+  const payload = normalized.studioPayload || studioPayloadFromInteractiveCourse(normalized);
+  const stats = normalized.stats || summarizeCourse(normalized);
+  return {
+    id: normalized.id,
+    title: payload.title || normalized.title,
+    filename: payload.source?.filename || normalized.pdf?.name || "material.pdf",
+    status: normalized.status === "published" ? "PUBLISHED" : "REVIEW",
+    modules: Number(payload.modules?.length || stats.modules || 0),
+    questions: Number(payload.questions?.length || stats.questions || 0),
+    updatedAt: normalized.updatedAt,
+    createdAt: normalized.generatedAt
+  };
+}
+
+function interactiveCourseToStudioProject(course) {
+  const normalized = normalizeInteractiveCourse(course);
+  if (!normalized) return null;
+  const payload = normalized.studioPayload || studioPayloadFromInteractiveCourse(normalized);
+  return {
+    id: normalized.id,
+    title: payload.title || normalized.title,
+    status: normalized.status === "published" ? "PUBLISHED" : "REVIEW",
+    sourceDeleted: false,
+    payload,
+    createdAt: normalized.generatedAt,
+    updatedAt: normalized.updatedAt,
+    publication: normalized.publication || null
+  };
+}
+
+function studioPayloadFromInteractiveCourse(course) {
+  const normalized = normalizeInteractiveCourse(course);
+  if (normalized.studioPayload && typeof normalized.studioPayload === "object") {
+    return {
+      ...normalized.studioPayload,
+      title: normalized.studioPayload.title || normalized.title,
+      source: {
+        ...buildStudioSource(normalized),
+        ...(normalized.studioPayload.source || {})
+      }
+    };
+  }
+
+  const sourcePages = buildStudioSourcePages(normalized);
+  const modules = (normalized.modules || []).map((module, moduleIndex) => buildStudioModule(module, moduleIndex, sourcePages));
+  const moduleQuizzes = modules.flatMap((module) => buildStudioModuleQuiz(module));
+  const questions = (normalized.finalAssessment?.questions || []).map((question, index) => buildStudioQuestion(question, modules[index % Math.max(1, modules.length)]?.id, index));
+  const stats = summarizeCourse(normalized);
+  return {
+    id: normalized.id,
+    title: normalized.title,
+    category: normalized.category,
+    audience: "Profissionais e empresas que precisam registrar treinamento com rastreabilidade.",
+    estimatedHours: normalized.hours,
+    passingScore: normalized.minimumGrade,
+    attempts: normalized.attempts,
+    visibility: "private",
+    certificate: true,
+    certificateSettings: {
+      issuer: "FortixSeg",
+      responsibleName: normalized.responsible || "",
+      responsibleRole: "Responsavel tecnico",
+      verificationEnabled: true
+    },
+    source: {
+      ...buildStudioSource(normalized),
+      nativePageMode: true
+    },
+    sourcePages,
+    analysis: {
+      warnings: normalized.analysis?.warnings || [],
+      structureStrategy: normalized.analysis?.structureStrategy || "Motor FortixSeg aplicado ao PDF.",
+      modules: modules.length,
+      topics: modules.reduce((sum, module) => sum + module.topics.length, 0),
+      criticalConcepts: Math.max(0, Number(normalized.analysis?.criticalConcepts?.length || normalized.analysis?.topics || stats.topics || 0)),
+      questions: questions.length,
+      interactiveQuestions: moduleQuizzes.length,
+      sourcePages: Number(normalized.pdf?.pages || normalized.sourceDocument?.totalPages || sourcePages.length),
+      searchablePages: Number(normalized.pdf?.searchablePages || normalized.sourceDocument?.searchablePages || 0),
+      visualPages: sourcePages.length,
+      visualAssets: sourcePages.length,
+      relevantPages: Number(normalized.pdf?.relevantPages || sourcePages.length),
+      coveragePercent: Number(normalized.analysis?.coveragePercent || 0),
+      continuityMerges: 0,
+      agendaDetected: false,
+      agendaPage: 0,
+      agendaItems: [],
+      moduleOrdering: { changed: false }
+    },
+    modules,
+    moduleQuizzes,
+    questions,
+    materials: [],
+    quality: { errors: [], warnings: [], info: [] }
+  };
+}
+
+function buildStudioSource(course) {
+  return {
+    filename: course.pdf?.name || course.sourceDocument?.filename || "material.pdf",
+    size: Number(course.pdf?.size || course.sourceDocument?.size || 0),
+    pages: Number(course.pdf?.pages || course.sourceDocument?.totalPages || 0),
+    searchablePages: Number(course.pdf?.searchablePages || course.sourceDocument?.searchablePages || 0),
+    visualAssets: Number(course.pdf?.pages || course.sourceDocument?.totalPages || 0),
+    searchability: course.pdf?.extractionStatus || course.sourceDocument?.searchability || "template-fallback",
+    url: course.pdf?.url || course.sourceDocument?.url || "",
+    pathname: course.pdf?.pathname || course.sourceDocument?.pathname || ""
+  };
+}
+
+function buildStudioSourcePages(course) {
+  const lessons = (course.modules || []).flatMap((module) => module.lessons || []);
+  const byPage = new Map();
+  for (const lesson of lessons) {
+    const page = Number(lesson.sourcePage) || byPage.size + 1;
+    if (byPage.has(page)) continue;
+    byPage.set(page, {
+      page,
+      title: lesson.title || `Pagina ${page}`,
+      role: page === 1 ? "COVER" : "CONTENT",
+      text: lesson.extractedText || lesson.summary || "",
+      imageUrl: lesson.pageImageUrl && !/\.pdf(#|$)/i.test(lesson.pageImageUrl)
+        ? lesson.pageImageUrl
+        : buildStudioPageSvgDataUrl({ page, title: lesson.title, text: lesson.extractedText || lesson.summary || "" }),
+      hotspots: buildStudioHotspots(lesson.extractedText || lesson.summary || ""),
+      learning: {
+        topics: [lesson.title].filter(Boolean),
+        keyPoints: (lesson.checklist || []).slice(0, 4),
+        explanations: [lesson.summary].filter(Boolean)
+      }
+    });
+  }
+  if (!byPage.size) {
+    byPage.set(1, {
+      page: 1,
+      title: course.title,
+      role: "COVER",
+      text: course.title,
+      imageUrl: buildStudioPageSvgDataUrl({ page: 1, title: course.title, text: "Material carregado para revisao tecnica." }),
+      hotspots: [],
+      learning: { topics: [course.title], keyPoints: [], explanations: [] }
+    });
+  }
+  return [...byPage.values()].sort((a, b) => a.page - b.page);
+}
+
+function buildStudioModule(module, moduleIndex, sourcePages) {
+  const lessons = module.lessons || [];
+  const sourcePageNumbers = lessons.length
+    ? [...new Set(lessons.map((lesson) => Number(lesson.sourcePage) || 0).filter(Boolean))]
+    : (module.sourcePages || []);
+  const topics = lessons.length
+    ? lessons.map((lesson, lessonIndex) => buildStudioTopic(lesson, module, lessonIndex))
+    : (module.topicDetails || []).map((topic, topicIndex) => buildStudioTopicFromDetail(topic, module, topicIndex));
+  const displayPages = sourcePageNumbers.filter((page) => sourcePages.some((item) => Number(item.page) === Number(page)));
+  return {
+    id: module.id || `module-${moduleIndex + 1}`,
+    title: module.title || `Modulo ${moduleIndex + 1}`,
+    learningTitle: module.title || `Modulo ${moduleIndex + 1}`,
+    description: module.topicDetails?.[0]?.summary || `Modulo gerado a partir do PDF para revisao tecnica.`,
+    learningObjectives: buildStudioObjectives(module, topics),
+    keyPoints: [...new Set(topics.flatMap((topic) => topic.keyPoints || []))].slice(0, 8),
+    sourcePages: sourcePageNumbers,
+    displayPages: displayPages.length ? displayPages : sourcePageNumbers,
+    sourceWordCount: Number(module.sourceWordCount || 0),
+    sourceVisualCount: displayPages.length || sourcePageNumbers.length,
+    structureConfidence: Number(module.structureConfidence || 0.72),
+    topics
+  };
+}
+
+function buildStudioTopic(lesson, module, lessonIndex) {
+  const question = lesson.quickQuestion ? buildStudioQuestion(lesson.quickQuestion, module.id, lessonIndex) : null;
+  return {
+    id: `topic-${lesson.id || randomUUID()}`,
+    title: lesson.title || `Aula ${lessonIndex + 1}`,
+    learningTitle: lesson.title || `Aula ${lessonIndex + 1}`,
+    content: lesson.extractedText || lesson.summary || "",
+    summary: lesson.summary || "",
+    paragraphs: splitParagraphs(lesson.extractedText || lesson.summary || ""),
+    keyPoints: (lesson.checklist || []).slice(0, 6),
+    steps: (lesson.checklist || []).slice(0, 5),
+    callout: lesson.attentionCard ? { title: "Atencao", text: lesson.attentionCard } : null,
+    checkpoint: question,
+    interactions: question ? [question] : [],
+    activity: lesson.practiceCard ? { title: "Na pratica", prompt: lesson.practiceCard } : null,
+    readingMinutes: Math.max(1, Math.ceil(countStudioWords(lesson.extractedText || lesson.summary || "") / 180)),
+    contentType: mapStudioContentType(lesson.title, lesson.extractedText),
+    origin: "SOURCE",
+    sourcePages: [Number(lesson.sourcePage) || lessonIndex + 1],
+    confidence: 0.76,
+    pedagogy: {
+      learningTitle: lesson.title || `Aula ${lessonIndex + 1}`,
+      opening: lesson.summary || "",
+      simpleExplanation: lesson.summary || "",
+      focusTitle: "O que voce precisa guardar",
+      remember: (lesson.checklist || []).slice(0, 5),
+      practicalApplication: lesson.practiceCard || "",
+      glossary: [],
+      legalReferences: [],
+      learningGoal: `Compreender ${String(lesson.title || "o conteudo").toLowerCase()}.`,
+      origin: "SOURCE"
+    }
+  };
+}
+
+function buildStudioTopicFromDetail(topic, module, topicIndex) {
+  return buildStudioTopic({
+    id: topic.id,
+    title: topic.title,
+    sourcePage: topic.sourcePages?.[0] || module.sourcePages?.[0] || topicIndex + 1,
+    extractedText: topic.sourcePreview || topic.summary || "",
+    summary: topic.summary || "",
+    checklist: topic.keyPoints || [],
+    attentionCard: "",
+    practiceCard: "",
+    quickQuestion: null
+  }, module, topicIndex);
+}
+
+function buildStudioModuleQuiz(module) {
+  const topic = module.topics?.find((item) => item.interactions?.length);
+  if (!topic) return [];
+  return topic.interactions.slice(0, 1).map((question) => ({
+    ...question,
+    id: `mq-${module.id}-${question.id || randomUUID()}`,
+    moduleId: module.id,
+    topicId: topic.id
+  }));
+}
+
+function buildStudioQuestion(question, moduleId = "", index = 0) {
+  const options = question.options || question.alternatives || [];
+  return {
+    id: question.id || `q-${randomUUID()}`,
+    moduleId,
+    topicId: question.topicId || null,
+    type: "multiple_choice",
+    question: question.question || question.prompt || `Pergunta ${index + 1}`,
+    options,
+    correctIndex: Math.min(options.length - 1, Math.max(0, Number(question.correctIndex) || 0)),
+    explanation: question.explanation || "Resposta conferida conforme o conteudo do treinamento.",
+    difficulty: question.difficulty || "media",
+    sourcePages: question.sourcePages || [],
+    origin: question.origin || "GENERATED"
+  };
+}
+
+function buildStudioObjectives(module, topics) {
+  const titles = topics.map((topic) => topic.learningTitle || topic.title).filter(Boolean).slice(0, 3);
+  return titles.length
+    ? titles.map((title) => `Compreender ${title.toLowerCase()} e aplicar no contexto da atividade.`)
+    : [`Compreender o modulo ${String(module.title || "").toLowerCase()} e revisar os pontos essenciais.`];
+}
+
+function buildStudioHotspots(text) {
+  return splitParagraphs(text).slice(0, 3).map((paragraph, index) => ({
+    kind: index === 0 ? "HEADING" : "TEXT",
+    text: paragraph.slice(0, 180),
+    x: 18 + (index * 24),
+    y: 24 + (index * 18)
+  }));
+}
+
+function buildStudioPageSvgDataUrl({ page, title, text }) {
+  const lines = [
+    "FORTIXSEG",
+    title || `Pagina ${page}`,
+    ...splitSvgLines(text || "Conteudo do PDF preservado como referencia do treinamento.", 70).slice(0, 12)
+  ];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1240" viewBox="0 0 900 1240">
+<rect width="900" height="1240" fill="#ffffff"/>
+<rect x="0" y="0" width="900" height="86" fill="#0a1712"/>
+<rect x="0" y="86" width="900" height="8" fill="#2ba31f"/>
+<text x="64" y="56" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#67e044">${escapeSvg(lines[0])}</text>
+<text x="64" y="145" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#111827">Pagina ${Number(page) || 1}</text>
+<text x="64" y="190" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111827">${escapeSvg(lines[1]).slice(0, 72)}</text>
+${lines.slice(2).map((line, index) => `<text x="64" y="${252 + index * 42}" font-family="Arial, sans-serif" font-size="22" fill="#374151">${escapeSvg(line)}</text>`).join("")}
+<rect x="64" y="1050" width="772" height="84" rx="12" fill="#f3f8f2" stroke="#b8e8b3"/>
+<text x="92" y="1096" font-family="Arial, sans-serif" font-size="18" fill="#16640f">Preview visual gerado automaticamente a partir do PDF enviado.</text>
+</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function buildStudioQuality(course) {
+  if (!course) return { canPublish: false, errors: ["Projeto nao encontrado."], warnings: [], info: [] };
+  const payload = course.studioPayload || studioPayloadFromInteractiveCourse(course);
+  const errors = [];
+  const warnings = [];
+  const info = [];
+  if (!payload.title || payload.title.length < 4) errors.push("Informe um titulo valido.");
+  if (!payload.modules?.length) errors.push("O treinamento precisa ter pelo menos um modulo.");
+  if (!payload.questions?.length) warnings.push("Avaliacao final sem questoes configuradas.");
+  if (!payload.sourcePages?.length) warnings.push("Nenhuma pagina visual foi preparada para o player.");
+  if (!payload.source?.url && !payload.source?.pathname) warnings.push("PDF original ainda nao esta em storage permanente neste ambiente.");
+  info.push(`${payload.modules?.length || 0} modulo(s) prontos para revisao.`);
+  info.push(`${payload.sourcePages?.length || 0} pagina(s) preparadas para o preview.`);
+  return { canPublish: errors.length === 0, errors, warnings, info };
+}
+
+function sanitizeStudentTrainingPayload(payload) {
+  const clone = JSON.parse(JSON.stringify(payload || {}));
+  for (const question of [...(clone.questions || []), ...(clone.moduleQuizzes || [])]) {
+    delete question.correctIndex;
+    delete question.explanation;
+  }
+  for (const module of clone.modules || []) {
+    for (const topic of module.topics || []) {
+      for (const interaction of topic.interactions || []) {
+        delete interaction.correctIndex;
+        delete interaction.explanation;
+      }
+      if (topic.checkpoint) {
+        delete topic.checkpoint.correctIndex;
+        delete topic.checkpoint.explanation;
+      }
+    }
+  }
+  return clone;
+}
+
+function cleanFileNameAsTitle(fileName) {
+  return cleanText(String(fileName || "")
+    .replace(/\.[a-z0-9]{2,5}$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " "), 180);
+}
+
+function splitParagraphs(value) {
+  return cleanText(value, 5000)
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((item) => cleanText(item, 280))
+    .filter((item) => item.length > 20)
+    .slice(0, 8);
+}
+
+function splitSvgLines(value, maxChars) {
+  const words = cleanText(value, 1200).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    if (`${line} ${word}`.trim().length > maxChars) {
+      if (line) lines.push(line);
+      line = word;
+    } else {
+      line = `${line} ${word}`.trim();
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : ["Conteudo do PDF organizado para revisao."];
+}
+
+function escapeSvg(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]));
+}
+
+function countStudioWords(value) {
+  return cleanText(value, 8000).split(/\s+/).filter((word) => /[a-zA-Z0-9]/.test(word)).length;
+}
+
+function mapStudioContentType(title, text) {
+  const haystack = `${title || ""} ${text || ""}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (/risco|perigo|acidente|queda|choque/.test(haystack)) return "RISK";
+  if (/epi|capacete|cinturao|talabarte|luva|oculos/.test(haystack)) return "EPI";
+  if (/procedimento|permissao|analise|checklist|inspecao/.test(haystack)) return "PROCEDURE";
+  if (/responsabilidade|empregador|trabalhador/.test(haystack)) return "RESPONSIBILITY";
+  if (/norma|nr-|nr\s|legislacao/.test(haystack)) return "LEGAL_REFERENCE";
+  return "GENERAL_CONTENT";
+}
+
+function readMultipartBody(request, maxBytes = 20_000_000) {
+  return new Promise((resolveBody, rejectBody) => {
+    const contentType = String(request.headers["content-type"] || "");
+    const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
+    if (!boundaryMatch) {
+      const error = new Error("Formulario multipart invalido.");
+      error.statusCode = 400;
+      rejectBody(error);
+      return;
+    }
+    let size = 0;
+    const chunks = [];
+    request.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > maxBytes) {
+        const error = new Error("Arquivo muito grande para este ambiente.");
+        error.statusCode = 413;
+        rejectBody(error);
+        request.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on("end", () => {
+      try {
+        resolveBody(parseMultipartBuffer(Buffer.concat(chunks), boundaryMatch[1] || boundaryMatch[2]));
+      } catch (error) {
+        error.statusCode = error.statusCode || 400;
+        rejectBody(error);
+      }
+    });
+    request.on("error", rejectBody);
+  });
+}
+
+function parseMultipartBuffer(buffer, boundary) {
+  const fields = {};
+  const files = {};
+  const raw = buffer.toString("latin1");
+  const parts = raw.split(`--${boundary}`);
+  for (const part of parts) {
+    if (!part || part === "--\r\n" || part === "--") continue;
+    const cleanPart = part.replace(/^\r\n/, "").replace(/\r\n$/, "");
+    const separator = cleanPart.indexOf("\r\n\r\n");
+    if (separator < 0) continue;
+    const headerText = cleanPart.slice(0, separator);
+    let content = cleanPart.slice(separator + 4);
+    content = content.replace(/\r\n--$/, "").replace(/\r\n$/, "");
+    const disposition = headerText.match(/content-disposition:\s*form-data;\s*([^\r\n]+)/i)?.[1] || "";
+    const name = disposition.match(/name="([^"]+)"/i)?.[1] || "";
+    const filename = disposition.match(/filename="([^"]*)"/i)?.[1] || "";
+    const mimeType = headerText.match(/content-type:\s*([^\r\n]+)/i)?.[1]?.trim().toLowerCase() || "application/octet-stream";
+    if (!name) continue;
+    if (filename) {
+      files[name] = {
+        filename: cleanText(filename, 240),
+        mimeType,
+        bytes: Buffer.from(content, "latin1")
+      };
+    } else {
+      fields[name] = Buffer.from(content, "latin1").toString("utf8").trim();
+    }
+  }
+  return { fields, files };
 }
 
 function serializeInteractiveCourseSummary(course) {
@@ -2590,8 +3271,12 @@ function serveStatic(request, response, pathname) {
     return sendJson(response, 404, { error: "Arquivo não encontrado." });
   }
 
-  const content = readFileSync(filePath);
   const extension = extname(filePath).toLowerCase();
+  if ([".py", ".env", ".ps1", ".sh", ".bat", ".cmd"].includes(extension) || relativePath.split(/[\\/]/).some((part) => part.startsWith("."))) {
+    return sendJson(response, 404, { error: "Arquivo nÃ£o encontrado." });
+  }
+
+  const content = readFileSync(filePath);
   const noStoreExtensions = new Set([".html", ".css", ".js", ".json"]);
   response.statusCode = 200;
   response.setHeader("Content-Type", MIME_TYPES[extension] || "application/octet-stream");

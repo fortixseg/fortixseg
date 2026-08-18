@@ -1,0 +1,30 @@
+body.fortix-host-mode {
+  background: #f4f7fb;
+}
+
+body.fortix-host-mode main {
+  margin-left: 0;
+  width: 100%;
+  min-height: 100vh;
+}
+
+body.fortix-host-mode .topbar {
+  top: 0;
+}
+
+body.fortix-host-mode .content {
+  max-width: 1500px;
+}
+
+body.fortix-host-mode .server-pill,
+body.fortix-host-mode .sidebar {
+  display: none !important;
+}
+
+body.fortix-host-mode .top-actions {
+  align-items: center;
+}
+
+body.fortix-host-mode .top-actions .btn {
+  white-space: nowrap;
+}

@@ -1132,10 +1132,17 @@ function adminTrainingGeneratorWorkspaceTemplate() {
       <button class="button button-secondary" type="button" data-portal-action="admin-close-training-generator">← Voltar à Gestão de Treinamentos</button>
       <div>
         <span>Workspace de autoria</span>
-        <strong>Gerador de Treinamento por PDF</strong>
+        <strong>Motor original Fortix Training Studio</strong>
       </div>
     </div>
-    ${adminPdfGeneratorTemplateV2("Gerador de Treinamento por PDF", true)}
+    <section class="training-original-frame-shell">
+      <iframe
+        id="trainingOriginalFrame"
+        class="training-original-frame"
+        src="/modules/training-studio/index.html"
+        title="Gerador de Treinamento por PDF"
+      ></iframe>
+    </section>
   `;
 }
 
@@ -1396,8 +1403,6 @@ function openTrainingGeneratorWorkspace() {
   view.classList.add("training-generator-workspace-view");
   view.innerHTML = adminTrainingGeneratorWorkspaceTemplate();
   setTrainingWorkspaceOpen(true);
-  setInteractiveWizardStep("upload");
-  renderSelectedInteractivePdf(null);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1411,6 +1416,12 @@ function closeTrainingGeneratorWorkspace(restoreLanding = true) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 }
+
+window.addEventListener("message", (event) => {
+  if (event.data?.type === "fortix:training-studio-close") {
+    closeTrainingGeneratorWorkspace(true);
+  }
+});
 
 function handlePortalClick(event) {
   const menuToggle = event.target.closest("[data-portal-menu-toggle]");
