@@ -7462,6 +7462,45 @@ body.portal-mode {
   border-radius: 8px;
 }
 
+.interactive-analysis-summary hr {
+  width: 100%;
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.interactive-concept-cloud,
+.interactive-warning-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.interactive-concept-cloud span {
+  padding: 7px 10px;
+  color: #dfffd6;
+  background: rgba(77, 191, 30, 0.12);
+  border: 1px solid rgba(101, 214, 49, 0.26);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.interactive-warning-strip {
+  display: grid;
+}
+
+.interactive-warning-strip p {
+  margin: 0;
+  padding: 12px 14px;
+  color: #ffe9ba;
+  background: rgba(142, 92, 0, 0.14);
+  border: 1px solid rgba(255, 190, 82, 0.28);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .interactive-progress-list {
   display: grid;
   gap: 10px;
@@ -7546,6 +7585,22 @@ body.portal-mode {
   font-weight: 900;
 }
 
+.interactive-module-source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 8px;
+}
+
+.interactive-module-source small {
+  padding: 5px 8px;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  font-size: 11px;
+}
+
 .interactive-structure-tree button {
   width: 100%;
   display: grid;
@@ -7559,6 +7614,12 @@ body.portal-mode {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   text-align: left;
   cursor: pointer;
+}
+
+.interactive-structure-tree button strong,
+.interactive-structure-tree button small {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .interactive-preview-admin {
@@ -7862,6 +7923,95 @@ body.portal-mode {
   background: #fff;
 }
 
+.student-preview-source-card {
+  display: grid;
+  gap: 5px;
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+}
+
+.student-preview-source-card strong {
+  color: #fff;
+  font-size: 16px;
+}
+
+.pdf-page-placeholder.compact {
+  min-height: 150px;
+  margin-top: 0;
+}
+
+.interactive-publish-success {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  color: #dfffd6;
+  background:
+    radial-gradient(circle at left center, rgba(77, 191, 30, 0.2), transparent 35%),
+    rgba(77, 191, 30, 0.09);
+  border: 1px solid rgba(101, 214, 49, 0.3);
+  border-radius: 8px;
+}
+
+.interactive-publish-success strong {
+  color: #fff;
+  font-size: 20px;
+}
+
+.interactive-publish-success span {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.interactive-lesson-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  color: rgba(255, 255, 255, 0.88);
+  background: transparent;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  text-align: left;
+}
+
+.interactive-lesson-row > span {
+  color: var(--green-light);
+  font-weight: 900;
+}
+
+.interactive-lesson-row strong,
+.interactive-lesson-row small {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.interactive-lesson-row strong {
+  color: #fff;
+  line-height: 1.35;
+}
+
+.interactive-lesson-row small {
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+}
+
+.interactive-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.interactive-row-actions .button {
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
 .interactive-inline-error {
   display: grid;
   gap: 5px;
@@ -7940,7 +8090,8 @@ body.portal-mode {
   .interactive-lesson-top,
   .interactive-stage-heading,
   .interactive-structure-tree header,
-  .interactive-structure-tree button {
+  .interactive-structure-tree button,
+  .interactive-lesson-row {
     grid-template-columns: 1fr;
     display: grid;
   }
@@ -7957,6 +8108,10 @@ body.portal-mode {
 
   .student-preview-bottom-grid {
     grid-template-columns: 1fr;
+  }
+
+  .interactive-row-actions {
+    justify-content: flex-start;
   }
 }
 

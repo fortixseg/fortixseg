@@ -1111,72 +1111,7 @@ function adminPortalTemplate(key, title) {
 }
 
 function adminPdfGeneratorTemplate(title) {
-  return `
-    ${portalHeading("Gerador de Treinamentos", title, "Suba uma apostila em PDF, gere um treinamento interativo por regras e publique somente depois da revisão técnica.", '<button class="button button-secondary" type="button" data-portal-action="admin-refresh-interactive">Atualizar lista</button>')}
-    <div class="admin-generator-layout">
-      <section class="admin-generator-panel">
-        <div class="dashboard-heading"><div><span>Novo treinamento interativo</span><h2>Criar treinamento interativo</h2><p class="generator-helper">Envie a apostila em PDF e o sistema cria módulos, aulas, checklists e avaliação em rascunho para você revisar.</p></div></div>
-        <form class="portal-form compact-form" id="interactivePdfGeneratorForm">
-          <div class="form-grid">
-            <label class="field full"><span>Nome do treinamento</span><input name="title" maxlength="260" placeholder="Ex.: NR-35 - Trabalho em Altura"></label>
-            <label class="field"><span>Categoria</span><input name="category" maxlength="90" value="Segurança do Trabalho"></label>
-            <label class="field"><span>Carga horaria</span><input name="hours" type="number" min="1" max="120" placeholder="Detectar automaticamente"></label>
-            <label class="field"><span>Nota mínima (%)</span><input name="minimumGrade" type="number" min="0" max="100" value="70"></label>
-            <label class="field full"><span>Responsável técnico</span><input name="responsible" maxlength="180" placeholder="Nome e qualificação do responsável"></label>
-          </div>
-          <label class="admin-upload-field generator-upload">
-            <input id="interactivePdfFile" type="file" accept="application/pdf" required>
-            <span>Arraste ou selecione a apostila em PDF</span>
-            <small>PDF até 20 MB. O sistema usa templates e palavras-chave, sem OpenAI nesta fase.</small>
-          </label>
-          <div class="admin-file-selection" id="interactivePdfSelection" aria-live="polite"></div>
-          <div class="generator-template-note">
-            <strong>Templates ativos</strong>
-            <span>NR-35, NR-33, NR-10, EPI/NR-06, Integração e SST genérico.</span>
-          </div>
-          <button class="button button-primary" type="submit" id="interactiveGenerateButton">Gerar treinamento em rascunho</button>
-          <span id="interactiveGeneratorStatus" aria-live="polite"></span>
-        </form>
-      </section>
-
-      <section class="admin-generated-list-panel">
-        <div class="dashboard-heading"><div><span>Treinamentos gerados</span><h2>Rascunhos e publicados</h2></div></div>
-        <div id="adminInteractiveCourseList" class="admin-interactive-course-list">
-          <div class="portal-empty-state">Carregando treinamentos...</div>
-        </div>
-      </section>
-    </div>
-
-    <section class="interactive-review-panel hidden" id="interactiveCourseReviewPanel">
-      <div class="interactive-review-header">
-        <div>
-          <span id="interactiveReviewStatus">Rascunho</span>
-          <h3 id="interactiveReviewTitle">Revisão do treinamento gerado</h3>
-          <p id="interactiveReviewMeta">Revise módulos, aulas, checklists e prova antes de publicar.</p>
-        </div>
-        <div class="interactive-review-actions">
-          <button class="button button-secondary" type="button" data-portal-action="admin-preview-interactive">Pré-visualizar como aluno</button>
-          <button class="button button-primary" type="button" data-portal-action="admin-publish-interactive">Publicar treinamento</button>
-        </div>
-      </div>
-      <div class="interactive-review-grid">
-        <div class="interactive-module-review" id="interactiveModuleReview"></div>
-        <aside class="interactive-review-side" id="interactiveReviewSummary"></aside>
-      </div>
-      <form class="portal-form" id="interactiveCourseReviewForm">
-        <details class="interactive-json-details">
-          <summary>Editor avançado do treinamento</summary>
-          <label class="field full"><span>JSON do treinamento gerado</span><textarea id="interactiveCourseJsonEditor" name="courseJson" rows="16" spellcheck="false"></textarea><small>Use somente para ajustes finos de títulos, aulas, perguntas ou checklists. O JSON inválido não será salvo.</small></label>
-        </details>
-        <div class="admin-editor-actions">
-          <button class="button button-primary" type="submit">Salvar revisão</button>
-          <button class="button button-secondary" type="button" data-portal-action="admin-download-interactive-pdf">Baixar PDF original</button>
-          <span id="interactiveReviewSaveStatus" aria-live="polite"></span>
-        </div>
-      </form>
-    </section>
-    <section class="admin-interactive-preview-panel hidden" id="interactiveAdminPreviewPanel" aria-live="polite"></section>
-  `;
+  return adminPdfGeneratorTemplateV2(title);
 }
 
 function adminPdfGeneratorTemplateV2(title) {
@@ -1197,8 +1132,8 @@ function adminPdfGeneratorTemplateV2(title) {
 
       <section class="interactive-stage is-active" data-interactive-stage="upload">
         <div class="interactive-stage-heading">
-          <div><span>Novo treinamento interativo</span><h2>Upload do PDF</h2><p>Envie a apostila. O sistema identifica o tema, cria modulos, aulas, checklists e prova em rascunho.</p></div>
-          <small>Sem OpenAI nesta fase: regras, palavras-chave e templates FortixSeg.</small>
+          <div><span>Novo treinamento interativo</span><h2>Upload do PDF</h2><p>Envie a apostila. O sistema identifica tema, titulo e carga horaria, cria modulos, aulas, checklists e prova em rascunho.</p></div>
+          <small>Processamento por regras e templates FortixSeg</small>
         </div>
         <form class="portal-form compact-form interactive-upload-form" id="interactivePdfGeneratorForm">
           <div class="form-grid">
@@ -1212,12 +1147,12 @@ function adminPdfGeneratorTemplateV2(title) {
             <input id="interactivePdfFile" type="file" accept="application/pdf" required>
             <strong>Arraste e solte o PDF aqui</strong>
             <span>ou clique para selecionar do computador</span>
-            <small>Formato aceito: PDF. O gerador detecta tema, titulo e carga horaria quando essas informacoes aparecem no material.</small>
+            <small>Formato aceito: PDF. Para melhor resultado, use PDF com texto selecionavel e estrutura de titulos.</small>
           </label>
           <div class="admin-file-selection interactive-file-selection" id="interactivePdfSelection" aria-live="polite"></div>
           <div class="generator-template-note">
             <strong>Templates ativos</strong>
-            <span>NR-35, NR-33, NR-10, EPI/NR-06, Integração e SST generico. Se o PDF nao bater com nenhum, o sistema cria um treinamento SST base para revisao.</span>
+            <span>NR-35, NR-33, NR-10, EPI/NR-06, Integracao e SST generico. Se o PDF nao bater com nenhum, o sistema cria um treinamento SST base para revisao.</span>
           </div>
           <div class="admin-editor-actions">
             <button class="button button-primary" type="submit" id="interactiveGenerateButton">Enviar e analisar PDF</button>
@@ -1280,7 +1215,6 @@ function adminPdfGeneratorTemplateV2(title) {
         <div class="portal-empty-state">Carregando treinamentos...</div>
       </div>
     </section>
-    <section class="admin-interactive-preview-panel hidden" id="interactiveAdminPreviewPanel" aria-live="polite"></section>
   `;
 }
 
@@ -1511,6 +1445,7 @@ function handlePortalClick(event) {
     renderInteractivePreviewPanel(selectedInteractiveCourse, actionButton.dataset.lessonId || "");
     setInteractiveWizardStep("preview");
   }
+  if (action === "admin-edit-interactive-json") openInteractiveJsonEditor(actionButton.dataset.lessonId || "");
   if (action === "admin-close-interactive-preview") closeAdminInteractivePreview();
   if (action === "admin-publish-interactive") publishInteractiveCourse(actionButton.dataset.courseId || selectedInteractiveCourse?.id, true);
   if (action === "admin-unpublish-interactive") publishInteractiveCourse(actionButton.dataset.courseId, false);
@@ -2068,6 +2003,35 @@ function getInteractiveQualityGate(course) {
   return issues;
 }
 
+function formatInteractivePages(value) {
+  const pages = Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean);
+  if (!pages.length) return "-";
+  if (pages.length === 1) return `pagina ${pages[0]}`;
+  return `paginas ${pages.slice(0, 5).join(", ")}${pages.length > 5 ? "..." : ""}`;
+}
+
+function getInteractiveCourseAnalysis(course) {
+  const stats = course?.stats || {};
+  const pdf = course?.pdf || {};
+  return {
+    ...(course?.analysis || {}),
+    modelLabel: course?.analysis?.modelLabel || course?.detectedLabel || "SST Generico",
+    confidence: Number(course?.analysis?.confidence ?? course?.confidence ?? 0),
+    detectedTitle: course?.analysis?.detectedTitle || pdf.detectedTitle || getInteractiveCourseDisplayTitle(course),
+    detectedHours: Number(course?.analysis?.detectedHours || pdf.detectedHours || course?.hours || 0),
+    modules: Number(course?.analysis?.modules || stats.modules || course?.modules?.length || 0),
+    lessons: Number(course?.analysis?.lessons || stats.lessons || getInteractiveLessons(course).length || 0),
+    topics: Number(course?.analysis?.topics || stats.topics || 0),
+    questions: Number(course?.analysis?.questions || stats.questions || course?.finalAssessment?.questions?.length || 0),
+    sourcePages: Number(course?.analysis?.sourcePages || pdf.pages || 0),
+    searchablePages: Number(course?.analysis?.searchablePages || pdf.searchablePages || 0),
+    relevantPages: Number(course?.analysis?.relevantPages || pdf.relevantPages || 0),
+    coveragePercent: Number(course?.analysis?.coveragePercent || 0),
+    criticalConcepts: Array.isArray(course?.analysis?.criticalConcepts) ? course.analysis.criticalConcepts : [],
+    warnings: Array.isArray(course?.analysis?.warnings) ? course.analysis.warnings : []
+  };
+}
+
 function renderInteractiveAnalysisPanel(state = "idle", course = null, message = "") {
   const panel = document.getElementById("interactiveAnalysisPanel");
   if (!panel) return;
@@ -2093,16 +2057,17 @@ function renderInteractiveAnalysisPanel(state = "idle", course = null, message =
   }
   const done = Boolean(course);
   const pdf = course?.pdf || {};
+  const analysis = getInteractiveCourseAnalysis(course);
   const steps = [
     ["PDF validado", state !== "idle"],
     ["Texto extraido ou template aplicado", done],
-    ["Tema identificado", done],
-    ["Modulos, aulas e avaliacao criados", done]
+    ["Tema e carga horaria identificados", done],
+    ["Modulos, aulas, checklists e prova criados", done]
   ];
   panel.innerHTML = `
     <div class="interactive-stage-heading">
       <div><span>Analise do conteudo</span><h2>${done ? "Analise concluida" : "Analisando PDF..."}</h2><p>${escapeHtml(message || "O sistema esta lendo o PDF e aplicando os templates FortixSeg.")}</p></div>
-      <small>${done ? escapeHtml(course.detectedLabel || "Modelo SST") : "Processando"}</small>
+      <small>${done ? escapeHtml(analysis.modelLabel || "Modelo SST") : "Processando"}</small>
     </div>
     <div class="interactive-analysis-grid">
       <article class="interactive-analysis-card">
@@ -2111,16 +2076,33 @@ function renderInteractiveAnalysisPanel(state = "idle", course = null, message =
         <p>${escapeHtml(pdf.pages ? `${pdf.pages} paginas identificadas` : "Paginas serao estimadas apos a leitura.")}</p>
       </article>
       <article class="interactive-analysis-card">
-        <span>Modelo</span>
-        <strong>${escapeHtml(course?.detectedLabel || "Aguardando identificacao")}</strong>
-        <p>Confianca: ${Math.round(Number(course?.confidence || 0) * 100)}%</p>
+        <span>Modelo detectado</span>
+        <strong>${escapeHtml(analysis.modelLabel || "Aguardando identificacao")}</strong>
+        <p>Confianca: ${Math.round(Number(analysis.confidence || 0) * 100)}% - ${escapeHtml(analysis.detectedHours ? `${analysis.detectedHours}h` : "carga horaria padrao")}</p>
       </article>
       <article class="interactive-analysis-card">
         <span>Resultado</span>
         <strong>${done ? "Rascunho criado" : "Gerando rascunho"}</strong>
-        <p>${escapeHtml(done ? `${course.stats?.modules || 0} modulos, ${course.stats?.lessons || 0} aulas e ${course.stats?.questions || 0} questoes` : "Aguarde alguns segundos.")}</p>
+        <p>${escapeHtml(done ? `${analysis.modules} modulos, ${analysis.lessons} aulas, ${analysis.questions} questoes` : "Aguarde alguns segundos.")}</p>
+      </article>
+      <article class="interactive-analysis-card">
+        <span>Leitura do PDF</span>
+        <strong>${escapeHtml(done ? (pdf.extractionStatus === "text-extracted" ? "Texto extraido" : "Template aplicado") : "Em andamento")}</strong>
+        <p>${escapeHtml(done ? `${analysis.searchablePages || 0} paginas com texto - ${analysis.relevantPages || 0} paginas relevantes` : "Extraindo paginas e blocos de texto.")}</p>
+      </article>
+      <article class="interactive-analysis-card">
+        <span>Titulo sugerido</span>
+        <strong>${escapeHtml(done ? analysis.detectedTitle || getInteractiveCourseDisplayTitle(course) : "Aguardando")}</strong>
+        <p>O titulo pode ser editado na revisao antes da publicacao.</p>
+      </article>
+      <article class="interactive-analysis-card">
+        <span>Cobertura</span>
+        <strong>${done ? `${Math.round(analysis.coveragePercent || 0)}%` : "0%"}</strong>
+        <p>${escapeHtml(done ? "Percentual aproximado do PDF usado na estrutura automatica." : "Calculada apos a analise.")}</p>
       </article>
     </div>
+    ${done && analysis.criticalConcepts?.length ? `<div class="interactive-concept-cloud">${analysis.criticalConcepts.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>` : ""}
+    ${done && analysis.warnings?.length ? `<div class="interactive-warning-strip">${analysis.warnings.map((item) => `<p>${escapeHtml(item)}</p>`).join("")}</div>` : ""}
     <div class="interactive-progress-list">
       ${steps.map(([label, complete]) => `<div class="${complete ? "complete" : ""}"><span>${complete ? "OK" : "..."}</span><strong>${label}</strong></div>`).join("")}
     </div>
@@ -2132,6 +2114,7 @@ function renderInteractiveStructurePanel(course) {
   const panel = document.getElementById("interactiveStructurePanel");
   if (!panel || !course) return;
   const modules = course.modules || [];
+  const analysis = getInteractiveCourseAnalysis(course);
   const tags = [course.detectedLabel, course.category, course.code, course.pdf?.extractionStatus === "text-extracted" ? "texto extraido" : "template"].filter(Boolean);
   panel.innerHTML = `
     <div class="interactive-stage-heading">
@@ -2139,22 +2122,32 @@ function renderInteractiveStructurePanel(course) {
       <small>${escapeHtml(course.status === "published" ? "Publicado" : "Rascunho")}</small>
     </div>
     <div class="interactive-structure-layout">
-      <aside class="interactive-analysis-card">
+      <aside class="interactive-analysis-card interactive-analysis-summary">
         <span>Resumo da analise</span>
-        <strong>${course.stats?.modules || modules.length} modulos</strong>
-        <p>${course.stats?.lessons || getInteractiveLessons(course).length} aulas interativas</p>
-        <p>${course.stats?.questions || course.finalAssessment?.questions?.length || 0} perguntas na prova final</p>
+        <strong>${analysis.modules || modules.length} modulos</strong>
+        <p>${analysis.lessons || getInteractiveLessons(course).length} aulas interativas</p>
+        <p>${analysis.topics || 0} topicos estruturados</p>
+        <p>${analysis.questions || course.finalAssessment?.questions?.length || 0} perguntas na prova final</p>
+        <hr>
+        <p><b>PDF:</b> ${escapeHtml(course.pdf?.name || "material.pdf")}</p>
+        <p><b>Paginas:</b> ${escapeHtml(String(course.pdf?.pages || analysis.sourcePages || "-"))}</p>
+        <p><b>Carga horaria:</b> ${escapeHtml(String(course.hours || analysis.detectedHours || 0))}h</p>
         <div class="interactive-tag-list">${tags.map((tag) => `<small>${escapeHtml(tag)}</small>`).join("")}</div>
       </aside>
       <div class="interactive-structure-tree">
         ${modules.map((module, moduleIndex) => `
           <article>
             <header><span>${moduleIndex + 1}</span><strong>${escapeHtml(module.title)}</strong><small>${module.lessons?.length || 0} aulas</small></header>
+            <div class="interactive-module-source">
+              <small>${escapeHtml(formatInteractivePages(module.sourcePages || []))}</small>
+              <small>${Math.round(Number(module.structureConfidence || 0) * 100)}% confianca</small>
+              <small>${Number(module.sourceWordCount || 0)} palavras</small>
+            </div>
             ${(module.lessons || []).map((lesson, lessonIndex) => `
               <button type="button" data-portal-action="admin-go-preview" data-admin-preview-lesson="${escapeHtml(lesson.id)}">
                 <span>${moduleIndex + 1}.${lessonIndex + 1}</span>
                 <strong>${escapeHtml(getInteractiveLessonDisplayTitle(course, { ...lesson, moduleId: module.id, moduleIndex, lessonIndex }))}</strong>
-                <small>Origem: pagina ${escapeHtml(String(lesson.sourcePage || "-"))}</small>
+                <small>${escapeHtml(formatInteractivePages(lesson.sourcePage))} - Preview</small>
               </button>
             `).join("")}
           </article>
@@ -2237,12 +2230,12 @@ function renderInteractivePreviewPanel(course, lessonId = "") {
   const currentTitle = getInteractiveLessonDisplayTitle(course, current);
   const currentSummary = resolveInteractiveSummary(course, current, currentTitle);
   const cleanText = cleanInteractivePdfText(current.extractedText, currentTitle);
-  const previewText = cleanText.length > 1100 ? `${cleanText.slice(0, 1100).trim()}...` : cleanText;
+  const previewText = cleanText.length > 900 ? `${cleanText.slice(0, 900).trim()}...` : cleanText;
   const currentIndex = Math.max(0, lessons.findIndex((lesson) => lesson.id === current.id));
   const progressPercent = Math.max(8, Math.round(((currentIndex + 1) / Math.max(lessons.length, 1)) * 100));
   const nextLesson = lessons[currentIndex + 1];
   const pdfUrl = current.pageImageUrl || course.pdf?.url || "";
-  const pdfFrameUrl = buildPdfFrameUrl(pdfUrl);
+  const analysis = getInteractiveCourseAnalysis(course);
 
   panel.innerHTML = `
     <div class="interactive-stage-heading">
@@ -2282,12 +2275,12 @@ function renderInteractivePreviewPanel(course, lessonId = "") {
               <strong class="course-status progress">Em andamento</strong>
             </div>
             <div class="interactive-lesson-meta">
-              <span>Origem: pagina ${escapeHtml(String(current.sourcePage || "-"))} do PDF</span>
+              <span>Origem: ${escapeHtml(formatInteractivePages(current.sourcePage))} do PDF</span>
               <span>${escapeHtml(course.pdf?.extractionStatus === "text-extracted" ? "Texto extraido" : "Template aplicado")}</span>
               <span>Preview do admin</span>
             </div>
             <section class="lesson-objective"><strong>Objetivo da aula</strong><p>${escapeHtml(currentSummary)}</p></section>
-            <section class="lesson-pdf-text"><strong>Texto principal gerado a partir do PDF</strong><p>${escapeHtml(previewText)}</p></section>
+            <section class="lesson-pdf-text"><strong>Conteudo da aula gerado a partir do PDF</strong><p>${escapeHtml(previewText)}</p></section>
             <div class="interactive-tip-grid">
               <article class="practice-card"><span>Na pratica</span><p>${escapeHtml(current.practiceCard || "Aplique o procedimento na rotina, conferindo riscos, controles e responsabilidades antes da atividade.")}</p></article>
               <article class="attention-card"><span>Atencao</span><p>${escapeHtml(current.attentionCard || "Interrompa a atividade se houver condicao insegura ou falta de autorizacao.")}</p></article>
@@ -2307,10 +2300,20 @@ function renderInteractivePreviewPanel(course, lessonId = "") {
           <div>
             <span>Material de apoio</span>
             <strong>${escapeHtml(course.pdf?.name || "PDF original")}</strong>
-            <p>O PDF fica como apoio lateral para o aluno consultar sem sair da aula.</p>
+            <p>O aluno consulta a apostila como fonte de apoio. A leitura principal fica organizada na aula interativa.</p>
           </div>
-          ${course.pdf?.url ? `<a class="button button-secondary" href="${escapeHtml(course.pdf.url)}" target="_blank" rel="noopener">Abrir PDF original</a>` : `<small>PDF processado sem link permanente neste ambiente. Configure storage para manter o arquivo em producao.</small>`}
-          ${pdfFrameUrl ? `<iframe class="pdf-viewer compact" src="${escapeHtml(pdfFrameUrl)}" title="Preview do PDF"></iframe>` : `<div class="pdf-page-placeholder"><strong>Pagina ${escapeHtml(String(current.sourcePage || "-"))}</strong><span>Preview visual do PDF sera exibido quando o arquivo tiver URL permanente.</span></div>`}
+          <div class="student-preview-source-card">
+            <span>Fonte da aula</span>
+            <strong>${escapeHtml(formatInteractivePages(current.sourcePage))}</strong>
+            <small>${escapeHtml(course.pdf?.extractionStatus === "text-extracted" ? "Texto aproveitado do PDF." : "Conteudo montado pelo template por falta de texto selecionavel.")}</small>
+          </div>
+          <div class="student-preview-source-card">
+            <span>Analise geral</span>
+            <strong>${Math.round(Number(analysis.confidence || 0) * 100)}% confianca</strong>
+            <small>${escapeHtml(`${analysis.searchablePages || 0} paginas com texto - ${analysis.lessons || lessons.length} aulas criadas`)}</small>
+          </div>
+          ${course.pdf?.url ? `<a class="button button-secondary" href="${escapeHtml(buildPdfFrameUrl(pdfUrl || course.pdf.url))}" target="_blank" rel="noopener">Ver fonte no PDF</a>` : `<small>PDF sem link permanente neste ambiente. Em producao, use storage para manter o arquivo disponivel.</small>`}
+          <div class="pdf-page-placeholder compact"><strong>Pagina ${escapeHtml(String(current.sourcePage || "-"))}</strong><span>Renderizacao visual da pagina sera ligada ao storage definitivo. O conteudo textual ja foi extraido para a aula.</span></div>
         </aside>
       </div>
     </div>
@@ -2326,26 +2329,47 @@ function renderInteractivePublishPanel(course) {
   if (!panel || !course) return;
   const gate = getInteractiveQualityGate(course);
   const hasError = gate.some((item) => item.type === "error");
+  const analysis = getInteractiveCourseAnalysis(course);
   panel.innerHTML = `
     <div class="interactive-stage-heading">
       <div><span>Publicar treinamento</span><h2>${hasError ? "Ajustes obrigatorios antes de publicar" : "Treinamento pronto para publicacao"}</h2><p>Confira as informacoes finais. Ao publicar, o treinamento aparece na area do aluno.</p></div>
       <small>${escapeHtml(course.status === "published" ? "Publicado" : "Rascunho")}</small>
     </div>
+    <div class="interactive-publish-success">
+      <strong>${hasError ? "Revisao pendente" : "Estrutura pronta"}</strong>
+      <span>${hasError ? "Corrija os pontos obrigatorios antes de liberar aos alunos." : "O treinamento ja pode ser publicado no ambiente FortixSeg."}</span>
+    </div>
     <div class="interactive-publication-grid">
       <article class="interactive-analysis-card">
         <span>Resumo do treinamento</span>
         <strong>${escapeHtml(getInteractiveCourseDisplayTitle(course))}</strong>
-        <p>${course.stats?.modules || 0} modulos - ${course.stats?.lessons || 0} aulas - ${course.stats?.questions || 0} questoes</p>
+        <p>${analysis.modules || 0} modulos - ${analysis.lessons || 0} aulas - ${analysis.questions || 0} questoes</p>
         <p>Carga horaria: ${escapeHtml(String(course.hours || 0))}h - Nota minima: ${escapeHtml(String(course.minimumGrade || 70))}%</p>
       </article>
       <article class="interactive-analysis-card">
         <span>Arquivo fonte</span>
         <strong>${escapeHtml(course.pdf?.name || "PDF original")}</strong>
         <p>${escapeHtml(course.pdf?.pages ? `${course.pdf.pages} paginas` : "Paginas estimadas")} - ${escapeHtml(course.pdf?.extractionStatus || "template")}</p>
+        <p>${escapeHtml(`${analysis.searchablePages || 0} paginas com texto - ${analysis.relevantPages || 0} usadas na estrutura`)}</p>
       </article>
       <article class="interactive-quality-card">
         <span>Checklist de qualidade</span>
         ${gate.map((item) => `<p class="${escapeHtml(item.type)}"><strong>${item.type === "ok" ? "OK" : item.type === "error" ? "!" : "i"}</strong>${escapeHtml(item.text)}</p>`).join("")}
+      </article>
+      <article class="interactive-analysis-card">
+        <span>Disponibilidade</span>
+        <strong>Area do aluno FortixSeg</strong>
+        <p>Ao publicar, o curso entra no fluxo existente de aulas, progresso e avaliacao.</p>
+      </article>
+      <article class="interactive-analysis-card">
+        <span>Certificado</span>
+        <strong>Fluxo atual da plataforma</strong>
+        <p>A emissao segue o modulo de certificado existente, apos conclusao e nota minima.</p>
+      </article>
+      <article class="interactive-analysis-card">
+        <span>Visibilidade</span>
+        <strong>${course.status === "published" ? "Publicado" : "Rascunho"}</strong>
+        <p>${course.status === "published" ? "Ja disponivel para alunos habilitados." : "Ainda invisivel para alunos ate publicar."}</p>
       </article>
     </div>
     <div class="admin-editor-actions">
@@ -2536,6 +2560,7 @@ function renderInteractiveCourseReview(course) {
   if (!panel || !course) return;
   const modules = Array.isArray(course.modules) ? course.modules : [];
   const stats = course.stats || {};
+  const analysis = getInteractiveCourseAnalysis(course);
   panel.classList.remove("hidden");
   setText("interactiveReviewStatus", course.status === "published" ? "Publicado" : "Rascunho");
   setText("interactiveReviewTitle", getInteractiveCourseDisplayTitle(course) || "Treinamento gerado");
@@ -2545,14 +2570,24 @@ function renderInteractiveCourseReview(course) {
   if (moduleContainer) {
     moduleContainer.innerHTML = modules.map((module, moduleIndex) => `
       <article class="interactive-module-card">
-        <header><span>Módulo ${moduleIndex + 1}</span><strong>${escapeHtml(module.title)}</strong><small>${module.lessons?.length || 0} aulas</small></header>
+        <header>
+          <span>Modulo ${moduleIndex + 1}</span>
+          <strong>${escapeHtml(module.title)}</strong>
+          <small>${module.lessons?.length || 0} aulas - ${escapeHtml(formatInteractivePages(module.sourcePages || []))}</small>
+        </header>
         <div>
           ${(module.lessons || []).map((lesson, lessonIndex) => `
-            <button class="interactive-lesson-row" type="button" data-portal-action="admin-preview-interactive" data-lesson-id="${escapeHtml(lesson.id)}">
+            <div class="interactive-lesson-row">
               <span>${moduleIndex + 1}.${lessonIndex + 1}</span>
-              <strong>${escapeHtml(getInteractiveLessonDisplayTitle(course, { ...lesson, moduleId: module.id, moduleIndex, lessonIndex }))}</strong>
-              <small>Página ${escapeHtml(String(lesson.sourcePage || "-"))} · Prévia</small>
-            </button>
+              <div>
+                <strong>${escapeHtml(getInteractiveLessonDisplayTitle(course, { ...lesson, moduleId: module.id, moduleIndex, lessonIndex }))}</strong>
+                <small>${escapeHtml(formatInteractivePages(lesson.sourcePage))} - ${escapeHtml(lesson.extractedText ? `${String(lesson.extractedText).split(/\s+/).length} palavras extraidas` : "template")}</small>
+              </div>
+              <div class="interactive-row-actions">
+                <button class="button button-secondary" type="button" data-portal-action="admin-preview-interactive" data-lesson-id="${escapeHtml(lesson.id)}">Previa</button>
+                <button class="button button-secondary" type="button" data-portal-action="admin-edit-interactive-json" data-lesson-id="${escapeHtml(lesson.id)}">Editar</button>
+              </div>
+            </div>
           `).join("")}
         </div>
       </article>
@@ -2571,16 +2606,30 @@ function renderInteractiveCourseReview(course) {
       <article><span>Resumo do treinamento</span><strong>${stats.modules || 0}</strong><small>módulos</small></article>
       <article><span>Aulas</span><strong>${stats.lessons || 0}</strong><small>interativas</small></article>
       <article><span>Prova final</span><strong>${stats.questions || 0}</strong><small>questões editáveis</small></article>
+      <article><span>Confianca</span><strong>${Math.round(Number(analysis.confidence || 0) * 100)}%</strong><small>${escapeHtml(analysis.modelLabel || course.detectedLabel || "Modelo SST")}</small></article>
       <article><span>Leitura do PDF</span><strong>${escapeHtml(extractionStatus)}</strong><small>${escapeHtml(course.pdf?.extractionError || "Pronto para revisao")}</small></article>
       <article><span>Armazenamento</span><strong>${escapeHtml(storageLabel)}</strong><small>${escapeHtml(course.pdf?.pages ? `${course.pdf.pages} pagina${course.pdf.pages === 1 ? "" : "s"}` : "Paginas estimadas")}</small></article>
       <article><span>PDF anexado</span><strong>${escapeHtml(course.pdf?.name || "material.pdf")}</strong><small>${escapeHtml(formatFileSize(course.pdf?.size || 0))}</small></article>
-      <a class="button button-secondary" href="${escapeHtml(course.pdf?.url || "#")}" target="_blank" rel="noopener">Abrir PDF original</a>
+      ${course.pdf?.url ? `<a class="button button-secondary" href="${escapeHtml(course.pdf.url)}" target="_blank" rel="noopener">Abrir PDF original</a>` : `<button class="button button-secondary" type="button" disabled>PDF sem link permanente</button>`}
     `;
   }
 
   const editor = document.getElementById("interactiveCourseJsonEditor");
   if (editor) editor.value = JSON.stringify(course, null, 2);
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function openInteractiveJsonEditor(lessonId = "") {
+  const details = document.querySelector(".interactive-json-details");
+  const editor = document.getElementById("interactiveCourseJsonEditor");
+  if (!details || !editor) return;
+  details.open = true;
+  editor.focus();
+  if (lessonId && editor.value.includes(lessonId)) {
+    const index = editor.value.indexOf(lessonId);
+    editor.setSelectionRange(index, Math.min(editor.value.length, index + lessonId.length));
+  }
+  setText("interactiveReviewSaveStatus", "Editor avancado aberto. Ajuste o JSON e clique em Salvar revisao.");
 }
 
 async function saveInteractiveCourseReview(form) {

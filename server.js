@@ -694,6 +694,10 @@ function normalizeInteractiveCourse(course) {
     id: cleanText(module.id || `module-${moduleIndex + 1}`, 80),
     title: cleanText(module.title || `Modulo ${moduleIndex + 1}`, 180),
     topics: Array.isArray(module.topics) ? module.topics.map((topic) => cleanText(topic, 180)).filter(Boolean) : [],
+    sourcePages: Array.isArray(module.sourcePages) ? module.sourcePages.map(Number).filter((value) => Number.isFinite(value)).slice(0, 80) : [],
+    sourceWordCount: Number(module.sourceWordCount) || 0,
+    structureConfidence: Number(module.structureConfidence) || 0,
+    topicDetails: Array.isArray(module.topicDetails) ? module.topicDetails.map(normalizeInteractiveTopic).filter(Boolean) : [],
     lessons: Array.isArray(module.lessons) ? module.lessons.map((lesson, lessonIndex) => normalizeInteractiveLesson(lesson, lessonIndex)).filter(Boolean) : []
   })) : [];
   const normalized = {
@@ -722,8 +726,16 @@ function normalizeInteractiveCourse(course) {
       size: Number(course.pdf?.size) || 0,
       pages: Number(course.pdf?.pages) || 0,
       extractionStatus: cleanText(course.pdf?.extractionStatus || "unknown", 40),
-      extractionError: cleanText(course.pdf?.extractionError || "", 240)
+      extractionError: cleanText(course.pdf?.extractionError || "", 240),
+      detectedTitle: cleanText(course.pdf?.detectedTitle || "", 180),
+      detectedHours: Number(course.pdf?.detectedHours) || 0,
+      searchablePages: Number(course.pdf?.searchablePages) || 0,
+      relevantPages: Number(course.pdf?.relevantPages) || 0,
+      textCharacters: Number(course.pdf?.textCharacters) || 0,
+      storage: cleanText(course.pdf?.storage || "", 40)
     },
+    sourceDocument: normalizeInteractiveSourceDocument(course.sourceDocument || {}),
+    analysis: normalizeInteractiveAnalysis(course.analysis || {}),
     review: course.review && typeof course.review === "object" ? course.review : { required: true, status: "pending", notes: [] },
     modules,
     finalAssessment: {
@@ -734,6 +746,56 @@ function normalizeInteractiveCourse(course) {
   };
   normalized.stats = summarizeCourse(normalized);
   return normalized;
+}
+
+function normalizeInteractiveSourceDocument(source) {
+  return {
+    filename: cleanText(source.filename || "", 180),
+    size: Number(source.size) || 0,
+    url: cleanText(source.url || "", 500),
+    pathname: cleanText(source.pathname || "", 500),
+    totalPages: Number(source.totalPages) || 0,
+    searchablePages: Number(source.searchablePages) || 0,
+    relevantPages: Array.isArray(source.relevantPages) ? source.relevantPages.map(Number).filter((value) => Number.isFinite(value)).slice(0, 120) : [],
+    searchability: cleanText(source.searchability || "", 60),
+    extractionStatus: cleanText(source.extractionStatus || "", 60),
+    extractionError: cleanText(source.extractionError || "", 240)
+  };
+}
+
+function normalizeInteractiveAnalysis(analysis) {
+  return {
+    model: cleanText(analysis.model || "", 60),
+    modelLabel: cleanText(analysis.modelLabel || "", 160),
+    confidence: Number(analysis.confidence) || 0,
+    detectedTitle: cleanText(analysis.detectedTitle || "", 180),
+    detectedHours: Number(analysis.detectedHours) || 0,
+    structureStrategy: cleanText(analysis.structureStrategy || "", 600),
+    modules: Number(analysis.modules) || 0,
+    lessons: Number(analysis.lessons) || 0,
+    topics: Number(analysis.topics) || 0,
+    questions: Number(analysis.questions) || 0,
+    sourcePages: Number(analysis.sourcePages) || 0,
+    searchablePages: Number(analysis.searchablePages) || 0,
+    relevantPages: Number(analysis.relevantPages) || 0,
+    coveragePercent: Math.round(clampNumber(analysis.coveragePercent, 0, 100, 0)),
+    criticalConcepts: Array.isArray(analysis.criticalConcepts) ? analysis.criticalConcepts.map((item) => cleanText(item, 120)).filter(Boolean).slice(0, 24) : [],
+    warnings: Array.isArray(analysis.warnings) ? analysis.warnings.map((item) => cleanText(item, 240)).filter(Boolean).slice(0, 8) : []
+  };
+}
+
+function normalizeInteractiveTopic(topic) {
+  if (!topic?.title) return null;
+  return {
+    id: cleanText(topic.id || `topic-${randomUUID()}`, 100),
+    title: cleanText(topic.title, 180),
+    sourcePages: Array.isArray(topic.sourcePages) ? topic.sourcePages.map(Number).filter((value) => Number.isFinite(value)).slice(0, 20) : [],
+    sourcePreview: cleanText(topic.sourcePreview || "", 600),
+    wordCount: Number(topic.wordCount) || 0,
+    contentType: cleanText(topic.contentType || "Texto", 60),
+    keyPoints: Array.isArray(topic.keyPoints) ? topic.keyPoints.map((item) => cleanText(item, 180)).filter(Boolean).slice(0, 8) : [],
+    summary: cleanText(topic.summary || "", 800)
+  };
 }
 
 function normalizeInteractiveLesson(lesson, lessonIndex = 0) {
