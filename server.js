@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSyn
 import { basename, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildCertificatePdf } from "./lib/certificates.js";
-import { generateInteractiveCourseFromPdf, summarizeCourse } from "./lib/interactive-generator.js";
+import { generateInteractiveCourseFromExtractedPages, generateInteractiveCourseFromPdf, summarizeCourse } from "./lib/interactive-generator.js";
 import { isDatabaseEnabled, loadDatabaseState, saveDatabaseState } from "./lib/persistence.js";
 import { createBlobReadUrl, deleteBlobResource, isBlobStorageEnabled, uploadBlobResource } from "./lib/storage.js";
 
@@ -1249,6 +1249,9 @@ async function handleTrainingStudioProjects(request, response, url, session) {
   if (url.pathname === "/api/projects/upload" && request.method === "POST") {
     return await handleTrainingStudioUpload(request, response, session);
   }
+  if (url.pathname === "/api/projects/upload-text" && request.method === "POST") {
+    return await handleTrainingStudioUploadText(request, response, session);
+  }
 
   const match = url.pathname.match(/^\/api\/projects\/([^/]+)(?:\/([^/]+)(?:\/([^/]+))?)?$/);
   if (!match) return sendJson(response, 404, { detail: "Projeto nao encontrado." });
@@ -1379,6 +1382,77 @@ async function handleTrainingStudioUpload(request, response, session) {
       storageMode === "none"
         ? "PDF processado para gerar rascunho, mas o storage definitivo ainda nao esta configurado neste ambiente."
         : "PDF anexado ao rascunho do treinamento."
+    ].filter(Boolean)
+  };
+  course.studioPayload = studioPayloadFromInteractiveCourse(course);
+  interactiveCourses.unshift(course);
+  try {
+    await persistRuntimeState({ strict: true });
+  } catch (error) {
+    interactiveCourses = interactiveCourses.filter((item) => item.id !== course.id);
+    return sendJson(response, 500, { detail: `Falha ao persistir treinamento: ${cleanText(error.message, 220)}` });
+  }
+  return sendJson(response, 201, interactiveCourseToStudioProject(course));
+}
+
+async function handleTrainingStudioUploadText(request, response, session) {
+  let body;
+  try {
+    body = await readJsonBody(request, 3_800_000);
+  } catch (error) {
+    return sendJson(response, error.statusCode || 400, { detail: error.message });
+  }
+
+  const originalName = cleanText(body?.filename || body?.name || "treinamento.pdf", 220);
+  if (!/\.pdf$/i.test(originalName)) return sendJson(response, 415, { detail: "O arquivo precisa ser PDF." });
+
+  const pages = Array.isArray(body?.pages) ? body.pages : [];
+  const textChars = pages.reduce((sum, page) => sum + String(page?.text || "").trim().length, 0);
+  if (!pages.length || textChars < 80) {
+    return sendJson(response, 422, {
+      detail: "Nao foi possivel ler texto suficiente do PDF no navegador. Use um PDF com texto selecionavel ou menor."
+    });
+  }
+
+  let generated;
+  try {
+    generated = await generateInteractiveCourseFromExtractedPages({
+      pages,
+      originalName,
+      storedUrl: "",
+      storedPathname: "",
+      options: {
+        title: cleanFileNameAsTitle(originalName),
+        totalPages: Number(body.totalPages || pages.length),
+        sourceSize: Number(body.size || 0),
+        responsible: session?.user?.name || "Administrador FortixSeg"
+      }
+    });
+  } catch (error) {
+    return sendJson(response, 422, {
+      detail: `Nao foi possivel gerar o treinamento pelo texto extraido: ${cleanText(error.message, 220)}`
+    });
+  }
+
+  const existingIds = new Set(interactiveCourses.map((course) => course.id));
+  while (existingIds.has(generated.id)) generated.id = `${generated.id}-${String(randomUUID()).slice(0, 6)}`;
+  const course = normalizeInteractiveCourse(generated);
+  course.pdf.storage = "browser-text";
+  course.pdf.size = Number(body.size || course.pdf.size || 0);
+  course.pdf.name = originalName;
+  course.sourceDocument = normalizeInteractiveSourceDocument({
+    ...(course.sourceDocument || {}),
+    filename: originalName,
+    size: Number(body.size || course.sourceDocument?.size || 0),
+    url: "",
+    pathname: ""
+  });
+  course.review = {
+    ...(course.review || {}),
+    status: "pending",
+    notes: [
+      ...((course.review || {}).notes || []),
+      "Arquivo grande processado por texto extraido no navegador. O PDF original nao foi enviado para a Function da Vercel."
     ].filter(Boolean)
   };
   course.studioPayload = studioPayloadFromInteractiveCourse(course);
