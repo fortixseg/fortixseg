@@ -714,6 +714,7 @@ function normalizeInteractiveCourse(course) {
     title: cleanText(module.title || `Modulo ${moduleIndex + 1}`, 180),
     topics: Array.isArray(module.topics) ? module.topics.map((topic) => cleanText(topic, 180)).filter(Boolean) : [],
     sourcePages: Array.isArray(module.sourcePages) ? module.sourcePages.map(Number).filter((value) => Number.isFinite(value)).slice(0, 80) : [],
+    displayPages: Array.isArray(module.displayPages) ? module.displayPages.map(Number).filter((value) => Number.isFinite(value)).slice(0, 120) : [],
     sourceWordCount: Number(module.sourceWordCount) || 0,
     structureConfidence: Number(module.structureConfidence) || 0,
     topicDetails: Array.isArray(module.topicDetails) ? module.topicDetails.map(normalizeInteractiveTopic).filter(Boolean) : [],
@@ -1730,6 +1731,7 @@ function buildStudioSourcePages(course) {
   const lessons = (course.modules || []).flatMap((module) => module.lessons || []);
   const byPage = new Map();
   const pdfUrl = course.pdf?.url || course.sourceDocument?.url || "";
+  const totalPdfPages = Number(course.pdf?.pages || course.sourceDocument?.totalPages || 0);
   for (const lesson of lessons) {
     const page = Number(lesson.sourcePage) || byPage.size + 1;
     if (byPage.has(page)) continue;
@@ -1750,6 +1752,21 @@ function buildStudioSourcePages(course) {
         explanations: [lesson.summary].filter(Boolean)
       }
     });
+  }
+  if (pdfUrl && totalPdfPages > 0) {
+    for (let page = 1; page <= Math.min(totalPdfPages, 120); page += 1) {
+      if (byPage.has(page)) continue;
+      byPage.set(page, {
+        page,
+        title: `Pagina ${page}`,
+        role: page === 1 ? "COVER" : "CONTENT",
+        text: "",
+        imageUrl: "",
+        pdfUrl,
+        hotspots: [],
+        learning: { topics: [`Pagina ${page}`], keyPoints: [], explanations: [] }
+      });
+    }
   }
   if (!byPage.size) {
     byPage.set(1, {
@@ -1774,7 +1791,10 @@ function buildStudioModule(module, moduleIndex, sourcePages) {
   const topics = lessons.length
     ? lessons.map((lesson, lessonIndex) => buildStudioTopic(lesson, module, lessonIndex))
     : (module.topicDetails || []).map((topic, topicIndex) => buildStudioTopicFromDetail(topic, module, topicIndex));
-  const displayPages = sourcePageNumbers.filter((page) => sourcePages.some((item) => Number(item.page) === Number(page)));
+  const requestedDisplayPages = (module.displayPages?.length ? module.displayPages : sourcePageNumbers)
+    .map(Number)
+    .filter((page) => Number.isFinite(page) && page > 0);
+  const displayPages = requestedDisplayPages.filter((page) => sourcePages.some((item) => Number(item.page) === Number(page)));
   return {
     id: module.id || `module-${moduleIndex + 1}`,
     title: module.title || `Modulo ${moduleIndex + 1}`,
