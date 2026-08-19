@@ -2694,27 +2694,36 @@ svg {
 }
 
 .app-shell.training-workspace-open {
-  grid-template-columns: 0 minmax(0, 1fr);
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100dvh;
+  background: #f4f7fb;
+  overflow: hidden;
 }
 
 .app-shell.training-workspace-open .app-sidebar {
-  width: 0;
-  min-width: 0;
-  padding: 0;
-  opacity: 0;
-  overflow: hidden;
-  transform: translateX(-100%);
-  pointer-events: none;
+  display: none;
 }
 
 .app-shell.training-workspace-open .app-main {
-  width: 100%;
+  width: 100vw;
+  height: 100dvh;
   max-width: none;
-  padding: 16px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .app-shell.training-workspace-open .app-topbar {
   display: none;
+}
+
+.training-workspace-body-lock {
+  overflow: hidden !important;
 }
 
 .app-sidebar {
@@ -3363,8 +3372,10 @@ font-size: 16px;
 .training-generator-workspace-view {
 max-width: none;
 width: 100%;
+height: 100%;
 margin: 0;
 padding: 0;
+overflow: hidden;
 }
 
 .training-original-frame-shell {
@@ -3385,7 +3396,35 @@ height: 900px;
 min-height: 700px;
 border: 0;
 background: #f4f7fb;
-overflow: hidden;
+overflow: auto;
+}
+
+.app-shell.training-workspace-open .training-workspace-topbar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 3;
+  height: 62px;
+  margin: 0;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+}
+
+.app-shell.training-workspace-open .training-original-frame-shell {
+  position: absolute;
+  inset: 62px 0 0 0;
+  min-height: 0;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.app-shell.training-workspace-open .training-original-frame {
+  height: 100% !important;
+  min-height: 0;
 }
 
 .training-management-section {

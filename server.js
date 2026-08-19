@@ -1340,12 +1340,6 @@ async function handleTrainingStudioUpload(request, response, session) {
     return sendJson(response, 500, { detail: `Falha ao armazenar PDF: ${cleanText(error.message, 180)}` });
   }
 
-  if (IS_SERVERLESS_RUNTIME && storageMode === "none") {
-    return sendJson(response, 500, {
-      detail: "Storage persistente nao configurado. Configure COURSE_STORAGE_MODE/BLOB_READ_WRITE_TOKEN ou execute no VPS antes de enviar PDFs reais."
-    });
-  }
-
   let generated;
   try {
     generated = await generateInteractiveCourseFromPdf({
@@ -1431,9 +1425,6 @@ async function handleTrainingStudioPublish(response, projectId, session) {
   if (IS_SERVERLESS_RUNTIME && !isDatabaseEnabled()) {
     return sendJson(response, 500, { detail: "Banco/Supabase nao configurado. A publicacao nao foi realizada." });
   }
-  if (course.pdf?.storage === "none") {
-    return sendJson(response, 500, { detail: "PDF de origem nao possui storage persistente. Reenvie o PDF com storage configurado antes de publicar." });
-  }
   const quality = buildStudioQuality(course);
   if (!quality.canPublish) return sendJson(response, 422, quality);
   const previous = structuredClone(course);
@@ -1442,7 +1433,13 @@ async function handleTrainingStudioPublish(response, projectId, session) {
     ...(course.review || {}),
     status: "approved",
     publishedAt: new Date().toISOString(),
-    publishedBy: session?.user?.email || ""
+    publishedBy: session?.user?.email || "",
+    notes: [
+      ...((course.review || {}).notes || []),
+      course.pdf?.storage === "none"
+        ? "Treinamento publicado sem PDF persistente. Configure o storage para manter o arquivo original anexado."
+        : ""
+    ].filter(Boolean)
   };
   course.publication = {
     id: `publication-${randomUUID()}`,

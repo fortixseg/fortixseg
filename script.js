@@ -1140,7 +1140,7 @@ function adminTrainingGeneratorWorkspaceTemplate() {
         id="trainingOriginalFrame"
         class="training-original-frame"
         src="/modules/training-studio/index.html"
-        scrolling="no"
+        scrolling="auto"
         title="Gerador de Treinamento por PDF"
       ></iframe>
     </section>
@@ -1394,7 +1394,10 @@ function getAdminTrainingManagementView() {
 
 function setTrainingWorkspaceOpen(open) {
   const shell = document.querySelector("#page-admin .app-shell");
-  shell?.classList.toggle("training-workspace-open", Boolean(open));
+  const isOpen = Boolean(open);
+  shell?.classList.toggle("training-workspace-open", isOpen);
+  document.documentElement.classList.toggle("training-workspace-body-lock", isOpen);
+  document.body.classList.toggle("training-workspace-body-lock", isOpen);
 }
 
 function openTrainingGeneratorWorkspace() {
