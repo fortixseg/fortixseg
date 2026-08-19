@@ -137,6 +137,18 @@ export async function handleRequest(request, response) {
       });
     }
 
+    if (request.method === "GET" && url.pathname === "/api/training-studio/health") {
+      return sendJson(response, 200, {
+        ok: true,
+        service: "fortix-training-studio",
+        engineVersion: "1.6.1",
+        supabase: isDatabaseEnabled(),
+        storage: isBlobStorageEnabled(),
+        runtime: IS_SERVERLESS_RUNTIME ? "serverless" : "node",
+        requestId
+      });
+    }
+
     if (request.method === "GET" && url.pathname === "/api/courses") {
       return sendJson(response, 200, { courses: await serializeCourseList(Object.values(courseCatalog).filter((course) => course.status === "published")) });
     }

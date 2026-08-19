@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fortix Training Studio</title>
+  <link rel="stylesheet" href="/static/styles.css?v=1.6.0" />
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="shield">F</div><div><strong>Fortix</strong><span>Training Studio</span></div></div>
+    <nav>
+      <button class="nav active" data-route="dashboard"><span>⌂</span> Visão geral</button>
+      <button class="nav" data-route="new"><span>＋</span> Novo treinamento</button>
+      <button class="nav" data-route="library"><span>▤</span> Treinamentos</button>
+      <button class="nav" data-route="student"><span>▶</span> Modo aluno</button>
+    </nav>
+    <div class="side-footer"><div class="avatar">LS</div><div><b>Administrador</b><small>Ambiente local</small></div></div>
+  </aside>
+  <main>
+    <header class="topbar">
+      <div><h1 id="pageTitle">Central de treinamentos</h1><p id="pageSubtitle">Transforme PDFs em treinamentos interativos e avaliáveis.</p></div>
+      <div class="top-actions"><span class="server-pill"><i></i> Servidor local</span><button class="icon-btn" id="refreshBtn" title="Atualizar">↻</button></div>
+    </header>
+    <div id="view"></div>
+  </main>
+</div>
+<div id="toast"></div>
+<div id="modalRoot"></div>
+<script src="/static/app.js?v=1.6.0"></script>
+</body>
+</html>
