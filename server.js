@@ -1729,17 +1729,20 @@ function buildStudioSource(course) {
 function buildStudioSourcePages(course) {
   const lessons = (course.modules || []).flatMap((module) => module.lessons || []);
   const byPage = new Map();
+  const pdfUrl = course.pdf?.url || course.sourceDocument?.url || "";
   for (const lesson of lessons) {
     const page = Number(lesson.sourcePage) || byPage.size + 1;
     if (byPage.has(page)) continue;
+    const lessonImageUrl = lesson.pageImageUrl && !/\.pdf(#|$)/i.test(lesson.pageImageUrl)
+      ? lesson.pageImageUrl
+      : "";
     byPage.set(page, {
       page,
       title: lesson.title || `Pagina ${page}`,
       role: page === 1 ? "COVER" : "CONTENT",
       text: lesson.extractedText || lesson.summary || "",
-      imageUrl: lesson.pageImageUrl && !/\.pdf(#|$)/i.test(lesson.pageImageUrl)
-        ? lesson.pageImageUrl
-        : buildStudioPageSvgDataUrl({ page, title: lesson.title, text: lesson.extractedText || lesson.summary || "" }),
+      imageUrl: lessonImageUrl || (pdfUrl ? "" : buildStudioPageSvgDataUrl({ page, title: lesson.title, text: lesson.extractedText || lesson.summary || "" })),
+      pdfUrl,
       hotspots: buildStudioHotspots(lesson.extractedText || lesson.summary || ""),
       learning: {
         topics: [lesson.title].filter(Boolean),
@@ -1754,7 +1757,8 @@ function buildStudioSourcePages(course) {
       title: course.title,
       role: "COVER",
       text: course.title,
-      imageUrl: buildStudioPageSvgDataUrl({ page: 1, title: course.title, text: "Material carregado para revisao tecnica." }),
+      imageUrl: pdfUrl ? "" : buildStudioPageSvgDataUrl({ page: 1, title: course.title, text: "Material carregado para revisao tecnica." }),
+      pdfUrl,
       hotspots: [],
       learning: { topics: [course.title], keyPoints: [], explanations: [] }
     });
